@@ -1,0 +1,255 @@
+import { describe, expect, it } from 'vitest';
+import { heroMasteryGrowth, heroSkillPower, soldierMasteryGrowth } from '../data/mastery';
+import { bossCombatTuning, bossDefinition, heroDefinitions, troopDefinitions } from '../data/units';
+import { challengeStages, stages } from '../data/stages';
+import { applyEnemyTerrain, attackPatternLabel, calculateDamage, canActivateMobilization, canAttackTarget, cooldownFillRatio, enemyFortressCanReinforce, enemyObjectiveDefeated, equipmentCost, fortressRearSpawnX, hasEquipmentCapstone, healedHp, heroAuraBonuses, heroAwakeningRank, heroMasteryLevelFromXp, isBehindLivingFortress, masteryLevelFromXp, mobilizedCommandStats, regenerateCommand, scaledBattleDelta, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, unitDeploymentCapacity, upgradedStats, upgradeCost } from './rules';
+
+describe('combat rules', () => {
+  it('applies anti-large damage bonus', () => {
+    expect(calculateDamage(troopDefinitions.lancer, bossDefinition)).toBe(Math.round(troopDefinitions.lancer.attackDamage * 1.75));
+  });
+
+  it('does not apply anti-large bonus to normal targets', () => {
+    expect(calculateDamage(troopDefinitions.lancer, troopDefinitions.militia)).toBe(troopDefinitions.lancer.attackDamage);
+  });
+
+  it('applies visible challenge terrain only to the enemy encounter copy', () => {
+    const base = troopDefinitions.spirit;
+    const terrainCopy = applyEnemyTerrain(base, challengeStages[1].terrain);
+    expect(terrainCopy.maxHp).toBe(base.maxHp * 10);
+    expect(terrainCopy.attackDamage).toBe(Math.round(base.attackDamage * 2.5));
+    expect(terrainCopy.moveSpeed).toBeCloseTo(base.moveSpeed * 1.15);
+    expect(troopDefinitions.spirit.maxHp).toBe(130);
+  });
+
+  it('keeps every optional beast challenge on the visible tenfold-health terrain rule', () => {
+    expect(challengeStages.every((stage) => stage.terrain.enemyHpMultiplier === 10)).toBe(true);
+    expect(challengeStages.every((stage) => stage.terrain.enemyAttackMultiplier >= 2.5)).toBe(true);
+  });
+
+  it('prices the two-target lancer above basic squad deployments', () => {
+    expect(troopDefinitions.lancer.cost).toBe(80);
+    expect(troopDefinitions.lancer.spawnCooldownMs).toBe(2_800);
+    expect(troopDefinitions.lancer.cost).toBeGreaterThan(troopDefinitions.militia.cost);
+  });
+
+  it('allows only ranged units to target flying troops', () => {
+    expect(canAttackTarget(troopDefinitions.militia, troopDefinitions.griffin)).toBe(false);
+    expect(canAttackTarget(troopDefinitions.archer, troopDefinitions.griffin)).toBe(true);
+    expect(canAttackTarget(troopDefinitions.griffin, troopDefinitions.militia)).toBe(true);
+  });
+
+  it('describes squad deployments and bounded multi-target attacks from unit data', () => {
+    expect(troopDefinitions.militia.squadSize).toBe(3);
+    expect(troopDefinitions.guardian.squadSize).toBe(2);
+    expect(attackPatternLabel(troopDefinitions.lancer)).toBe('2명 관통');
+    expect(attackPatternLabel(troopDefinitions.crossbow)).toBe('2명 관통');
+    expect(attackPatternLabel(troopDefinitions.brute)).toBe('근접 범위 전체 공격');
+  });
+
+  it('keeps archers superior at range and single-target deployment damage', () => {
+    const archer = troopDefinitions.archer;
+    const crossbow = troopDefinitions.crossbow;
+    expect(archer.attackRange - crossbow.attackRange).toBeGreaterThanOrEqual(50);
+    expect(archer.attackIntervalMs).toBeLessThan(crossbow.attackIntervalMs);
+    expect(archer.attackDamage * archer.squadSize).toBeGreaterThan(crossbow.attackDamage * crossbow.squadSize);
+  });
+
+  it('reserves crossbow superiority for a lined-up two-target shot', () => {
+    const archer = troopDefinitions.archer;
+    const crossbow = troopDefinitions.crossbow;
+    if (crossbow.attackPattern.kind !== 'pierce') throw new Error('Crossbow must retain its pierce identity.');
+    expect(crossbow.attackPattern.maxTargets).toBe(2);
+    const crossbowVolley = crossbow.attackDamage * (
+      1 + (crossbow.attackPattern.maxTargets - 1) * crossbow.attackPattern.secondaryDamageMultiplier
+    );
+    expect(crossbowVolley).toBeGreaterThan(archer.attackDamage * archer.squadSize);
+  });
+
+  it('keeps boss growth bounded to the same five-rank equipment system', () => {
+    const regionalBoss = upgradedStats(bossDefinition, stages[5].enemyUpgrades.equipment);
+    const finalBoss = upgradedStats(bossDefinition, stages[11].enemyUpgrades.equipment);
+    expect(regionalBoss.maxHp).toBe(5_550);
+    expect(regionalBoss.attackDamage).toBe(112);
+    expect(finalBoss.maxHp).toBe(5_550);
+    expect(finalBoss.attackDamage).toBe(112);
+    expect(bossCombatTuning.phaseTwoStompDamageMultiplier).toBeGreaterThan(bossCombatTuning.phaseOneStompDamageMultiplier);
+  });
+
+  it('regenerates command with a maximum cap', () => {
+    expect(regenerateCommand(50, 1000)).toBe(60);
+    expect(regenerateCommand(198, 1000)).toBe(200);
+  });
+
+  it('scales bounded simulation time at the purchased 1.5x rate', () => {
+    expect(scaledBattleDelta(20, 1)).toBe(20);
+    expect(scaledBattleDelta(20, 1.5)).toBe(30);
+    expect(scaledBattleDelta(1000, 1.5)).toBe(75);
+  });
+
+  it('rounds percentage progression rewards to a whole value', () => {
+    expect(scaledProgressionReward(100, 1.05)).toBe(105);
+    expect(scaledProgressionReward(30, 1.15)).toBe(35);
+    expect(scaledProgressionReward(-10, 1.25)).toBe(0);
+  });
+
+  it('deploys both factions behind their fortress with symmetric squad spacing', () => {
+    expect(fortressRearSpawnX('player', 105)).toBe(55);
+    expect(fortressRearSpawnX('player', 105, 2)).toBe(23);
+    expect(fortressRearSpawnX('enemy', 1155)).toBe(1205);
+    expect(fortressRearSpawnX('enemy', 1155, 2)).toBe(1237);
+  });
+
+  it('lets a living fortress shield rear units but not forward units or troops behind a destroyed fortress', () => {
+    expect(isBehindLivingFortress('player', 55, 105, 1800)).toBe(true);
+    expect(isBehindLivingFortress('player', 155, 105, 1800)).toBe(false);
+    expect(isBehindLivingFortress('enemy', 1205, 1155, 800)).toBe(true);
+    expect(isBehindLivingFortress('enemy', 1205, 1155, 0)).toBe(false);
+  });
+
+  it('normalizes the visual summon cooldown fill', () => {
+    expect(cooldownFillRatio(3000, 3000)).toBe(1);
+    expect(cooldownFillRatio(1500, 3000)).toBe(0.5);
+    expect(cooldownFillRatio(-10, 3000)).toBe(0);
+    expect(cooldownFillRatio(1000, 0)).toBe(0);
+  });
+
+  it('increases health and damage through upgrades', () => {
+    const upgraded = upgradedStats(troopDefinitions.militia, 2);
+    expect(upgraded.maxHp).toBe(troopDefinitions.militia.maxHp + troopDefinitions.militia.equipmentGrowth.hp * 2);
+    expect(upgraded.attackDamage).toBe(troopDefinitions.militia.attackDamage + troopDefinitions.militia.equipmentGrowth.attack * 2);
+  });
+
+  it('increases upgrade costs by level', () => {
+    expect(upgradeCost(0)).toBe(50);
+    expect(upgradeCost(1)).toBe(100);
+    expect(upgradeCost(4)).toBe(250);
+    expect(equipmentCost(troopDefinitions.brute, 0)).toBeGreaterThan(equipmentCost(troopDefinitions.militia, 0));
+  });
+
+  it('grows mastery from accumulated experience without currency', () => {
+    expect(masteryLevelFromXp(0).level).toBe(1);
+    expect(masteryLevelFromXp(45).level).toBe(2);
+    expect(upgradedStats(troopDefinitions.militia, 0, 4).maxHp).toBeGreaterThan(troopDefinitions.militia.maxHp);
+  });
+
+  it('caps hero mastery at 30 while soldier mastery retains level 50', () => {
+    expect(heroMasteryLevelFromXp(Number.MAX_SAFE_INTEGER).level).toBe(30);
+    expect(masteryLevelFromXp(Number.MAX_SAFE_INTEGER).level).toBe(50);
+    expect(upgradedStats(heroDefinitions.warden, 0, 50)).toEqual(upgradedStats(heroDefinitions.warden, 0, 30));
+  });
+
+  it('uses role-specific flat soldier mastery gains per level', () => {
+    const militia = upgradedStats(troopDefinitions.militia, 0, 4);
+    const brute = upgradedStats(troopDefinitions.brute, 0, 4);
+    expect(militia.maxHp).toBe(troopDefinitions.militia.maxHp + soldierMasteryGrowth.militia.hp * 3);
+    expect(militia.attackDamage).toBe(troopDefinitions.militia.attackDamage + soldierMasteryGrowth.militia.attack * 3);
+    expect(brute.maxHp).toBe(troopDefinitions.brute.maxHp + soldierMasteryGrowth.brute.hp * 3);
+    expect(brute.attackDamage).toBe(troopDefinitions.brute.attackDamage + soldierMasteryGrowth.brute.attack * 3);
+  });
+
+  it('gives hero mastery stronger stats, active power, and bounded respawn reduction', () => {
+    const level = 10;
+    const warden = upgradedStats(heroDefinitions.warden, 0, level);
+    expect(warden.maxHp).toBe(heroDefinitions.warden.maxHp + heroMasteryGrowth.warden.hp * 9);
+    expect(warden.attackDamage).toBe(heroDefinitions.warden.attackDamage + heroMasteryGrowth.warden.attack * 9);
+    expect(heroAwakeningRank(9)).toBe(0);
+    expect(heroAwakeningRank(10)).toBe(1);
+    expect(heroAwakeningRank(20)).toBe(2);
+    expect(heroAwakeningRank(30)).toBe(3);
+    expect(scaledHeroSkillPower(heroSkillPower.warden.shield, heroSkillPower.warden.shieldPerRank, heroSkillPower.warden.shieldPerAwakening, level)).toBe(240);
+    expect(scaledHeroSkillCooldownMs(heroDefinitions.warden, level)).toBe(23_500);
+    expect(scaledHeroRespawnMs(heroDefinitions.warden, level)).toBe(17_300);
+    expect(scaledHeroRespawnMs(heroDefinitions.warden, 30)).toBe(13_000);
+    expect(scaledHeroSkillPower(heroSkillPower.pyromancer.unitDamage, heroSkillPower.pyromancer.unitDamagePerRank, heroSkillPower.pyromancer.unitDamagePerAwakening, 30)).toBe(1_004);
+    expect(scaledHeroSkillPower(heroSkillPower.pyromancer.castleDamage, heroSkillPower.pyromancer.castleDamagePerRank, heroSkillPower.pyromancer.castleDamagePerAwakening, 30)).toBe(630);
+    expect(scaledHeroSkillPower(heroSkillPower.huntress.unitDamage, heroSkillPower.huntress.unitDamagePerRank, heroSkillPower.huntress.unitDamagePerAwakening, 30)).toBe(472);
+    expect(scaledHeroSkillPower(heroSkillPower.huntress.bossDamage, heroSkillPower.huntress.bossDamagePerRank, heroSkillPower.huntress.bossDamagePerAwakening, 30)).toBe(698);
+  });
+
+  it('unlocks and scales distinct hero auras only at awakening milestones', () => {
+    expect(heroAuraBonuses('warden', 9).defenseBonus).toBe(0);
+    expect(heroAuraBonuses('warden', 10).defenseBonus).toBe(2);
+    expect(heroAuraBonuses('pyromancer', 20).attackBonus).toBe(6);
+    expect(heroAuraBonuses('huntress', 30).rangeBonus).toBe(45);
+    expect(heroAuraBonuses('saint', 30).healingPerSecond).toBe(12);
+    expect(heroAuraBonuses('marshal', 30).moveSpeedBonus).toBe(12);
+  });
+
+  it('defines a bounded shared healer whose weapon and mastery also improve healing', () => {
+    const priest = troopDefinitions.priest;
+    expect(priest.tags).toContain('support');
+    expect(priest.healingPower).toBe(34);
+    expect(priest.healingRange).toBeGreaterThan(priest.attackRange);
+    expect(upgradedStats(priest, { weapon: 2, armor: 0, boots: 0 }, 3).healingPower).toBe(40);
+    expect(healedHp(50, 100, 35)).toBe(85);
+    expect(healedHp(90, 100, 35)).toBe(100);
+  });
+
+  it('allows mobilization only at full command and before its use cap', () => {
+    expect(canActivateMobilization(199.9, 200, 0, 3)).toBe(false);
+    expect(canActivateMobilization(200, 200, 0, 3)).toBe(true);
+    expect(canActivateMobilization(240, 240, 3, 3)).toBe(false);
+    expect(mobilizedCommandStats(200, 10)).toEqual({ maxCommand: 225, commandRegen: 11.5 });
+  });
+
+  it('requires both the boss and fortress in campaign sieges but only the boss in challenges', () => {
+    expect(enemyObjectiveDefeated(stages[5], 0, true)).toBe(false);
+    expect(enemyObjectiveDefeated(stages[5], 100, false)).toBe(false);
+    expect(enemyObjectiveDefeated(stages[5], 0, false)).toBe(true);
+    expect(enemyObjectiveDefeated(challengeStages[0], 999, true)).toBe(false);
+    expect(enemyObjectiveDefeated(challengeStages[0], 999, false)).toBe(true);
+  });
+
+  it('stops campaign boss garrisons when their producing fortress falls', () => {
+    expect(enemyFortressCanReinforce(stages[5], stages[5].enemyCastleHp)).toBe(true);
+    expect(enemyFortressCanReinforce(stages[5], 0)).toBe(false);
+    expect(enemyFortressCanReinforce(challengeStages[0], 999)).toBe(false);
+  });
+
+  it('enforces per-side battlefield caps for legendary combatants', () => {
+    expect(unitDeploymentCapacity(troopDefinitions.griffin, 0)).toBe(2);
+    expect(unitDeploymentCapacity(troopDefinitions.griffin, 1)).toBe(1);
+    expect(unitDeploymentCapacity(troopDefinitions.griffin, 2)).toBe(0);
+    expect(unitDeploymentCapacity(troopDefinitions.militia, 999)).toBe(Number.POSITIVE_INFINITY);
+  });
+
+  it('applies weapon, armor, and boots independently', () => {
+    const weapon = upgradedStats(troopDefinitions.militia, { weapon: 2, armor: 0, boots: 0 });
+    const armor = upgradedStats(troopDefinitions.militia, { weapon: 0, armor: 2, boots: 0 });
+    const boots = upgradedStats(troopDefinitions.militia, { weapon: 0, armor: 0, boots: 2 });
+    expect(weapon.attackDamage).toBeGreaterThan(troopDefinitions.militia.attackDamage);
+    expect(weapon.attackDamage).toBe(troopDefinitions.militia.attackDamage + troopDefinitions.militia.equipmentGrowth.attack * 2);
+    expect(armor.maxHp).toBeGreaterThan(troopDefinitions.militia.maxHp);
+    expect(armor.maxHp).toBe(troopDefinitions.militia.maxHp + troopDefinitions.militia.equipmentGrowth.hp * 2);
+    expect(armor.defense).toBe(troopDefinitions.militia.equipmentGrowth.defense * 2);
+    expect(boots.moveSpeed).toBeGreaterThan(troopDefinitions.militia.moveSpeed);
+    expect(boots.moveSpeed).toBe(troopDefinitions.militia.moveSpeed + troopDefinitions.militia.equipmentGrowth.moveSpeed * 2);
+    expect(equipmentCost(troopDefinitions.militia, 0)).toBe(50);
+  });
+
+  it('adds one soldier when any equipment branch reaches rank five', () => {
+    const almostComplete = { weapon: 4, armor: 4, boots: 4 };
+    const completed = { weapon: 5, armor: 0, boots: 0 };
+    expect(hasEquipmentCapstone(almostComplete)).toBe(false);
+    expect(upgradedStats(troopDefinitions.militia, almostComplete).squadSize).toBe(3);
+    expect(hasEquipmentCapstone(completed)).toBe(true);
+    expect(upgradedStats(troopDefinitions.militia, completed).squadSize).toBe(4);
+    expect(upgradedStats(troopDefinitions.brute, completed).squadSize).toBe(2);
+  });
+
+  it('does not apply the soldier deployment capstone to heroes or bosses', () => {
+    const completed = { weapon: 5, armor: 5, boots: 5 };
+    expect(upgradedStats(heroDefinitions.warden, completed).squadSize).toBe(1);
+    expect(upgradedStats(bossDefinition, completed).squadSize).toBe(1);
+  });
+
+  it('uses role-specific absolute equipment growth instead of a shared percentage', () => {
+    const militia = upgradedStats(troopDefinitions.militia, { weapon: 1, armor: 1, boots: 1 });
+    const brute = upgradedStats(troopDefinitions.brute, { weapon: 1, armor: 1, boots: 1 });
+    expect(militia.attackDamage - troopDefinitions.militia.attackDamage).toBe(2);
+    expect(brute.attackDamage - troopDefinitions.brute.attackDamage).toBe(5);
+    expect(militia.maxHp - troopDefinitions.militia.maxHp).toBe(18);
+    expect(brute.maxHp - troopDefinitions.brute.maxHp).toBe(42);
+  });
+});
