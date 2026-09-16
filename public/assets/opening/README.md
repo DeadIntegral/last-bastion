@@ -9,7 +9,8 @@ These four project-owned 1672 × 941 WebP backgrounds are the runtime art for th
 - Medium: premium hand-painted 2D dark-fantasy concept art and cinematic matte painting
 - Palette: charcoal navy, weathered stone, ember crimson, and restrained antique gold
 - Kingdom identity: torn deep-blue banners with an original antique-gold crown-and-tower emblem
-- Composition: layered atmospheric depth with a darker lower-left region reserved for Korean overlay copy
+- Generation composition: layered atmospheric depth with a darker lower-left region originally reserved for Korean overlay copy
+- Runtime presentation: the final UI instead uses a centered lower-third title and subtitle over a full-width bottom vignette; this preserves the generation prompt record while documenting the implemented overlay
 - Avoid: embedded text, letters, UI, frames, watermarks, modern objects, copyrighted characters, or recognizable franchise designs
 
 ## Final prompt set

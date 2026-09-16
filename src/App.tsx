@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useId, useRef, useState, type ChangeEvent, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { allTroopOrder, bossDefinition, heroDefinitions, heroOrder, troopDefinitions, unitFamilyById, unitFamilyLabels } from './data/units';
 import { bossCodex, CODEX_TOTAL, codexEntryCount, heroCodex, troopCodex } from './data/codex';
 import { achievementById, achievementGroups, achievementProgress, achievements, featuredAchievement } from './data/achievements';
@@ -62,6 +62,75 @@ function GrowthStat({ current, base }: { current: number; base: number }) {
   return <span className="growth-stat" title={`기본 ${base}`} aria-label={`현재 ${current}, 기본 대비 ${deltaLabel}`}><span>{current}</span><small>{deltaLabel}</small></span>;
 }
 
+function GameModal({ eyebrow, title, children, actions, onClose, tone = 'default' }: {
+  eyebrow: string;
+  title: string;
+  children: ReactNode;
+  actions: ReactNode;
+  onClose: () => void;
+  tone?: 'default' | 'danger';
+}) {
+  const titleId = useId();
+  const panelRef = useRef<HTMLElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
+  useEffect(() => {
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const panel = panelRef.current;
+    (panel?.querySelector<HTMLElement>('[data-autofocus]') ?? panel?.querySelector<HTMLElement>('button:not(:disabled)'))?.focus();
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeRef.current();
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('keydown', closeOnEscape);
+      previousFocus?.focus();
+    };
+  }, []);
+
+  const trapFocus = (event: ReactKeyboardEvent<HTMLElement>) => {
+    if (event.key !== 'Tab') return;
+    const focusable = [...event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), [href], input:not(:disabled), [tabindex]:not([tabindex="-1"])')];
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
+  return (
+    <div className="game-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <section className={`game-modal game-modal-${tone}`} role="dialog" aria-modal="true" aria-labelledby={titleId} ref={panelRef} onKeyDown={trapFocus}>
+        <button className="game-modal-close" onClick={onClose} aria-label="대화상자 닫기">×</button>
+        <div className="game-modal-crest" aria-hidden="true"><span>♜</span></div>
+        <header><span className="eyebrow">{eyebrow}</span><h2 id={titleId}>{title}</h2></header>
+        <div className="game-modal-content">{children}</div>
+        <footer className="game-modal-actions">{actions}</footer>
+      </section>
+    </div>
+  );
+}
+
+function downloadSaveFile(serialized: string): void {
+  const blob = new Blob([serialized], { type: 'application/json;charset=utf-8' });
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const now = new Date();
+  const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  link.href = objectUrl;
+  link.download = `last-bastion-save-${date}.json`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+}
+
 function ShellHeader({ title, onBack }: { title: string; onBack: () => void }) {
   const gold = useGameStore((state) => state.gold);
   const gems = useGameStore((state) => state.gems);
@@ -76,31 +145,60 @@ function ShellHeader({ title, onBack }: { title: string; onBack: () => void }) {
 
 function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
   const resetProgress = useGameStore((state) => state.resetProgress);
+  const exportSave = useGameStore((state) => state.exportSave);
   const importSave = useGameStore((state) => state.importSave);
   const unlockedStage = useGameStore((state) => state.unlockedStage);
   const battles = useGameStore((state) => state.stats.battles);
   const clearedStages = useGameStore((state) => state.clearedStages);
   const gold = useGameStore((state) => state.gold);
-  const [notice, setNotice] = useState('');
+  const [activeModal, setActiveModal] = useState<'save-manager' | 'new-game' | 'import-confirm' | 'invalid-save' | null>(null);
+  const [pendingImport, setPendingImport] = useState<{ name: string; serialized: string } | null>(null);
+  const [saveNotice, setSaveNotice] = useState('');
   const importRef = useRef<HTMLInputElement>(null);
   const hasStoredSave = typeof localStorage !== 'undefined' && localStorage.getItem('last-bastion-profile-v1') !== null;
   const hasSave = hasStoredSave || unlockedStage > 1 || battles > 0 || clearedStages.length > 0 || gold !== 100;
 
-  const startNewGame = () => {
-    if (hasSave && !window.confirm('현재 자동 저장 기록을 지우고 새 게임을 시작할까요?')) return;
+  const beginNewGame = () => {
     resetProgress();
+    setActiveModal(null);
     onNavigate('opening');
+  };
+
+  const startNewGame = () => {
+    if (hasSave) setActiveModal('new-game');
+    else beginNewGame();
+  };
+
+  const applyImport = (serialized: string) => {
+    const success = importSave(serialized);
+    setPendingImport(null);
+    if (success) {
+      setActiveModal(null);
+      onNavigate('stages');
+    } else setActiveModal('invalid-save');
   };
 
   const loadFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
-    const success = importSave(await file.text());
-    if (success) onNavigate('stages');
-    else {
-      setNotice('올바른 Last Bastion 저장 JSON이 아닙니다.');
-      window.setTimeout(() => setNotice(''), 2_200);
+    try {
+      const serialized = await file.text();
+      if (hasSave) {
+        setPendingImport({ name: file.name, serialized });
+        setActiveModal('import-confirm');
+      } else applyImport(serialized);
+    } catch {
+      setActiveModal('invalid-save');
+    }
+  };
+
+  const downloadSave = () => {
+    try {
+      downloadSaveFile(exportSave());
+      setSaveNotice('현재 진행도를 JSON 파일로 내보냈습니다.');
+    } catch {
+      setSaveNotice('저장 파일을 만들지 못했습니다. 브라우저의 다운로드 권한을 확인해 주세요.');
     }
   };
 
@@ -128,12 +226,29 @@ function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
           <button className="title-menu-primary" onClick={startNewGame}><span>새 게임</span><small>NEW GAME</small></button>
           <button disabled><span>불러오기</span><small>저장 기록 없음</small></button>
         </>}
-        <button onClick={() => importRef.current?.click()}><span>임포트</span><small>IMPORT SAVE</small></button>
+        <button onClick={() => { setSaveNotice(''); setActiveModal('save-manager'); }}><span>저장 관리</span><small>IMPORT · EXPORT</small></button>
         <button onClick={() => onNavigate('credits')}><span>크레딧</span><small>CREDITS</small></button>
         <input ref={importRef} type="file" accept="application/json,.json" hidden onChange={loadFile} />
       </section>
       <p className="menu-tip">“대륙이 마왕군에 완전히 무너지기 전, 최후의 성채에서 반격하라.”</p>
-      {notice && <div className="toast" role="status">{notice}</div>}
+      {activeModal === 'save-manager' && <GameModal eyebrow="SAVE ARCHIVE" title="저장 기록 관리" onClose={() => setActiveModal(null)} actions={<button className="modal-button secondary" onClick={() => setActiveModal(null)}>닫기</button>}>
+        <p>진행도는 이 브라우저에 자동 저장됩니다. JSON 파일로 보관하면 다른 브라우저나 기기에서도 같은 원정을 이어갈 수 있습니다.</p>
+        <div className="save-status-card"><span>{hasSave ? '자동 저장 발견' : '진행 기록 없음'}</span><strong>{hasSave ? `최고 ${Math.min(unlockedStage, stages.length)}장 · 전투 ${battles.toLocaleString()}회` : '새 게임을 시작하거나 저장 파일을 가져오세요.'}</strong></div>
+        <div className="save-transfer-actions">
+          <button onClick={() => importRef.current?.click()}><i>↓</i><span><b>저장 파일 가져오기</b><small>Last Bastion JSON 불러오기</small></span></button>
+          <button disabled={!hasSave} onClick={downloadSave}><i>↑</i><span><b>현재 진행 내보내기</b><small>{hasSave ? '휴대용 JSON으로 다운로드' : '진행 기록이 필요합니다'}</small></span></button>
+        </div>
+        {saveNotice && <p className="modal-status" role="status">{saveNotice}</p>}
+      </GameModal>}
+      {activeModal === 'new-game' && <GameModal eyebrow="NEW CAMPAIGN" title="새 원정을 시작할까요?" tone="danger" onClose={() => setActiveModal(null)} actions={<><button className="modal-button secondary" data-autofocus onClick={() => setActiveModal(null)}>취소</button><button className="modal-button danger" onClick={beginNewGame}>기록 초기화 후 시작</button></>}>
+        <p>현재 브라우저의 자동 저장 기록이 초기화됩니다. 보관하려면 먼저 저장 관리에서 JSON 파일을 내보내세요.</p>
+      </GameModal>}
+      {activeModal === 'import-confirm' && pendingImport && <GameModal eyebrow="IMPORT SAVE" title="저장 기록을 교체할까요?" tone="danger" onClose={() => { setPendingImport(null); setActiveModal('save-manager'); }} actions={<><button className="modal-button secondary" data-autofocus onClick={() => { setPendingImport(null); setActiveModal('save-manager'); }}>취소</button><button className="modal-button danger" onClick={() => applyImport(pendingImport.serialized)}>가져와서 계속하기</button></>}>
+        <p><strong>{pendingImport.name}</strong>의 진행도로 현재 자동 저장을 교체합니다. 필요하다면 기존 진행도를 먼저 내보내세요.</p>
+      </GameModal>}
+      {activeModal === 'invalid-save' && <GameModal eyebrow="IMPORT FAILED" title="저장 파일을 읽을 수 없습니다" onClose={() => setActiveModal('save-manager')} actions={<button className="modal-button primary" data-autofocus onClick={() => setActiveModal('save-manager')}>저장 관리로 돌아가기</button>}>
+        <p>올바른 Last Bastion 저장 JSON인지 확인해 주세요. 관련 없는 데이터와 손상된 파일은 안전을 위해 적용하지 않습니다.</p>
+      </GameModal>}
     </main>
   );
 }
@@ -492,6 +607,7 @@ function Armory({ onBack }: { onBack: () => void }) {
   const toggleEquippedUnit = useGameStore((state) => state.toggleEquippedUnit);
   const resetProgress = useGameStore((state) => state.resetProgress);
   const [notice, setNotice] = useState('');
+  const [confirmReset, setConfirmReset] = useState(false);
   const [familyFilter, setFamilyFilter] = useState<UnitFamily | 'all'>('all');
   const visibleRoster = familyFilter === 'all' ? allTroopOrder : allTroopOrder.filter((id) => unitFamilyById[id] === familyFilter);
 
@@ -515,10 +631,6 @@ function Armory({ onBack }: { onBack: () => void }) {
       ? `${troopDefinitions[id].name}을(를) 전투 편성에서 ${wasEquipped ? '제외' : '등록'}했습니다.`
       : '전투 편성은 1종 이상, 최대 4종까지 가능합니다.');
     window.setTimeout(() => setNotice(''), 1800);
-  };
-
-  const reset = () => {
-    if (window.confirm('모든 금화와 업그레이드, 스테이지 진행도를 초기화할까요?')) resetProgress();
   };
 
   return (
@@ -591,8 +703,11 @@ function Armory({ onBack }: { onBack: () => void }) {
           );
         })}
       </div>
-      <button className="reset-button" onClick={reset}>진행 데이터 초기화</button>
+      <button className="reset-button" onClick={() => setConfirmReset(true)}>진행 데이터 초기화</button>
       {notice && <div className="toast" role="status">{notice}</div>}
+      {confirmReset && <GameModal eyebrow="RESET PROFILE" title="모든 진행도를 초기화할까요?" tone="danger" onClose={() => setConfirmReset(false)} actions={<><button className="modal-button secondary" data-autofocus onClick={() => setConfirmReset(false)}>취소</button><button className="modal-button danger" onClick={() => { resetProgress(); setConfirmReset(false); }}>모든 기록 초기화</button></>}>
+        <p>금화, 보석, 장비, 숙련도, 영웅, 성채 기술과 스테이지 진행이 모두 처음 상태로 돌아갑니다. 이 작업은 되돌릴 수 없습니다.</p>
+      </GameModal>}
     </main>
   );
 }

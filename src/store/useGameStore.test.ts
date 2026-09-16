@@ -3,7 +3,7 @@ import { UNIT_IDS, type BattleResult, type UnitId } from '../types/game';
 import { emptyCastleTech } from '../data/castle';
 import { HERO_MASTERY_MAX_LEVEL } from '../data/mastery';
 import { totalMasteryXpForLevel } from '../game/rules';
-import { useGameStore } from './useGameStore';
+import { SAVE_EXPORT_FORMAT, SAVE_EXPORT_VERSION, useGameStore } from './useGameStore';
 
 const emptySummons = (): Record<UnitId, number> => Object.fromEntries(UNIT_IDS.map((id) => [id, 0])) as Record<UnitId, number>;
 
@@ -222,6 +222,26 @@ describe('shared troop progression', () => {
     expect(useGameStore.getState().unlockedStage).toBe(5);
     expect(useGameStore.getState().unlockedUnits).toEqual(['militia', 'mage']);
     expect(useGameStore.getState().equippedUnits).toEqual(['mage']);
+  });
+
+  it('exports a portable versioned save without store actions and imports it again', () => {
+    useGameStore.setState({ gold: 1_234, gems: 56, unlockedStage: 7, clearedStages: [1, 2, 3, 4, 5, 6] });
+
+    const serialized = useGameStore.getState().exportSave();
+    const exported = JSON.parse(serialized) as { format: string; version: number; exportedAt: string; state: Record<string, unknown> };
+
+    expect(exported.format).toBe(SAVE_EXPORT_FORMAT);
+    expect(exported.version).toBe(SAVE_EXPORT_VERSION);
+    expect(Number.isNaN(Date.parse(exported.exportedAt))).toBe(false);
+    expect(exported.state.gold).toBe(1_234);
+    expect(exported.state.gems).toBe(56);
+    expect(exported.state.exportSave).toBeUndefined();
+    expect(exported.state.resetProgress).toBeUndefined();
+
+    useGameStore.getState().resetProgress();
+    expect(useGameStore.getState().importSave(serialized)).toBe(true);
+    expect(useGameStore.getState().gold).toBe(1_234);
+    expect(useGameStore.getState().unlockedStage).toBe(7);
   });
 
   it('rejects unrelated JSON and never lets imported fields replace store actions', () => {

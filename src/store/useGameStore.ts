@@ -66,6 +66,7 @@ interface GameProfile {
   purchaseBattleSpeed: () => boolean;
   toggleBattleSpeed: () => boolean;
   toggleMuted: () => void;
+  exportSave: () => string;
   importSave: (serialized: string) => boolean;
   resetProgress: () => void;
 }
@@ -142,6 +143,9 @@ const defaults = {
 
 type SavedGameProfile = Partial<GameProfile> & { upgrades?: LegacyUnitLevels; heroLevels?: LegacyHeroLevels };
 
+export const SAVE_EXPORT_FORMAT = 'last-bastion-save';
+export const SAVE_EXPORT_VERSION = 1;
+
 function hydrateSavedProfile(saved: SavedGameProfile | undefined, current: GameProfile): GameProfile {
   const validUnit = (id: unknown): id is UnitId => typeof id === 'string' && allTroopOrder.includes(id as UnitId);
   const validHero = (id: unknown): id is HeroId => typeof id === 'string' && id in heroDefinitions;
@@ -210,6 +214,18 @@ function hydrateSavedProfile(saved: SavedGameProfile | undefined, current: GameP
     muted: typeof saved?.muted === 'boolean' ? saved.muted : current.muted,
     battleSpeedUnlocked: saved?.battleSpeedUnlocked === true,
     battleSpeed: saved?.battleSpeedUnlocked === true && saved?.battleSpeed === 1.5 ? 1.5 : 1,
+  };
+}
+
+function persistedProfile({
+  gold, gems, lastDailyClaimDate, unlockedStage, equipmentLevels, unlockedUnits, equippedUnits, clearedStages, clearedChallenges, unitMasteryXp, selectedHero, unlockedHeroes,
+  heroEquipmentLevels, heroMasteryXp, fortressTier, castleTechLevels, stats,
+  unlockedAchievementIds, claimedAchievementIds, discoveredEnemies, muted, battleSpeedUnlocked, battleSpeed,
+}: GameProfile) {
+  return {
+    gold, gems, lastDailyClaimDate, unlockedStage, equipmentLevels, unlockedUnits, equippedUnits, clearedStages, clearedChallenges, unitMasteryXp, selectedHero, unlockedHeroes,
+    heroEquipmentLevels, heroMasteryXp, fortressTier, castleTechLevels, stats,
+    unlockedAchievementIds, claimedAchievementIds, discoveredEnemies, muted, battleSpeedUnlocked, battleSpeed,
   };
 }
 
@@ -463,6 +479,12 @@ export const useGameStore = create<GameProfile>()(
         return true;
       },
       toggleMuted: () => set((state) => ({ muted: !state.muted })),
+      exportSave: () => JSON.stringify({
+        format: SAVE_EXPORT_FORMAT,
+        version: SAVE_EXPORT_VERSION,
+        exportedAt: new Date().toISOString(),
+        state: persistedProfile(get()),
+      }, null, 2),
       importSave: (serialized) => {
         try {
           const parsed = JSON.parse(serialized) as unknown;
@@ -490,15 +512,7 @@ export const useGameStore = create<GameProfile>()(
     {
       name: 'last-bastion-profile-v1',
       storage: createJSONStorage(() => localStorage),
-      partialize: ({
-        gold, gems, lastDailyClaimDate, unlockedStage, equipmentLevels, unlockedUnits, equippedUnits, clearedStages, clearedChallenges, unitMasteryXp, selectedHero, unlockedHeroes,
-        heroEquipmentLevels, heroMasteryXp, fortressTier, castleTechLevels, stats,
-        unlockedAchievementIds, claimedAchievementIds, discoveredEnemies, muted, battleSpeedUnlocked, battleSpeed,
-      }) => ({
-        gold, gems, lastDailyClaimDate, unlockedStage, equipmentLevels, unlockedUnits, equippedUnits, clearedStages, clearedChallenges, unitMasteryXp, selectedHero, unlockedHeroes,
-        heroEquipmentLevels, heroMasteryXp, fortressTier, castleTechLevels, stats,
-        unlockedAchievementIds, claimedAchievementIds, discoveredEnemies, muted, battleSpeedUnlocked, battleSpeed,
-      }),
+      partialize: persistedProfile,
       merge: (persisted, current) => {
         return hydrateSavedProfile(persisted as SavedGameProfile | undefined, current as GameProfile);
       },
