@@ -364,7 +364,7 @@ function createLateStage(id: number): Omit<StageDefinition, 'fortressDistance' |
       bossName: bossNames[id],
       reinforcement: lateBossGarrison(id),
       bossModifiers: {
-        hpMultiplier: 2.05 + bossRank * 0.13 + (bossRank === 4 ? 0.43 : bossRank === 5 ? 0.25 : 0),
+        hpMultiplier: 2.05 + bossRank * 0.13 + (bossRank === 4 ? 0.43 : bossRank === 5 ? 0.4 : 0),
         attackMultiplier: 1.08 + bossRank * 0.08,
         stompCadenceMultiplier: Math.max(0.74, 1 - bossRank * 0.05),
       },

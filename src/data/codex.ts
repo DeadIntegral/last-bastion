@@ -3,11 +3,11 @@ import { allTroopOrder, troopDefinitions } from './units';
 
 const authoredTroopCodex: Partial<Record<UnitId, CodexEntry>> = {
   militia: { id: 'militia', kind: 'unit', title: '푸른 깃발 민병대', role: '3인 저비용 근접 분대', description: '한 번에 셋이 집결해 전선을 넓게 만들지만 개별 병사는 약합니다.', lore: '왕국의 부름에 농기구를 내려놓고 모인 변경의 주민들입니다.' },
-  guardian: { id: 'guardian', kind: 'unit', title: '왕실 방패병', role: '2인 중갑 방어 분대', description: '둘이 함께 배치되어 높은 체력과 방어 장비로 후방 병사를 보호합니다.', lore: '무너진 수도의 마지막 방패를 나누어 든 왕실 근위대입니다.' },
+  guardian: { id: 'guardian', kind: 'unit', title: '왕실 방패병', role: '2인 관통 차단 방어 분대', description: '관통 공격을 몸으로 멈추고 뒤쪽 지상 병력까지 닿는 전방 파동의 남은 사거리를 65% 줄입니다.', lore: '무너진 수도의 마지막 방패를 나누어 든 왕실 근위대입니다.' },
   archer: { id: 'archer', kind: 'unit', title: '녹림 궁수단', role: '장거리 2인 집중사격', description: '석궁병보다 훨씬 먼 거리에서 둘이 한 대상을 집중 사격하지만 개별 체력이 낮아 근접전에 취약합니다.', lore: '서부 숲의 길을 지키던 파수꾼들이 원정대에 합류했습니다.' },
   lancer: { id: 'lancer', kind: 'unit', title: '황금 창병대', role: '2명 관통 대형 대응병', description: '한 번의 찌르기로 최대 2명을 관통하며 대형 적과 보스에게 75% 추가 피해를 줍니다.', lore: '거인의 갑주 틈을 찌르는 기술을 세대에 걸쳐 전승했습니다.' },
   raider: { id: 'raider', kind: 'unit', title: '고블린 약탈병', role: '3인 고속 근접 분대', description: '한 번에 셋이 배치되어 빠르게 빈틈을 파고들지만 개별 전투력은 낮습니다.', lore: '마왕군의 식량 약속에 이끌려 국경 마을을 습격하기 시작한 고블린 무리입니다.' },
-  bulwark: { id: 'bulwark', kind: 'unit', title: '오크 철갑병', role: '근접 범위 중갑병', description: '느리고 단단하며 무거운 공격으로 사거리 안의 전열 전체를 휩씁니다.', lore: '쇠사슬 부족의 대장장이들이 성문을 뜯어 갑옷으로 두른 전사입니다.' },
+  bulwark: { id: 'bulwark', kind: 'unit', title: '오크 철갑병', role: '관통 차단 범위 중갑병', description: '느리고 단단하며 관통을 끊고 후방 파동을 크게 감쇠시키면서 사거리 안의 전열 전체를 휩씁니다.', lore: '쇠사슬 부족의 대장장이들이 성문을 뜯어 갑옷으로 두른 전사입니다.' },
   cavalry: { id: 'cavalry', kind: 'unit', title: '왕립 기마병', role: '2명 관통 돌격병', description: '빠르게 전열을 가르고 첫 공격에 60% 추가 피해를 주며 최대 2명을 관통합니다.', lore: '왕립 마구간의 마지막 군마들은 성채가 다시 일어서기만을 기다렸습니다.' },
   crossbow: { id: 'crossbow', kind: 'unit', title: '붉은 석궁병', role: '중거리 2명 관통 중사수', description: '궁수보다 짧은 거리에서 느리게 사격하지만 높은 위력의 볼트가 일렬로 선 적을 최대 2명까지 관통합니다.', lore: '한때 왕국의 병기창을 지키던 사수들이 적의 깃발을 들었습니다.' },
   brute: { id: 'brute', kind: 'unit', title: '오우거 파쇄자', role: '근접 범위 돌격병', description: '높은 체력으로 버티며 한 번의 휘두르기로 사거리 안의 전열 전체를 공격합니다.', lore: '마왕군의 쇠사슬에서 풀려난 뒤에도 전장을 떠나지 못한 오우거입니다.' },
@@ -20,7 +20,11 @@ const authoredTroopCodex: Partial<Record<UnitId, CodexEntry>> = {
 const generatedRole = (id: UnitId): string => {
   const unit = troopDefinitions[id];
   const domain = unit.tags.includes('flying') ? '공중' : unit.tags.includes('mounted') ? '기동' : '지상';
-  const attack = unit.tags.includes('ranged') ? '원거리' : unit.attackPattern.kind === 'cleave' ? '범위 근접' : unit.attackPattern.kind === 'pierce' ? '관통' : '근접';
+  const attack = unit.attackPattern.kind === 'groundBurst' ? '지면 발현 마법'
+    : unit.attackPattern.kind === 'directional' ? '전방 파동 마법'
+      : unit.tags.includes('ranged') ? '원거리'
+        : unit.attackPattern.kind === 'cleave' ? '범위 근접'
+          : unit.attackPattern.kind === 'pierce' ? '관통' : '근접';
   return `${domain} ${attack} 병종`;
 };
 
@@ -46,7 +50,7 @@ export const troopCodex = Object.fromEntries(allTroopOrder.map((id) => {
 })) as Record<UnitId, CodexEntry>;
 
 export const heroCodex: Record<HeroId, CodexEntry> = {
-  warden: { id: 'warden', kind: 'hero', title: '에드릭 · 철벽의 기사', role: '전열 지원 영웅', description: '주변 아군의 피해를 줄이고 보호막을 부여합니다.', lore: '모두가 퇴각한 날에도 혼자 성문을 닫지 않았던 왕실 기사입니다.' },
+  warden: { id: 'warden', kind: 'hero', title: '에드릭 · 철벽의 기사', role: '관통 차단 전열 지원 영웅', description: '관통 공격과 전방 파동을 막아내며 주변 아군의 피해를 줄이고 보호막을 부여합니다.', lore: '모두가 퇴각한 날에도 혼자 성문을 닫지 않았던 왕실 기사입니다.' },
   pyromancer: { id: 'pyromancer', kind: 'hero', title: '셀레네 · 잿불 마녀', role: '광역 마법 영웅', description: '공격이 번지고 적진에 거대한 유성을 떨어뜨립니다.', lore: '불탄 마도원에서 살아남아 재가 된 지식을 불꽃으로 되살렸습니다.' },
   huntress: { id: 'huntress', kind: 'hero', title: '리아 · 마수 사냥꾼', role: '보스 특화 영웅', description: '대형 적의 약점을 노리고 전장 전체에 화살비를 내립니다.', lore: '잿빛 산맥에서 돌아온 유일한 사냥꾼이며 마수의 심장 박동을 기억합니다.' },
   saint: { id: 'saint', kind: 'hero', title: '미레나 · 새벽의 성녀', role: '치유 지원 영웅', description: '부상자를 우선 치유하고 기도로 아군과 성채를 함께 회복합니다.', lore: '함락된 성당의 마지막 등불을 들고 피난민을 최후의 성채까지 이끌었습니다.' },

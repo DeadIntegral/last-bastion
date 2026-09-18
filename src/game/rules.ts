@@ -47,7 +47,9 @@ export function calculateDamage(attacker: UnitDefinition, target: UnitDefinition
 
 export function canAttackTarget(attacker: UnitDefinition, target: UnitDefinition): boolean {
   if (target.tags.includes('flying') && !attacker.tags.includes('ranged')) return false;
-  if (target.tags.includes('flying') && attacker.attackPattern.kind === 'splash' && attacker.attackPattern.targetDomain === 'ground') return false;
+  if (target.tags.includes('flying')
+    && (attacker.attackPattern.kind === 'splash' || attacker.attackPattern.kind === 'directional' || attacker.attackPattern.kind === 'groundBurst')
+    && attacker.attackPattern.targetDomain === 'ground') return false;
   return true;
 }
 
@@ -56,7 +58,17 @@ export function attackPatternLabel(definition: UnitDefinition): string {
   if (pattern.kind === 'pierce') return `${pattern.maxTargets}명 관통`;
   if (pattern.kind === 'cleave') return '근접 범위 전체 공격';
   if (pattern.kind === 'splash') return `착탄 범위 공격 · 반경 ${pattern.radius}`;
+  if (pattern.kind === 'directional') return `전방 파동 · 길이 ${pattern.length}`;
+  if (pattern.kind === 'groundBurst') return `지면 발현 · 반경 ${pattern.radius}`;
   return '단일 공격';
+}
+
+export function guardProtectionLabel(definition: UnitDefinition): string | undefined {
+  const protection = definition.guardProtection;
+  if (!protection) return undefined;
+  const reduction = Math.round((1 - protection.rearRangeMultiplier) * 100);
+  const domain = protection.protectedDomains.includes('flying') ? '전 영역' : '지상';
+  return `관통 차단 · ${domain} 후방 파동 ${reduction}% 감쇠`;
 }
 
 export function attackRecoveryMs(definition: UnitDefinition): number {

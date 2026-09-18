@@ -9,6 +9,7 @@ import { allTroopOrder, bossCombatTuning, bossDefinition, heroDefinitions, troop
 import type { BattleHudState, BattleSpeed, CastleBattleStats, CastleTechId, CodexEnemyId, EnemyId, EquipmentLevels, HeroDefinition, HeroId, Side, StageDefinition, UnitDefinition, UnitId } from '../types/game';
 import { BattleEvent, battleEvents } from './EventBus';
 import { attackMotionDurationMs, attackMotionStyle, createAttackMotionPose, projectileVisualStyle, sampleAttackMotion, type AttackMotionPose, type AttackMotionStyle, type ProjectileVisualStyle } from './combatMotion';
+import { resolveDirectionalTargets, resolveGroundBurstTargets, resolvePierceTargets, type LaneTargetAccess } from './combatTargeting';
 import {
   calculateDamage,
   applyEnemyTerrain,
@@ -50,6 +51,7 @@ interface CombatUnit {
   attackWindupRemainingMs: number;
   pendingAttackKind: PendingAttackKind;
   pendingTargetId: number;
+  pendingTargetX: number;
   container: Phaser.GameObjects.Container;
   hpBar: Phaser.GameObjects.Rectangle;
   alive: boolean;
@@ -111,6 +113,22 @@ interface PooledFlashEffect {
   durationMs: number;
 }
 
+interface PooledGroundTelegraphEffect {
+  object: Phaser.GameObjects.Arc;
+  elapsedMs: number;
+  durationMs: number;
+  radius: number;
+  owner?: CombatUnit;
+}
+
+interface PooledGuardEffect {
+  object: Phaser.GameObjects.Container;
+  ring: Phaser.GameObjects.Arc;
+  wake: Phaser.GameObjects.Rectangle;
+  elapsedMs: number;
+  durationMs: number;
+}
+
 export const WORLD_WIDTH = 1600;
 export const WORLD_HEIGHT = 720;
 const PLAYER_CASTLE_X = 105;
@@ -133,6 +151,20 @@ export class BattleScene extends Phaser.Scene {
   private strikeEffects: PooledStrikeEffect[] = [];
   private projectileEffects: PooledProjectileEffect[] = [];
   private flashEffects: PooledFlashEffect[] = [];
+  private groundTelegraphEffects: PooledGroundTelegraphEffect[] = [];
+  private guardEffects: PooledGuardEffect[] = [];
+  private targetingAttacker?: CombatUnit;
+  private readonly combatTargetAccess: LaneTargetAccess<CombatUnit> = {
+    x: (target) => target.container.x,
+    size: (target) => target.definition.size,
+    domain: (target) => target.definition.tags.includes('flying') ? 'flying' : 'ground',
+    guardProtection: (target) => target.definition.guardProtection,
+    eligible: (target) => Boolean(this.targetingAttacker)
+      && target.alive
+      && target.side !== this.targetingAttacker!.side
+      && canAttackTarget(this.targetingAttacker!.definition, target.definition)
+      && !this.isProtectedByLivingFortress(target),
+  };
   private nextEntityId = 1;
   private command = 70;
   private elapsed = 0;
@@ -455,7 +487,7 @@ export class BattleScene extends Phaser.Scene {
     const unit: CombatUnit = {
       id: this.nextEntityId++, definition, side, hp: definition.maxHp, maxHp: definition.maxHp,
       shield: 0, attackTimer: Phaser.Math.Between(0, 250), attackRecoveryLocked: false,
-      attackWindupRemainingMs: 0, pendingAttackKind: 'none', pendingTargetId: 0,
+      attackWindupRemainingMs: 0, pendingAttackKind: 'none', pendingTargetId: 0, pendingTargetX: 0,
       container, hpBar, alive: true, isHero: hero, isBoss: boss, isElite: Boolean(eliteName), hasCharged: false,
       baseScale: 1, attackMotionMs: 0, attackMotionDurationMs: 0, attackRig, attackPose: createAttackMotionPose(), damageFlashMs: 0,
     };
@@ -698,6 +730,12 @@ export class BattleScene extends Phaser.Scene {
   private findTarget(unit: CombatUnit): CombatUnit | undefined {
     let best: CombatUnit | undefined;
     let bestDistance = Number.POSITIVE_INFINITY;
+    let bestGroundBurstTarget: CombatUnit | undefined;
+    let bestGroundBurstScore = -1;
+    const groundBurst = unit.attackTimer <= 0 && unit.definition.attackPattern.kind === 'groundBurst'
+      ? unit.definition.attackPattern
+      : undefined;
+    const rangeBonus = this.heroAuraFor(unit).rangeBonus;
     for (const candidate of this.units) {
       if (!candidate.alive || candidate.side === unit.side || candidate.id === unit.id) continue;
       if (!canAttackTarget(unit.definition, candidate.definition)) continue;
@@ -711,8 +749,22 @@ export class BattleScene extends Phaser.Scene {
         bestDistance = distance;
         best = candidate;
       }
+      if (!groundBurst) continue;
+      const edgeDistance = distance - candidate.definition.size - unit.definition.size;
+      if (!isWithinAttackBand(unit.definition, edgeDistance, rangeBonus)) continue;
+      let clusteredBodies = 0;
+      for (const neighbor of this.units) {
+        if (!neighbor.alive || neighbor.side === unit.side || this.isProtectedByLivingFortress(neighbor)) continue;
+        if (!canAttackTarget(unit.definition, neighbor.definition)) continue;
+        if (Math.abs(neighbor.container.x - candidate.container.x) - neighbor.definition.size <= groundBurst.radius) clusteredBodies += 1;
+      }
+      const score = clusteredBodies * 10_000 + distance;
+      if (score > bestGroundBurstScore) {
+        bestGroundBurstScore = score;
+        bestGroundBurstTarget = candidate;
+      }
     }
-    return best;
+    return bestGroundBurstTarget ?? best;
   }
 
   private findHealTarget(healer: CombatUnit): CombatUnit | undefined {
@@ -752,12 +804,20 @@ export class BattleScene extends Phaser.Scene {
       ? bossCombatTuning.phaseTwoAttackIntervalMultiplier
       : 1;
     const cycleMs = attacker.definition.attackIntervalMs * cadenceMultiplier;
-    const windupMs = Math.min(cycleMs, attacker.definition.attackWindupMs * cadenceMultiplier);
+    const groundBurstTelegraphMs = kind === 'unit' && attacker.definition.attackPattern.kind === 'groundBurst'
+      ? attacker.definition.attackPattern.telegraphMs
+      : attacker.definition.attackWindupMs;
+    const windupMs = Math.min(cycleMs, groundBurstTelegraphMs * cadenceMultiplier);
     attacker.attackTimer = cycleMs;
     attacker.attackRecoveryLocked = true;
     attacker.attackWindupRemainingMs = windupMs;
     attacker.pendingAttackKind = kind;
     attacker.pendingTargetId = target?.id ?? 0;
+    attacker.pendingTargetX = target?.container.x ?? 0;
+    if (kind === 'unit' && target && attacker.definition.attackPattern.kind === 'groundBurst') {
+      const pattern = attacker.definition.attackPattern;
+      this.showGroundTelegraph(attacker, target.container.x, pattern.radius, windupMs, attacker.definition.accent);
+    }
     this.startAttackMotion(attacker, Math.max(windupMs, attackMotionDurationMs(attacker.attackRig.style)));
     if (windupMs <= 0) this.resolvePendingAttack(attacker);
   }
@@ -772,11 +832,17 @@ export class BattleScene extends Phaser.Scene {
   private resolvePendingAttack(attacker: CombatUnit): void {
     const kind = attacker.pendingAttackKind;
     const targetId = attacker.pendingTargetId;
+    const targetX = attacker.pendingTargetX;
     attacker.pendingAttackKind = 'none';
     attacker.pendingTargetId = 0;
+    attacker.pendingTargetX = 0;
     attacker.attackWindupRemainingMs = 0;
 
     if (kind === 'unit') {
+      if (attacker.definition.attackPattern.kind === 'groundBurst') {
+        this.attackGroundBurst(attacker, targetId, targetX);
+        return;
+      }
       const target = this.unitById(targetId);
       if (target && this.canResolveAttackAgainst(attacker, target)) this.attackUnit(attacker, target);
       return;
@@ -820,6 +886,11 @@ export class BattleScene extends Phaser.Scene {
     return isWithinAttackBand(attacker.definition, edgeDistance, this.heroAuraFor(attacker).rangeBonus);
   }
 
+  private isProtectedByLivingFortress(target: CombatUnit): boolean {
+    if (target.side === 'player') return isBehindLivingFortress('player', target.container.x, PLAYER_CASTLE_X, this.playerCastleHp);
+    return !this.stageDefinition.challenge && isBehindLivingFortress('enemy', target.container.x, this.enemyCastleX, this.enemyHp);
+  }
+
   private attackUnit(attacker: CombatUnit, target: CombatUnit): void {
     const targets = this.attackTargets(attacker, target);
     const primaryDamage = this.attackDamage(attacker, target.definition);
@@ -827,12 +898,49 @@ export class BattleScene extends Phaser.Scene {
       ? 1
       : attacker.definition.attackPattern.secondaryDamageMultiplier;
     musicEngine.playEffect(attacker.definition.tags.includes('flying') ? 'air' : attacker.definition.tags.includes('ranged') ? 'ranged' : attacker.definition.tags.includes('charge') ? 'heavy' : 'melee');
-    for (const [index, hitTarget] of targets.entries()) {
-      const damage = index === 0
+    for (const hitTarget of targets) {
+      const damage = hitTarget.id === target.id
         ? primaryDamage
         : Math.round((calculateDamage(attacker.definition, hitTarget.definition) + this.heroAuraFor(attacker).attackBonus) * secondaryDamageMultiplier);
       if (attacker.definition.tags.includes('ranged')) this.launchProjectile(attacker, hitTarget);
       else this.showStrike(hitTarget.container.x, hitTarget.container.y, attacker.definition.color);
+      if (this.guardStopsAttack(attacker, target, hitTarget)) this.showGuardInterception(attacker, hitTarget);
+      this.damageUnit(hitTarget, damage);
+    }
+  }
+
+  private guardStopsAttack(attacker: CombatUnit, primary: CombatUnit, target: CombatUnit): boolean {
+    const protection = target.definition.guardProtection;
+    if (!protection) return false;
+    const pattern = attacker.definition.attackPattern;
+    if (pattern.kind === 'directional') {
+      const domain = target.definition.tags.includes('flying') ? 'flying' : 'ground';
+      return protection.protectedDomains.includes(domain);
+    }
+    if (pattern.kind !== 'pierce' || !protection.stopsPierce) return false;
+    const traversalDomain = primary.definition.tags.includes('flying') ? 'flying' : 'ground';
+    return protection.protectedDomains.includes(traversalDomain);
+  }
+
+  private attackGroundBurst(attacker: CombatUnit, primaryTargetId: number, targetX: number): void {
+    const pattern = attacker.definition.attackPattern;
+    if (pattern.kind !== 'groundBurst') return;
+    this.targetingAttacker = attacker;
+    const targets = resolveGroundBurstTargets(
+      targetX,
+      this.units,
+      pattern.radius,
+      pattern.targetDomain,
+      this.combatTargetAccess,
+      this.attackTargetBuffer,
+    );
+    if (targets.length === 0) return;
+    musicEngine.playEffect('skill');
+    this.flashAt(targetX, GROUND_Y, attacker.definition.accent);
+    for (const hitTarget of targets) {
+      const baseDamage = calculateDamage(attacker.definition, hitTarget.definition) + this.heroAuraFor(attacker).attackBonus;
+      const damage = Math.round(baseDamage * (hitTarget.id === primaryTargetId ? 1 : pattern.secondaryDamageMultiplier));
+      this.showStrike(hitTarget.container.x, hitTarget.container.y, attacker.definition.accent);
       this.damageUnit(hitTarget, damage);
     }
   }
@@ -853,14 +961,40 @@ export class BattleScene extends Phaser.Scene {
       for (const candidate of this.units) {
         if (!candidate.alive || candidate.side === attacker.side || candidate.id === primary.id) continue;
         if (!canAttackTarget(attacker.definition, candidate.definition)) continue;
+        if (this.isProtectedByLivingFortress(candidate)) continue;
         if (Math.abs(candidate.container.x - primary.container.x) <= pattern.radius) targets.push(candidate);
       }
       return targets;
+    }
+    this.targetingAttacker = attacker;
+    if (pattern.kind === 'directional') {
+      return resolveDirectionalTargets(
+        attacker.side,
+        attacker.container.x,
+        this.units,
+        pattern.length + attacker.definition.size,
+        pattern.targetDomain,
+        this.combatTargetAccess,
+        targets,
+      );
+    }
+    if (pattern.kind === 'groundBurst') return targets;
+    if (pattern.kind === 'pierce') {
+      return resolvePierceTargets(
+        attacker.side,
+        primary,
+        this.units,
+        pattern.maxTargets,
+        pattern.followThroughRange,
+        this.combatTargetAccess,
+        targets,
+      );
     }
     const direction = attacker.side === 'player' ? 1 : -1;
     for (const candidate of this.units) {
       if (!candidate.alive || candidate.side === attacker.side || candidate.id === primary.id) continue;
       if (!canAttackTarget(attacker.definition, candidate.definition)) continue;
+      if (this.isProtectedByLivingFortress(candidate)) continue;
       const forwardDistance = (candidate.container.x - attacker.container.x) * direction;
       if (forwardDistance < -20) continue;
       if (pattern.kind === 'cleave') {
@@ -868,16 +1002,6 @@ export class BattleScene extends Phaser.Scene {
         if (edgeDistance <= attacker.definition.attackRange) targets.push(candidate);
         continue;
       }
-      const distance = (candidate.container.x - primary.container.x) * direction;
-      if (distance < -8 || distance > pattern.followThroughRange) continue;
-      let insertAt = 1;
-      while (insertAt < targets.length) {
-        const existingDistance = (targets[insertAt].container.x - primary.container.x) * direction;
-        if (existingDistance > distance) break;
-        insertAt += 1;
-      }
-      targets.splice(insertAt, 0, candidate);
-      if (targets.length > pattern.maxTargets) targets.pop();
     }
     return targets;
   }
@@ -1410,6 +1534,45 @@ export class BattleScene extends Phaser.Scene {
     effect.object.setPosition(x, y).setRadius(12).setFillStyle(color, 0.38).setAlpha(1).setVisible(true).setActive(true);
   }
 
+  private showGroundTelegraph(owner: CombatUnit, x: number, radius: number, durationMs: number, color: number): void {
+    const effect = this.groundTelegraphEffects.find((candidate) => !candidate.object.active);
+    if (!effect) return;
+    effect.elapsedMs = 0;
+    effect.durationMs = Math.max(1, durationMs);
+    effect.radius = radius;
+    effect.owner = owner;
+    effect.object
+      .setPosition(x, GROUND_Y + 4)
+      .setRadius(radius)
+      .setFillStyle(color, 0.08)
+      .setStrokeStyle(3, color, 0.72)
+      .setScale(0.72, 0.24)
+      .setAlpha(1)
+      .setVisible(true)
+      .setActive(true);
+  }
+
+  private showGuardInterception(attacker: CombatUnit, guard: CombatUnit): void {
+    const effect = this.guardEffects.find((candidate) => !candidate.object.active);
+    if (!effect) return;
+    const direction = attacker.side === 'player' ? 1 : -1;
+    const rearMultiplier = guard.definition.guardProtection?.rearRangeMultiplier ?? 0;
+    effect.elapsedMs = 0;
+    effect.durationMs = 300;
+    effect.ring.setStrokeStyle(4, guard.definition.accent, 0.92).setScale(1);
+    effect.wake
+      .setPosition(direction * (24 + rearMultiplier * 22), 0)
+      .setOrigin(direction === 1 ? 0 : 1, 0.5)
+      .setDisplaySize(42 + rearMultiplier * 70, 14)
+      .setFillStyle(guard.definition.accent, 0.3);
+    effect.object
+      .setPosition(guard.container.x, guard.container.y)
+      .setScale(1)
+      .setAlpha(1)
+      .setVisible(true)
+      .setActive(true);
+  }
+
   private createEffectPools(): void {
     for (let index = 0; index < 32; index += 1) {
       const object = this.add.star(0, 0, 4, 4, 13, 0xffffff, 0.9).setDepth(600).setVisible(false).setActive(false);
@@ -1456,6 +1619,20 @@ export class BattleScene extends Phaser.Scene {
       const object = this.add.circle(0, 0, 12, 0xffffff, 0.38).setDepth(500).setVisible(false).setActive(false);
       this.flashEffects.push({ object, elapsedMs: 0, durationMs: 300 });
     }
+    for (let index = 0; index < 12; index += 1) {
+      const object = this.add.circle(0, 0, 20, 0xffffff, 0.08)
+        .setStrokeStyle(3, 0xffffff, 0.72)
+        .setDepth(495)
+        .setVisible(false)
+        .setActive(false);
+      this.groundTelegraphEffects.push({ object, elapsedMs: 0, durationMs: 1, radius: 20 });
+    }
+    for (let index = 0; index < 12; index += 1) {
+      const ring = this.add.circle(0, 0, 25, 0xffffff, 0).setStrokeStyle(4, 0xffffff, 0.92);
+      const wake = this.add.rectangle(28, 0, 48, 14, 0xffffff, 0.3).setOrigin(0, 0.5);
+      const object = this.add.container(0, 0, [wake, ring]).setDepth(610).setVisible(false).setActive(false);
+      this.guardEffects.push({ object, ring, wake, elapsedMs: 0, durationMs: 300 });
+    }
   }
 
   private updatePooledEffects(delta: number): void {
@@ -1487,6 +1664,33 @@ export class BattleScene extends Phaser.Scene {
       effect.elapsedMs = Math.min(effect.durationMs, effect.elapsedMs + delta);
       const progress = effect.elapsedMs / effect.durationMs;
       effect.object.setRadius(12 + 30 * progress).setAlpha(1 - progress);
+      if (progress >= 1) effect.object.setVisible(false).setActive(false);
+    }
+    for (const effect of this.groundTelegraphEffects) {
+      if (!effect.object.active) continue;
+      if (!effect.owner?.alive) {
+        effect.owner = undefined;
+        effect.object.setVisible(false).setActive(false);
+        continue;
+      }
+      effect.elapsedMs = Math.min(effect.durationMs, effect.elapsedMs + delta);
+      const progress = effect.elapsedMs / effect.durationMs;
+      const pulse = 0.82 + Math.sin(progress * Math.PI * 5) * 0.05;
+      effect.object
+        .setRadius(effect.radius)
+        .setScale((0.72 + progress * 0.28) * pulse, (0.24 + progress * 0.05) * pulse)
+        .setAlpha(0.4 + progress * 0.6);
+      if (progress >= 1) {
+        effect.owner = undefined;
+        effect.object.setVisible(false).setActive(false);
+      }
+    }
+    for (const effect of this.guardEffects) {
+      if (!effect.object.active) continue;
+      effect.elapsedMs = Math.min(effect.durationMs, effect.elapsedMs + delta);
+      const progress = effect.elapsedMs / effect.durationMs;
+      effect.ring.setScale(1 + progress * 0.45);
+      effect.object.setScale(1 + progress * 0.18, 1 - progress * 0.08).setAlpha(1 - progress);
       if (progress >= 1) effect.object.setVisible(false).setActive(false);
     }
   }
@@ -1607,5 +1811,7 @@ export class BattleScene extends Phaser.Scene {
     this.strikeEffects.length = 0;
     this.projectileEffects.length = 0;
     this.flashEffects.length = 0;
+    this.groundTelegraphEffects.length = 0;
+    this.guardEffects.length = 0;
   }
 }

@@ -27,11 +27,19 @@ export interface EquipmentGrowth {
   defense: number;
   moveSpeed: number;
 }
+export type MovementDomain = 'ground' | 'flying';
+export interface GuardProtection {
+  stopsPierce: boolean;
+  rearRangeMultiplier: number;
+  protectedDomains: MovementDomain[];
+}
 export type AttackPattern =
   | { kind: 'single' }
   | { kind: 'pierce'; maxTargets: 2 | 3; followThroughRange: number; secondaryDamageMultiplier: number }
   | { kind: 'cleave'; secondaryDamageMultiplier: number }
-  | { kind: 'splash'; radius: number; secondaryDamageMultiplier: number; targetDomain: 'ground' | 'all' };
+  | { kind: 'splash'; radius: number; secondaryDamageMultiplier: number; targetDomain: 'ground' | 'all' }
+  | { kind: 'directional'; length: number; secondaryDamageMultiplier: number; targetDomain: 'ground' | 'all' }
+  | { kind: 'groundBurst'; radius: number; secondaryDamageMultiplier: number; targetDomain: 'ground' | 'all'; telegraphMs: number };
 export type Side = 'player' | 'enemy';
 export type BattleSpeed = 1 | 1.5;
 export type Screen = 'menu' | 'opening' | 'credits' | 'stages' | 'merchant' | 'training' | 'monument' | 'armory' | 'heroes' | 'fortress' | 'achievements' | 'codex' | 'battle' | 'result';
@@ -65,6 +73,7 @@ export interface UnitDefinition {
   requiresEncounter?: boolean;
   recruitSource?: 'encounter' | 'fortress' | 'challenge';
   maxActivePerSide?: number;
+  guardProtection?: GuardProtection;
   healingPower?: number;
   healingRange?: number;
   grade?: UnitGrade;

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { heroMasteryGrowth, heroSkillPower, soldierMasteryGrowth } from '../data/mastery';
 import { allTroopOrder, bossCombatTuning, bossDefinition, heroDefinitions, troopDefinitions } from '../data/units';
 import { challengeStages, stages } from '../data/stages';
-import { ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL, STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS, applyEnemyTerrain, applyTriumphMonumentStats, attackPatternLabel, attackRangeLabel, attackRecoveryMs, attackTimingLabel, calculateDamage, canActivateMobilization, canAttackTarget, canReceiveRallyOrder, cooldownFillRatio, enemyFortressCanReinforce, enemyObjectiveDefeated, equipmentCost, fortressRearSpawnX, hasEquipmentCapstone, healedHp, heroAuraBonuses, heroAwakeningRank, heroMasteryLevelFromXp, isBehindLivingFortress, isWithinAttackBand, masteryLevelFromXp, mobilizedCommandStats, regenerateCommand, scaledBattleDelta, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, unitDeploymentCapacity, upgradedStats, upgradeCost, usesStatEquipmentCapstone } from './rules';
+import { ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL, STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS, applyEnemyTerrain, applyTriumphMonumentStats, attackPatternLabel, attackRangeLabel, attackRecoveryMs, attackTimingLabel, calculateDamage, canActivateMobilization, canAttackTarget, canReceiveRallyOrder, cooldownFillRatio, enemyFortressCanReinforce, enemyObjectiveDefeated, equipmentCost, fortressRearSpawnX, guardProtectionLabel, hasEquipmentCapstone, healedHp, heroAuraBonuses, heroAwakeningRank, heroMasteryLevelFromXp, isBehindLivingFortress, isWithinAttackBand, masteryLevelFromXp, mobilizedCommandStats, regenerateCommand, scaledBattleDelta, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, unitDeploymentCapacity, upgradedStats, upgradeCost, usesStatEquipmentCapstone } from './rules';
 
 describe('combat rules', () => {
   it('applies anti-large damage bonus', () => {
@@ -39,6 +39,8 @@ describe('combat rules', () => {
     expect(canAttackTarget(troopDefinitions.griffin, troopDefinitions.militia)).toBe(true);
     expect(canAttackTarget(troopDefinitions.goblinBomber, troopDefinitions.griffin)).toBe(false);
     expect(canAttackTarget(troopDefinitions.fireSpirit, troopDefinitions.griffin)).toBe(true);
+    expect(canAttackTarget(troopDefinitions.mage, troopDefinitions.griffin)).toBe(false);
+    expect(canAttackTarget(troopDefinitions.archmage, troopDefinitions.griffin)).toBe(true);
   });
 
   it('describes squad deployments and bounded multi-target attacks from unit data', () => {
@@ -48,6 +50,9 @@ describe('combat rules', () => {
     expect(attackPatternLabel(troopDefinitions.crossbow)).toBe('2명 관통');
     expect(attackPatternLabel(troopDefinitions.brute)).toBe('근접 범위 전체 공격');
     expect(attackPatternLabel(troopDefinitions.goblinBomber)).toBe('착탄 범위 공격 · 반경 82');
+    expect(attackPatternLabel(troopDefinitions.mage)).toBe('지면 발현 · 반경 72');
+    expect(attackPatternLabel(troopDefinitions.archmage)).toBe('전방 파동 · 길이 245');
+    expect(guardProtectionLabel(troopDefinitions.guardian)).toBe('관통 차단 · 지상 후방 파동 65% 감쇠');
   });
 
   it('defines a valid windup, recovery, and optional close-range dead zone for every combatant', () => {

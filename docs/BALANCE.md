@@ -73,8 +73,8 @@ Only 5-star troops count as transcendent for `초월의 군기`. In particular, 
 | 그리폰 기수 | 200 | 1 | 1,600 | 150 | 58 | 1050 ms | 78 | 6.5 s | 1,500 | cleave, ×0.85 secondary |
 | 폭풍 정령 | 155 | 1 | 600 | 55 | 185 | 1150 ms | 58 | 4.5 s | challenge 102 | pierce 2, ×0.70 follow-through |
 | 마염견 | 170 | 1 | 850 | 70 | 46 | 900 ms | 76 | 4.8 s | challenge 103 | cleave, ×0.65 secondary |
-| 왕국 마법사 | 115 | 1 | 110 | 36 | 195 | 1300 ms | 37 | 3.5 s | encounter | pierce 2, ×0.65 follow-through |
-| 대마법사 | 190 | 1 | 700 | 110 | 245 | 1600 ms | 31 | 5.5 s | encounter | pierce 3, ×0.70 follow-through |
+| 왕국 마법사 | 115 | 1 | 110 | 36 | 195 | 1300 ms | 37 | 3.5 s | encounter | ground burst r72, ×0.70 secondary |
+| 대마법사 | 190 | 1 | 700 | 110 | 245 | 1600 ms | 31 | 5.5 s | encounter | all-domain directional 245, ×0.70 secondary |
 | 이프리트 | 200 | 1 | 11,000 | 140 | 215 | 1650 ms | 42 | 6.6 s | challenge 104 after stage 30 | pierce 3, ×0.75 follow-through |
 | 창공의 고룡 | 200 | 1 | 15,000 | 240 | 250 | 1900 ms | 36 | 9.0 s | challenge 105 after stage 30 | pierce 3, ×0.80 follow-through |
 
@@ -86,11 +86,11 @@ Only 5-star troops count as transcendent for `초월의 군기`. In particular, 
 - Royal Cavalry has 3 base defense and its first attack after each spawn deals ×1.6 damage. Griffin Rider has 8 base defense, is tagged `flying` and `large`, and moves 112 virtual pixels above the lane. It retains higher per-hit melee damage than Ifrit, but consumes the full 200 base Command, waits 6.5 seconds between deployments, must enter melee range, and permits only two living bodies per side.
 - Only combatants tagged `ranged` and the player watchtower can select a flying target. Late enemy-fortress fire is an explicit domain-independent exception and can shoot both ground and flying attackers. Fortress bombardment and beast stomp skip flying targets; flying units can attack ground targets normally.
 - Defense is subtracted from incoming damage after bonuses; final damage has a minimum of 1.
-- Pierce starts with the selected primary target, then selects the nearest valid targets farther along the attack direction inside its follow-through distance. Cleave selects all valid targets inside the attacker's normal melee range. Every secondary target receives the listed multiplier.
+- Pierce starts with the selected primary target, then selects the nearest valid targets farther along the attack direction inside its follow-through distance. A guard protecting that movement domain takes its normal hit and terminates the traversal. Cleave selects all valid targets inside the attacker's normal melee range. Every secondary target receives the listed multiplier.
 - Archer versus Crossbow is an explicit tradeoff rather than a faction advantage. An Archer deployment has two bodies, 215 range, and higher combined single-target pressure. A Crossbow deployment has one tougher body, 160 range, a slower 1.45-second attack, and a stronger 36-damage bolt; its total volley exceeds the Archer deployment only when a second target lines up for the capped two-target pierce. High per-shot damage also loses less of its proportion to flat defense, while the Archer remains safer and stronger against one target.
 - Priest is the symmetric healer for both factions: 105 Command, 145 HP, 1 defense, 20 attack, 175 attack range, 34 healing at 190 range, and a 1.25-second shared action interval. It heals the in-range non-boss ally with the greatest missing HP before attacking and cannot overheal; bosses are deliberately excluded so a producing garrison cannot sustain an unbounded boss-healing loop. Weapon equipment and mastery attack growth add the same flat amount to healing power. The unit-threat estimator values its healing per second at a 1.35 support coefficient.
 
-### Attack commitment, dead zones, and splash
+### Attack commitment, guard protection, and area geometry
 
 `attackIntervalMs` is the complete attack-start-to-attack-start cycle. `attackWindupMs` is the immobile pre-impact commitment and recovery is exactly `attackIntervalMs - attackWindupMs`; the unit remains immobile for that remainder after impact. The locked target is revalidated when windup ends. A dead target, a target newly protected behind a living fortress, a target behind the attacker, or a target outside the current minimum–maximum attack band causes the committed attack to miss. A ranged unit whose nearest forward threat is inside `minimumAttackRange` retreats instead of selecting a farther target through the screen.
 
@@ -103,12 +103,30 @@ Only 5-star troops count as transcendent for `초월의 군기`. In particular, 
 | Royal Cavalry | 0–40 | 230 ms | 820 ms | pierce 2 + charge |
 | Crossbow | 75–160 | 650 ms | 800 ms | pierce 2 |
 | Goblin Bomber | 80–145 | 720 ms | 880 ms | ground splash radius 82, ×0.80 secondary |
-| Ogre Mage | 75–170 | 720 ms | 780 ms | ground splash radius 95, ×0.70 secondary |
+| Kingdom Mage | 65–195 | 520 ms | 780 ms | ground burst radius 72, ×0.70 secondary, 520 ms warning |
+| Orc Shaman | 65–185 | 520 ms | 830 ms | ground burst radius 78, ×0.65 secondary, 520 ms warning |
+| Ogre Mage | 75–170 | 720 ms | 780 ms | ground burst radius 95, ×0.70 secondary, 720 ms warning |
+| Archmage | 100–245 | 780 ms | 820 ms | all-domain directional length 245, ×0.70 secondary |
+| Abyss Mage | 75–210 | 620 ms | 830 ms | ground burst radius 88, ×0.65 secondary, 620 ms warning |
 | Fire Spirit | 50–165 | 430 ms | 620 ms | ground/flying splash radius 68, ×0.60 secondary |
 | Ifrit | 100–215 | 850 ms | 800 ms | pierce 3 |
 | Ancient Sky Dragon | 120–250 | 1,100 ms | 800 ms | pierce 3 |
 
 Every expanded roster entry stores resolved timing/range data even when `makeTroop` supplies a role-based default. Exact windup/recovery is intentionally hidden from the armory, Hero Hall, and battle cards. An owned troop or hero reveals it only in the codex at mastery level 5; encountered-but-unowned troops remain `미분석`. Attack pattern and effective range remain available before that analysis so formation choices are understandable.
+
+`guardProtection.rearRangeMultiplier` applies only to the directional attack distance remaining behind the guard and only to the listed movement domains. It is not a damage reduction, does not affect ordinary radial splash, and never intercepts a ground burst. A straight pierce ends after damaging the first qualifying guard. All initial guards protect only the ground domain:
+
+| Guard | Stops pierce | Rear directional multiplier | Effective reach reduction |
+|---|---|---:|---:|
+| Guardian | yes | ×0.35 | 65% |
+| Orc Bulwark | yes | ×0.25 | 75% |
+| Earth Spirit | yes | ×0.40 | 60% |
+| Rune Golem | yes | ×0.15 | 85% |
+| Demon Guard | yes | ×0.25 | 75% |
+| Abyss Knight | yes | ×0.20 | 80% |
+| Edric | yes | ×0.30 | 70% |
+
+Ground-burst target selection evaluates only current living valid targets, chooses the in-range center covering the most bodies, and uses the farther candidate as the deterministic tie-break. The position is fixed at cast start; movement can escape the warned radius, caster death cancels the cast, and a ground-only burst cannot hit flying units. Kingdom Mage, Orc Shaman, Ogre Mage, and Abyss Mage use this pattern. Archmage instead emits an all-domain directional wave, so a ground guard shortens only the ground continuation while the flying lane retains its authored length.
 
 ### Upper-tier value corrections
 
@@ -402,7 +420,7 @@ Stages 13–30 add a basic enemy-fortress shot as a separate, visible difficulty
 - Shared campaign-beast base stats: 5,200 HP, 82 ATK, 68 range, 1.5 s attack interval, and 20 movement speed.
 - Its normal strike cleaves all valid targets in its melee range at full secondary damage.
 - Stomp radius is 175, knockback is 55, and its 850 ms warning remains unchanged.
-- Bounded rank-5 armor and weapon produce 5,550 HP and 112 ATK before stage modifiers. Campaign boss modifiers are: stage 6 `×1.08 HP / ×1.00 ATK / ×1.00 cadence`, stage 12 `×2.40 / ×1.35 / ×0.82`, stage 18 `×2.44 / ×1.32 / ×0.85`, stage 24 `×3.00 / ×1.40 / ×0.80`, and stage 30 `×2.95 / ×1.48 / ×0.75`. Every campaign boss stands in front of a separately damageable fortress; both must fall. Its weak garrison continues while that fortress survives and stops immediately when it falls. No boss has mastery scaling.
+- Bounded rank-5 armor and weapon produce 5,550 HP and 112 ATK before stage modifiers. Campaign boss modifiers are: stage 6 `×1.08 HP / ×1.00 ATK / ×1.00 cadence`, stage 12 `×2.40 / ×1.35 / ×0.82`, stage 18 `×2.44 / ×1.32 / ×0.85`, stage 24 `×3.00 / ×1.40 / ×0.80`, and stage 30 `×3.10 / ×1.48 / ×0.75`. Every campaign boss stands in front of a separately damageable fortress; both must fall. Its weak garrison continues while that fortress survives and stops immediately when it falls. No boss has mastery scaling.
 
 ### Beast-only challenges and terrain
 
@@ -465,7 +483,7 @@ The pure estimator in `src/game/difficulty.ts` combines seven axes:
 - objective durability from fortress HP at `HP / 5`, reflecting that every campaign battle—including boss sieges—retains a real fortress damage window;
 - enemy-fortress fire from its damage per second weighted by range, applied only to stages whose fortress can actually shoot;
 - battlefield endurance from half of the virtual distance beyond the stage-1 baseline, representing the extra travel and reinforcement window;
-- scripted-army pressure from trained unit threat, squad expansion, spawn timing, movement domain, attack pattern, attack windup/recovery commitment, close-range dead zones, and support healing per second;
+- scripted-army pressure from trained unit threat, squad expansion, spawn timing, movement domain, single/pierce/cleave/splash/directional/ground-burst geometry, guard interception, attack windup/recovery commitment, close-range dead zones, and support healing per second;
 - recurring pressure from reinforcement composition, interval, and living-enemy cap;
 - explicit elite HP, attack, and defense modifiers;
 - boss durability, damage, phase pressure, and stage stomp cadence.
@@ -478,7 +496,7 @@ Opening waves measure complete deployments including squad-size capstones. Reinf
 
 ### Command-efficiency audit
 
-`scripts/unit-efficiency.test.ts` estimates each base deployment as `estimateUnitThreat(unit) × squadSize`, then divides by its Command cost. The shared threat estimate accounts for effective HP, flat defense, DPS, healing per second, range, movement, flying/charge/anti-large traits, single/pierce/cleave/splash reach, windup commitment, and minimum-range exposure. Every troop costing at least 150 Command must score at least 1.0 estimated threat per Command, and no base troop may cost more than the unupgraded 200 maximum Command.
+`scripts/unit-efficiency.test.ts` estimates each base deployment as `estimateUnitThreat(unit) × squadSize`, then divides by its Command cost. The shared threat estimate accounts for effective HP, flat defense, DPS, healing per second, range, movement, flying/charge/anti-large traits, all implemented attack geometries, guard interception/attenuation, windup commitment, and minimum-range exposure. Every troop costing at least 150 Command must score at least 1.0 estimated threat per Command, and no base troop may cost more than the unupgraded 200 maximum Command.
 
 The current 150+ Command range runs from the Ogre Crusher at 1.25 estimated threat per Command to the post-finale Ancient Sky Dragon at 16.33. This is a minimum-value regression guard, not a promise that the estimator perfectly orders every matchup: target motion during windup, dead-zone screening, focus fire, path congestion, active-body limits, aerial counter availability, and real area density still require playtesting. Ifrit and Ancient Sky Dragon are gated behind stage 30 challenges 104 and 105, full-base-capacity 200 Command costs, one-body deployments, long cooldowns, and living caps of two and one rather than being treated as ordinary campaign recruits.
 
