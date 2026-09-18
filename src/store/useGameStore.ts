@@ -4,6 +4,7 @@ import { achievementById, unlockedAchievements } from '../data/achievements';
 import { canUpgradeCastleTech, castleBattleStats, castleTechCost, castleTechDefinitions, emptyCastleTech, fortressTierDefinitions, minimumFortressTierForResearch, totalCastleResearch } from '../data/castle';
 import { codexEntryCount } from '../data/codex';
 import { battleFormationCapacity, BATTLE_SPEED_LICENSE, DAILY_REWARD, FORMATION_SLOT_LICENSES, MAX_FORMATION_SLOT_PURCHASES } from '../data/economy';
+import { TRIUMPH_MONUMENT, triumphMonumentCost } from '../data/endgame';
 import { heroTrainingPackageById, isGameFeatureUnlocked } from '../data/features';
 import { HERO_MASTERY_MAX_LEVEL } from '../data/mastery';
 import { getStage, stages } from '../data/stages';
@@ -53,6 +54,7 @@ interface GameProfile {
   battleSpeedUnlocked: boolean;
   battleSpeed: BattleSpeed;
   formationSlotPurchases: number;
+  triumphMonumentLevel: number;
   addReward: (amount: number, clearedStage: number) => number;
   completeStage: (stageId: number) => FirstClearReward | undefined;
   completeChallenge: (stageId: number) => FirstClearReward | undefined;
@@ -70,6 +72,7 @@ interface GameProfile {
   claimDailyReward: () => boolean;
   purchaseBattleSpeed: () => boolean;
   purchaseFormationSlot: () => boolean;
+  upgradeTriumphMonument: () => boolean;
   toggleBattleSpeed: () => boolean;
   toggleMuted: () => void;
   exportSave: () => string;
@@ -146,6 +149,7 @@ const defaults = {
   battleSpeedUnlocked: false,
   battleSpeed: 1 as BattleSpeed,
   formationSlotPurchases: 0,
+  triumphMonumentLevel: 0,
 };
 
 type SavedGameProfile = Partial<GameProfile> & {
@@ -175,6 +179,10 @@ function hydrateSavedProfile(saved: SavedGameProfile | undefined, current: GameP
   const formationSlotPurchases = Math.min(
     MAX_FORMATION_SLOT_PURCHASES,
     nonNegative(saved?.formationSlotPurchases, saved?.formationSlotUnlocked === true ? 1 : 0),
+  );
+  const savedTriumphMonumentLevel = Math.min(
+    TRIUMPH_MONUMENT.maxLevel,
+    nonNegative(saved?.triumphMonumentLevel, 0),
   );
   const equippedUnits = (Array.isArray(saved?.equippedUnits) ? saved.equippedUnits : inferredUnits)
     .filter((id) => validUnit(id) && inferredUnits.includes(id))
@@ -233,18 +241,19 @@ function hydrateSavedProfile(saved: SavedGameProfile | undefined, current: GameP
     battleSpeedUnlocked: saved?.battleSpeedUnlocked === true,
     battleSpeed: saved?.battleSpeedUnlocked === true && saved?.battleSpeed === 1.5 ? 1.5 : 1,
     formationSlotPurchases,
+    triumphMonumentLevel: clearedStages.includes(TRIUMPH_MONUMENT.unlockStage) ? savedTriumphMonumentLevel : 0,
   };
 }
 
 function persistedProfile({
   gold, gems, lastDailyClaimDate, unlockedStage, equipmentLevels, unlockedUnits, equippedUnits, clearedStages, clearedChallenges, unitMasteryXp, selectedHero, unlockedHeroes,
   heroEquipmentLevels, heroMasteryXp, fortressTier, castleTechLevels, stats,
-  unlockedAchievementIds, claimedAchievementIds, discoveredEnemies, muted, battleSpeedUnlocked, battleSpeed, formationSlotPurchases,
+  unlockedAchievementIds, claimedAchievementIds, discoveredEnemies, muted, battleSpeedUnlocked, battleSpeed, formationSlotPurchases, triumphMonumentLevel,
 }: GameProfile) {
   return {
     gold, gems, lastDailyClaimDate, unlockedStage, equipmentLevels, unlockedUnits, equippedUnits, clearedStages, clearedChallenges, unitMasteryXp, selectedHero, unlockedHeroes,
     heroEquipmentLevels, heroMasteryXp, fortressTier, castleTechLevels, stats,
-    unlockedAchievementIds, claimedAchievementIds, discoveredEnemies, muted, battleSpeedUnlocked, battleSpeed, formationSlotPurchases,
+    unlockedAchievementIds, claimedAchievementIds, discoveredEnemies, muted, battleSpeedUnlocked, battleSpeed, formationSlotPurchases, triumphMonumentLevel,
   };
 }
 
@@ -499,6 +508,18 @@ export const useGameStore = create<GameProfile>()(
         set({
           gems: state.gems - license.cost,
           formationSlotPurchases: state.formationSlotPurchases + 1,
+        });
+        return true;
+      },
+      upgradeTriumphMonument: () => {
+        const state = get();
+        if (!state.clearedStages.includes(TRIUMPH_MONUMENT.unlockStage)) return false;
+        if (state.triumphMonumentLevel >= TRIUMPH_MONUMENT.maxLevel) return false;
+        const cost = triumphMonumentCost(state.triumphMonumentLevel);
+        if (state.gold < cost) return false;
+        set({
+          gold: state.gold - cost,
+          triumphMonumentLevel: state.triumphMonumentLevel + 1,
         });
         return true;
       },

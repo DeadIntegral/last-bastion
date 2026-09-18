@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { musicEngine } from '../audio/music';
 import { CHARACTER_ART_FRAME_HEIGHT, CHARACTER_ART_FRAME_WIDTH, characterArtFrameIndex, characterArtFrames, characterArtSheet, characterArtSheets, TRANSCENDENT_BATTLE_ART_SCALE, type CharacterArtId } from '../data/characterArt';
 import { battleMobilizationTuning, castleBattleStats, mobilizationCommandCost, rallyCommandTuning, soldierCommandCost } from '../data/castle';
+import { triumphMonumentBonuses } from '../data/endgame';
 import { fortressArtDefinitions, fortressArtLayout } from '../data/fortressArt';
 import { heroAwakeningAuras, heroSkillPower } from '../data/mastery';
 import { allTroopOrder, bossCombatTuning, bossDefinition, heroDefinitions, troopDefinitions } from '../data/units';
@@ -11,6 +12,7 @@ import { attackMotionDurationMs, attackMotionStyle, createAttackMotionPose, proj
 import {
   calculateDamage,
   applyEnemyTerrain,
+  applyTriumphMonumentStats,
   canActivateMobilization,
   canAttackTarget,
   canReceiveRallyOrder,
@@ -115,6 +117,7 @@ export class BattleScene extends Phaser.Scene {
   private heroDefinition: HeroDefinition;
   private heroId: HeroId;
   private heroMasteryLevel: number;
+  private triumphMonumentLevel: number;
   private castleStats: CastleBattleStats;
   private units: CombatUnit[] = [];
   private pendingUnitRemovalIds = new Set<number>();
@@ -134,6 +137,7 @@ export class BattleScene extends Phaser.Scene {
   private castleSkillCooldown = 0;
   private mobilizationUses = 0;
   private rallyCooldown = 0;
+  private rallyRemaining = 0;
   private rallyTargeting = false;
   private rallyTargetX?: number;
   private rallyFlag?: Phaser.GameObjects.Container;
@@ -176,6 +180,7 @@ export class BattleScene extends Phaser.Scene {
     heroEquipmentLevel: EquipmentLevels,
     heroMasteryXp: number,
     castleTechLevels: Record<CastleTechId, number>,
+    triumphMonumentLevel: number,
     battleSpeed: BattleSpeed,
   ) {
     super({ key: 'BattleScene' });
@@ -186,14 +191,19 @@ export class BattleScene extends Phaser.Scene {
     this.unitMasteryXp = unitMasteryXp;
     this.battleSpeed = battleSpeed;
     this.heroId = heroId;
+    this.triumphMonumentLevel = triumphMonumentLevel;
     this.castleStats = castleBattleStats(castleTechLevels);
     const baseHero = heroDefinitions[heroId];
     this.heroMasteryLevel = heroMasteryLevelFromXp(heroMasteryXp).level;
-    const trainedHero = upgradedStats(baseHero, heroEquipmentLevel, this.heroMasteryLevel);
+    const trainedHero = applyTriumphMonumentStats(
+      upgradedStats(baseHero, heroEquipmentLevel, this.heroMasteryLevel),
+      triumphMonumentLevel,
+    );
     this.heroDefinition = {
       ...baseHero,
       maxHp: trainedHero.maxHp,
       attackDamage: trainedHero.attackDamage,
+      healingPower: trainedHero.healingPower,
       defense: trainedHero.defense,
       moveSpeed: trainedHero.moveSpeed,
       respawnMs: Math.round(scaledHeroRespawnMs(baseHero, this.heroMasteryLevel) * this.castleStats.heroRespawnMultiplier),
@@ -219,7 +229,9 @@ export class BattleScene extends Phaser.Scene {
     this.enemyMaxHp = this.stageDefinition.enemyCastleHp;
     this.command = this.castleStats.startingCommand;
     const campaignProgressStage = this.stageDefinition.requiredCampaignStage ?? this.stageDefinition.id;
-    this.playerCastleMaxHp = this.castleStats.maxHp + Math.max(0, campaignProgressStage - 1) * 70;
+    this.playerCastleMaxHp = this.castleStats.maxHp
+      + Math.max(0, campaignProgressStage - 1) * 70
+      + triumphMonumentBonuses(this.triumphMonumentLevel).fortressHpBonus;
     this.playerCastleHp = this.playerCastleMaxHp;
     this.drawWorld();
     this.createEffectPools();
@@ -298,6 +310,10 @@ export class BattleScene extends Phaser.Scene {
     this.heroSkillCooldown = Math.max(0, this.heroSkillCooldown - safeDelta);
     this.castleSkillCooldown = Math.max(0, this.castleSkillCooldown - safeDelta);
     this.rallyCooldown = Math.max(0, this.rallyCooldown - safeDelta);
+    if (this.rallyTargetX !== undefined) {
+      this.rallyRemaining = Math.max(0, this.rallyRemaining - safeDelta);
+      if (this.rallyRemaining <= 0) this.clearRallyOrder();
+    }
 
     this.processEnemySpawns();
     this.processEnemyReinforcements();
@@ -485,7 +501,10 @@ export class BattleScene extends Phaser.Scene {
     this.command -= commandCost;
     this.spawnCooldowns[id] = base.spawnCooldownMs * this.castleStats.summonCooldownMultiplier;
     const mastery = masteryLevelFromXp(this.unitMasteryXp[id] ?? 0).level;
-    const definition = upgradedStats(base, this.equipmentLevels[id] ?? 0, mastery);
+    const definition = applyTriumphMonumentStats(
+      upgradedStats(base, this.equipmentLevels[id] ?? 0, mastery),
+      this.triumphMonumentLevel,
+    );
     this.summons[id] += 1;
     for (let index = 0; index < Math.min(definition.squadSize, capacity); index += 1) {
       this.createUnit(definition, 'player', fortressRearSpawnX('player', PLAYER_CASTLE_X, index) + Phaser.Math.Between(-4, 4), GROUND_Y);
@@ -1056,6 +1075,7 @@ export class BattleScene extends Phaser.Scene {
     if (!this.rallyTargeting || this.ended || this.isPaused || !this.rallyFlag) return;
     const targetX = Phaser.Math.Clamp(pointer.worldX, PLAYER_CASTLE_X + 65, this.enemyCastleX - 80);
     this.rallyTargetX = targetX;
+    this.rallyRemaining = rallyCommandTuning.activeDurationMs;
     this.rallyTargeting = false;
     this.rallyCooldown = this.castleStats.rallyCooldownMs;
     this.rallyFlag.setPosition(targetX, GROUND_Y - 7).setVisible(true);
@@ -1066,6 +1086,7 @@ export class BattleScene extends Phaser.Scene {
   private clearRallyOrder(): void {
     if (!this.castleStats.rallyUnlocked) return;
     this.rallyTargetX = undefined;
+    this.rallyRemaining = 0;
     this.rallyTargeting = false;
     this.rallyFlag?.setVisible(false);
     this.emitHud();
@@ -1380,6 +1401,7 @@ export class BattleScene extends Phaser.Scene {
       rallyTranscendentControl: this.castleStats.rallyTranscendentControl,
       rallyTargeting: this.rallyTargeting,
       rallyTargetActive: this.rallyTargetX !== undefined,
+      rallyRemainingMs: this.rallyRemaining,
       rallyCooldownMs: this.rallyCooldown,
       rallyCooldownMaxMs: this.castleStats.rallyCooldownMs,
       spawnCooldowns: { ...this.spawnCooldowns },

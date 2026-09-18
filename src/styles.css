@@ -446,6 +446,8 @@ button:disabled { cursor: not-allowed; }
 .map-command-center button.daily-ready > i, .map-command-center button.daily-ready small { color: #86dbea; }
 .map-command-center button.merchant-ready { border-color: rgba(174,132,235,.48); background: linear-gradient(135deg, rgba(64,44,91,.96), rgba(28,31,54,.95)); }
 .map-command-center button.merchant-ready > i, .map-command-center button.merchant-ready small { color: #d8b8ff; }
+.map-command-center button.monument-ready { border-color: rgba(221,189,112,.5); background: linear-gradient(135deg, rgba(73,59,35,.96), rgba(31,35,43,.95)); }
+.map-command-center button.monument-ready > i, .map-command-center button.monument-ready small { color: #efd58f; }
 .map-command-center button.feature-locked small { color: #a68178; }
 .campaign-map-layout { width: 100%; margin: 0; display: grid; grid-template-columns: minmax(0, 1fr) 310px; gap: 16px; padding-bottom: 40px; }
 .campaign-map { position: relative; min-height: 680px; overflow-x: auto; overflow-y: hidden; background: #1d3339; border: 1px solid rgba(192,214,211,.2); box-shadow: 0 24px 60px rgba(0,0,0,.28); scrollbar-color: #7c6c3e #13232a; scrollbar-width: thin; cursor: grab; touch-action: pan-y; overscroll-behavior-x: contain; user-select: none; }
@@ -539,7 +541,10 @@ button:disabled { cursor: not-allowed; }
 .formation-strip { width: min(1020px, calc(100% - 40px)); margin: -9px auto 18px; padding: 14px 17px; display: flex; align-items: center; justify-content: space-between; gap: 18px; background: rgba(8,15,22,.35); border: 1px solid rgba(105,184,201,.2); }
 .formation-strip > div:first-child { display: grid; gap: 3px; }.formation-strip > div:first-child strong { font-size: 12px; }
 .formation-strip > div:last-child { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
-.formation-strip > div:last-child span { padding: 6px 9px; background: #243846; border: 1px solid rgba(123,197,211,.2); color: #c9e8eb; font-size: 9px; }
+.formation-strip > div:last-child button { padding: 6px 8px; display: flex; align-items: center; gap: 2px; background: #243846; border: 1px solid rgba(123,197,211,.2); color: #c9e8eb; font-size: 9px; cursor: pointer; }
+.formation-strip > div:last-child button:hover:not(:disabled) { border-color: rgba(229,132,125,.58); background: #3c3037; }
+.formation-strip > div:last-child button:disabled { cursor: default; opacity: .64; }
+.formation-strip > div:last-child button > b { margin-left: 4px; color: #df9a93; font-size: 13px; line-height: 1; }
 .formation-strip i { display: inline-grid; place-items: center; width: 16px; height: 16px; margin-right: 5px; background: #101c26; color: var(--gold); font: normal 700 7px 'Cinzel'; }
 .roster-filters { width: min(1020px, calc(100% - 40px)); margin: 0 auto 16px; display: flex; gap: 7px; overflow-x: auto; padding: 0 0 8px; scrollbar-width: thin; }
 .roster-filters button { flex: 0 0 auto; min-height: 34px; padding: 7px 11px; border: 1px solid rgba(105,184,201,.22); background: rgba(13,25,34,.7); color: #91a8ad; cursor: pointer; font-size: 10px; }
@@ -676,6 +681,30 @@ button:disabled { cursor: not-allowed; }
 .training-packages button small { overflow: hidden; color: #82959e; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .training-packages button em { color: #90dbe7; font: normal 700 10px 'Cinzel'; }
 .training-packages button > strong { color: var(--gold-bright); font: 700 11px 'Cinzel'; }
+
+/* Post-campaign victory monument */
+.monument-screen { background: radial-gradient(circle at 50% 10%, rgba(201,160,74,.22), transparent 38%), #101824; }
+.monument-panel { width: min(1080px, calc(100% - 40px)); margin: 42px auto 70px; display: grid; grid-template-columns: 300px minmax(0, 1fr); overflow: hidden; background: linear-gradient(145deg, rgba(47,56,65,.98), rgba(18,27,39,.98)); border: 1px solid rgba(221,189,112,.38); box-shadow: 0 24px 65px rgba(0,0,0,.3); }
+.monument-visual { position: relative; min-height: 430px; display: grid; place-items: center; overflow: hidden; background: radial-gradient(circle at 50% 42%, rgba(242,205,113,.28), transparent 36%), linear-gradient(180deg, #3c3b35, #171d26); border-right: 1px solid rgba(221,189,112,.25); }
+.monument-visual::before { content: ''; position: absolute; width: 175px; height: 175px; border: 2px solid rgba(239,213,143,.28); transform: rotate(45deg); box-shadow: 0 0 50px rgba(221,189,112,.14); }
+.monument-visual span { position: relative; z-index: 2; color: #f1d996; font: 700 98px Georgia; text-shadow: 0 15px 22px rgba(0,0,0,.55), 0 0 30px rgba(221,189,112,.28); }
+.monument-visual i { position: absolute; inset: auto 0 0; height: 30%; background: linear-gradient(180deg, transparent, rgba(8,13,19,.84)); }
+.monument-copy { padding: 44px; }
+.monument-copy h2 { margin: 5px 0 13px; font-size: 28px; }
+.monument-copy > p { margin: 0; color: #9ca8ac; font-size: 13px; line-height: 1.75; }
+.monument-ranks { margin: 27px 0 20px; display: grid; grid-template-columns: repeat(20, 1fr); gap: 4px; }
+.monument-ranks i { height: 9px; background: #27333c; border: 1px solid #3c4951; }
+.monument-ranks i.filled { background: linear-gradient(90deg, #b28b42, #f0d48b); border-color: #f0d48b; box-shadow: 0 0 7px rgba(221,189,112,.3); }
+.monument-bonuses { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); background: rgba(9,15,21,.35); }
+.monument-bonuses div { padding: 16px 13px; display: grid; gap: 5px; text-align: center; border-right: 1px solid var(--line); }
+.monument-bonuses div:last-child { border-right: 0; }
+.monument-bonuses span { color: #8c9aa0; font-size: 10px; }
+.monument-bonuses strong { color: #f0d48b; font: 700 21px 'Cinzel'; }
+.monument-bonuses small { color: #71828a; font-size: 9px; }
+.monument-upgrade { width: 100%; min-height: 52px; margin-top: 20px; padding: 12px 18px; border: 1px solid #bb984e; background: linear-gradient(135deg, #84652d, #5f4623); color: #fff; font-size: 13px; cursor: pointer; }
+.monument-upgrade span { float: right; color: #ffe3a0; font: 700 13px 'Cinzel'; }
+.monument-upgrade:hover:not(:disabled) { filter: brightness(1.12); border-color: #f0d48b; }
+.monument-upgrade:disabled { border-color: #3d4b54; background: #28343e; color: #78848b; cursor: default; }
 
 /* Mysterious merchant */
 .merchant-screen { background: radial-gradient(circle at 50% 6%, rgba(110,70,145,.24), transparent 35%), #0e1420; }
@@ -978,7 +1007,7 @@ button:disabled { cursor: not-allowed; }
 .first-clear-reward p { font-size: 10px; }
 .mission-footer > span { font-size: 11px; }
 .formation-strip > div:first-child strong { font-size: 13px; }
-.formation-strip > div:last-child span { font-size: 10px; }
+.formation-strip > div:last-child button { font-size: 10px; }
 .formation-strip i { font-size: 9px; }
 .mastery-line, .mastery-line b { font-size: 10px; }
 .unit-card-copy dt { font-size: 10px; }
@@ -1082,6 +1111,9 @@ button:disabled { cursor: not-allowed; }
   .training-hero-portrait .training-character-art { width: 165px; }
   .merchant-item { grid-template-columns: 150px minmax(0, 1fr); }
   .merchant-item-action { grid-column: 1 / 3; border-left: 0; border-top: 1px solid var(--line); }
+  .monument-panel { grid-template-columns: 220px minmax(0, 1fr); }
+  .monument-visual { min-height: 390px; }
+  .monument-copy { padding: 30px; }
   .battle-topbar { grid-template-columns: 1fr 70px 1fr; gap: 10px; padding: 12px; }
   .battle-clock .eyebrow { display: none; }
   .battle-clock strong { font-size: 17px; }
@@ -1199,6 +1231,16 @@ button:disabled { cursor: not-allowed; }
   .merchant-item-mark { min-height: 125px; border-right: 0; border-bottom: 1px solid rgba(180,139,223,.24); }
   .merchant-item-copy { padding: 22px 18px; }
   .merchant-item-action { border-top: 1px solid var(--line); }
+  .monument-panel { width: calc(100% - 24px); display: block; margin-top: 24px; }
+  .monument-visual { min-height: 155px; border-right: 0; border-bottom: 1px solid rgba(221,189,112,.25); }
+  .monument-visual::before { width: 105px; height: 105px; }
+  .monument-visual span { font-size: 62px; }
+  .monument-copy { padding: 24px 18px; }
+  .monument-copy h2 { font-size: 21px; }
+  .monument-ranks { grid-template-columns: repeat(10, 1fr); }
+  .monument-bonuses { grid-template-columns: 1fr; }
+  .monument-bonuses div { border-right: 0; border-bottom: 1px solid var(--line); }
+  .monument-bonuses div:last-child { border-bottom: 0; }
   .fortress-tier-banner { width: calc(100% - 24px); grid-template-columns: 62px 1fr; gap: 13px; padding: 17px; }
   .tier-crest span { width: 46px; height: 46px; font-size: 23px; }.tier-crest b { font-size: 9px; }
   .tier-copy h3 { font-size: 20px; }.tier-copy p { font-size: 11px; }

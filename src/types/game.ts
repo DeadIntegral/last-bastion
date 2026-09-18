@@ -33,7 +33,7 @@ export type AttackPattern =
   | { kind: 'cleave'; secondaryDamageMultiplier: number };
 export type Side = 'player' | 'enemy';
 export type BattleSpeed = 1 | 1.5;
-export type Screen = 'menu' | 'opening' | 'credits' | 'stages' | 'merchant' | 'training' | 'armory' | 'heroes' | 'fortress' | 'achievements' | 'codex' | 'battle' | 'result';
+export type Screen = 'menu' | 'opening' | 'credits' | 'stages' | 'merchant' | 'training' | 'monument' | 'armory' | 'heroes' | 'fortress' | 'achievements' | 'codex' | 'battle' | 'result';
 export type GameFeatureId = 'hero-training';
 export type HeroTrainingPackageId = 'field-drill' | 'tactical-lesson' | 'royal-tutoring';
 
@@ -187,6 +187,7 @@ export interface BattleHudState {
   rallyTranscendentControl: boolean;
   rallyTargeting: boolean;
   rallyTargetActive: boolean;
+  rallyRemainingMs: number;
   rallyCooldownMs: number;
   rallyCooldownMaxMs: number;
   spawnCooldowns: Partial<Record<UnitId, number>>;

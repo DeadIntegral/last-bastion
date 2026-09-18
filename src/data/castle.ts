@@ -16,6 +16,7 @@ export function mobilizationCommandCost(uses: number): number {
 export const rallyCommandTuning = {
   name: '원정 집결령',
   hotkey: 'R',
+  activeDurationMs: 12_000,
   baseCooldownMs: 20_000,
   cooldownReductionPerRankMs: 2_000,
   minimumCooldownMs: 10_000,

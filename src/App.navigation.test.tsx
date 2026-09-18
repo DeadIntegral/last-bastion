@@ -42,11 +42,14 @@ describe('title and kingdom-map navigation', () => {
 
     expect(host.querySelector('.shell-header h1')?.textContent).toBe('왕국 지도');
     const hubButtons = [...host.querySelectorAll<HTMLButtonElement>('.map-command-center button')];
-    expect(hubButtons).toHaveLength(9);
+    expect(hubButtons).toHaveLength(10);
     expect(hubButtons.some((button) => button.textContent?.includes('마수 도전'))).toBe(false);
     const trainingButton = hubButtons.find((button) => button.textContent?.includes('영웅 훈련소'))!;
     expect(trainingButton.disabled).toBe(true);
     expect(trainingButton.textContent).toContain('9장 클리어 시 해금');
+    const monumentButton = hubButtons.find((button) => button.textContent?.includes('승전 기념비'))!;
+    expect(monumentButton.disabled).toBe(true);
+    expect(monumentButton.textContent).toContain('30장 클리어 시 건립');
     const merchantButton = hubButtons.find((button) => button.textContent?.includes('수수께끼 상인'))!;
     expect(merchantButton.disabled).toBe(true);
     expect(merchantButton.textContent).toContain('6장 보스 격파 시 출현');
@@ -101,6 +104,28 @@ describe('title and kingdom-map navigation', () => {
     act(() => occupiedSlot.querySelector<HTMLButtonElement>('button.continue')!.click());
     expect(host.querySelector('.shell-header h1')?.textContent).toBe('왕국 지도');
     expect(useGameStore.getState().unlockedStage).toBe(4);
+  });
+
+  it('removes an equipped troop from the persistent formation strip across family filters', () => {
+    act(() => host.querySelector<HTMLButtonElement>('.save-slot-card.empty')!.click());
+    act(() => host.querySelector<HTMLButtonElement>('.opening-skip')!.click());
+    act(() => useGameStore.setState({
+      unlockedUnits: ['militia', 'guardian'],
+      equippedUnits: ['militia', 'guardian'],
+    }));
+
+    const armoryButton = [...host.querySelectorAll<HTMLButtonElement>('.map-command-center button')]
+      .find((button) => button.textContent?.includes('병영과 강화'))!;
+    act(() => armoryButton.click());
+    const goblinFilter = [...host.querySelectorAll<HTMLButtonElement>('.roster-filters button')]
+      .find((button) => button.textContent?.includes('고블린'))!;
+    act(() => goblinFilter.click());
+
+    expect(host.querySelector('.unit-card.accent-guardian')).toBeNull();
+    const guardianChip = [...host.querySelectorAll<HTMLButtonElement>('.formation-strip button')]
+      .find((button) => button.textContent?.includes('방패병'))!;
+    act(() => guardianChip.click());
+    expect(useGameStore.getState().equippedUnits).toEqual(['militia']);
   });
 
   it('uses password and destructive-confirmation modals for slot management', () => {

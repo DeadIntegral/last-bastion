@@ -1,4 +1,5 @@
 import { battleMobilizationTuning, fortressDeploymentTuning, mobilizationCommandCost } from '../data/castle';
+import { triumphMonumentBonuses } from '../data/endgame';
 import { HERO_AWAKENING_COOLDOWN_REDUCTION_MS, HERO_AWAKENING_LEVELS, HERO_MASTERY_MAX_LEVEL, SOLDIER_MASTERY_MAX_LEVEL, heroAwakeningAuras, heroMasteryGrowth, soldierMasteryGrowth, type MasteryStatGrowth } from '../data/mastery';
 import type { BattleSpeed, EquipmentLevels, HeroDefinition, HeroId, Side, StageDefinition, TerrainEffect, UnitDefinition, UnitId } from '../types/game';
 
@@ -208,6 +209,18 @@ export function upgradedStats(definition: UnitDefinition, equipment: number | Eq
     defense: Math.round(((definition.defense ?? 0) + (levels.armor + eliteCapstoneRanks) * growth.defense) * 10) / 10,
     moveSpeed: Math.round((definition.moveSpeed + (levels.boots + eliteCapstoneRanks) * growth.moveSpeed) * 10) / 10,
     squadSize: definition.squadSize + (equipmentCapstone && !usesStatEquipmentCapstone(definition) ? 1 : 0),
+  };
+}
+
+export function applyTriumphMonumentStats(definition: UnitDefinition, level: number): UnitDefinition {
+  const bonuses = triumphMonumentBonuses(level);
+  return {
+    ...definition,
+    maxHp: Math.round(definition.maxHp * bonuses.combatantHpMultiplier),
+    attackDamage: Math.round(definition.attackDamage * bonuses.combatantAttackMultiplier),
+    healingPower: definition.healingPower === undefined
+      ? undefined
+      : Math.round(definition.healingPower * bonuses.combatantAttackMultiplier),
   };
 }
 

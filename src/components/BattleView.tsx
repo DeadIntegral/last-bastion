@@ -25,7 +25,7 @@ const initialHud: BattleHudState = {
   castleSkillCooldownMs: 0, castleSkillMaxCooldownMs: 32_000,
   mobilizationUses: 0, mobilizationMaxUses: battleMobilizationTuning.maxUses,
   rallyUnlocked: false, rallyHeroControl: false, rallyTranscendentControl: false,
-  rallyTargeting: false, rallyTargetActive: false, rallyCooldownMs: 0, rallyCooldownMaxMs: 0,
+  rallyTargeting: false, rallyTargetActive: false, rallyRemainingMs: 0, rallyCooldownMs: 0, rallyCooldownMaxMs: 0,
   bossAwake: false, bossPhase: 1, bossHp: 0, bossMaxHp: 0, paused: false,
   battleSpeed: 1,
 };
@@ -47,6 +47,7 @@ export function BattleView({ stageId, onResult }: BattleViewProps) {
   const heroEquipmentLevel = useGameStore((state) => state.heroEquipmentLevels[state.selectedHero]);
   const heroMasteryXp = useGameStore((state) => state.heroMasteryXp[state.selectedHero]);
   const castleTechLevels = useGameStore((state) => state.castleTechLevels);
+  const triumphMonumentLevel = useGameStore((state) => state.triumphMonumentLevel);
   const muted = useGameStore((state) => state.muted);
   const toggleMuted = useGameStore((state) => state.toggleMuted);
   const battleSpeedUnlocked = useGameStore((state) => state.battleSpeedUnlocked);
@@ -111,6 +112,7 @@ export function BattleView({ stageId, onResult }: BattleViewProps) {
         heroEquipmentLevel={heroEquipmentLevel}
         heroMasteryXp={heroMasteryXp}
         castleTechLevels={castleTechLevels}
+        triumphMonumentLevel={triumphMonumentLevel}
         battleSpeed={battleSpeed}
       />
 
@@ -210,10 +212,10 @@ export function BattleView({ stageId, onResult }: BattleViewProps) {
               onClick={() => battleEvents.emit(BattleEvent.RALLY_MODE)}
               className={`rally-command-button ${hud.rallyTargeting ? 'targeting' : hud.rallyTargetActive ? 'active' : ''}`}
               disabled={(hud.rallyCooldownMs > 0 && !hud.rallyTargeting) || hud.paused}
-              aria-label={`${rallyCommandTuning.name}, ${rallyScope} 지휘, 단축키 R${hud.rallyCooldownMs > 0 ? `, 재지정 대기 ${(hud.rallyCooldownMs / 1000).toFixed(1)}초` : ''}`}
-              title={`${rallyScope}를 지정한 위치로 집결 (R)`}
+              aria-label={`${rallyCommandTuning.name}, ${rallyScope}를 ${rallyCommandTuning.activeDurationMs / 1000}초간 지휘, 단축키 R${hud.rallyTargetActive ? `, 남은 시간 ${(hud.rallyRemainingMs / 1000).toFixed(1)}초` : hud.rallyCooldownMs > 0 ? `, 재지정 대기 ${(hud.rallyCooldownMs / 1000).toFixed(1)}초` : ''}`}
+              title={`${rallyScope}를 ${rallyCommandTuning.activeDurationMs / 1000}초 동안 지정 위치로 집결 (R)`}
             >
-              <kbd>R</kbd><span>{hud.rallyTargeting ? '위치 선택' : hud.rallyCooldownMs > 0 ? Math.ceil(hud.rallyCooldownMs / 1000) : hud.rallyTargetActive ? '재지정' : '집결'}</span>
+              <kbd>R</kbd><span>{hud.rallyTargeting ? '위치 선택' : hud.rallyTargetActive ? `${Math.ceil(hud.rallyRemainingMs / 1000)}초` : hud.rallyCooldownMs > 0 ? Math.ceil(hud.rallyCooldownMs / 1000) : '집결'}</span>
             </button>
             {hud.rallyTargetActive && <button className="rally-clear-button" onClick={() => battleEvents.emit(BattleEvent.RALLY_CLEAR)} disabled={hud.paused} aria-label="집결 명령 해제" title="집결 명령 해제">×</button>}
           </div>}

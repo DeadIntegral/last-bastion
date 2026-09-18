@@ -13,10 +13,11 @@ interface PhaserGameProps {
   heroEquipmentLevel: EquipmentLevels;
   heroMasteryXp: number;
   castleTechLevels: Record<CastleTechId, number>;
+  triumphMonumentLevel: number;
   battleSpeed: BattleSpeed;
 }
 
-export function PhaserGame({ stageId, equipmentLevels, equippedUnits, unitMasteryXp, heroId, heroEquipmentLevel, heroMasteryXp, castleTechLevels, battleSpeed }: PhaserGameProps) {
+export function PhaserGame({ stageId, equipmentLevels, equippedUnits, unitMasteryXp, heroId, heroEquipmentLevel, heroMasteryXp, castleTechLevels, triumphMonumentLevel, battleSpeed }: PhaserGameProps) {
   const gameRef = useRef<Phaser.Game | null>(null);
   const parentRef = useRef<HTMLDivElement>(null);
   const initialBattleSpeedRef = useRef(battleSpeed);
@@ -31,7 +32,7 @@ export function PhaserGame({ stageId, equipmentLevels, equippedUnits, unitMaster
       backgroundColor: '#111928',
       scene: [new BattleScene(
         getStage(stageId), equipmentLevels, equippedUnits, unitMasteryXp, heroId,
-        heroEquipmentLevel, heroMasteryXp, castleTechLevels, initialBattleSpeedRef.current,
+        heroEquipmentLevel, heroMasteryXp, castleTechLevels, triumphMonumentLevel, initialBattleSpeedRef.current,
       )],
       render: { antialias: true, pixelArt: false },
       scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
@@ -43,7 +44,7 @@ export function PhaserGame({ stageId, equipmentLevels, equippedUnits, unitMaster
       gameRef.current?.destroy(true);
       gameRef.current = null;
     };
-  }, [stageId, equipmentLevels, equippedUnits, unitMasteryXp, heroId, heroEquipmentLevel, heroMasteryXp, castleTechLevels]);
+  }, [stageId, equipmentLevels, equippedUnits, unitMasteryXp, heroId, heroEquipmentLevel, heroMasteryXp, castleTechLevels, triumphMonumentLevel]);
 
   return <div className="phaser-host" ref={parentRef} aria-label="전투 화면" />;
 }

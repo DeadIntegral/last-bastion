@@ -3,6 +3,7 @@ import { UNIT_IDS, type BattleResult, type UnitId } from '../types/game';
 import { emptyCastleTech } from '../data/castle';
 import { FORMATION_SLOT_LICENSES } from '../data/economy';
 import { HERO_MASTERY_MAX_LEVEL } from '../data/mastery';
+import { TRIUMPH_MONUMENT, triumphMonumentCost } from '../data/endgame';
 import { totalMasteryXpForLevel } from '../game/rules';
 import { SAVE_EXPORT_FORMAT, SAVE_EXPORT_VERSION, useGameStore } from './useGameStore';
 
@@ -227,6 +228,7 @@ describe('shared troop progression', () => {
         battleSpeedUnlocked: true,
         battleSpeed: 1.5,
         formationSlotUnlocked: true,
+        triumphMonumentLevel: 999,
         unlockedStage: 5,
         unlockedUnits: ['militia', 'guardian', 'archer', 'lancer', 'raider', 'mage', 'not-a-unit'],
         equippedUnits: ['militia', 'guardian', 'archer', 'lancer', 'raider', 'mage', 'not-a-unit'],
@@ -241,13 +243,14 @@ describe('shared troop progression', () => {
     expect(useGameStore.getState().battleSpeedUnlocked).toBe(true);
     expect(useGameStore.getState().battleSpeed).toBe(1.5);
     expect(useGameStore.getState().formationSlotPurchases).toBe(1);
+    expect(useGameStore.getState().triumphMonumentLevel).toBe(0);
     expect(useGameStore.getState().unlockedStage).toBe(5);
     expect(useGameStore.getState().unlockedUnits).toEqual(['militia', 'guardian', 'archer', 'lancer', 'raider', 'mage']);
     expect(useGameStore.getState().equippedUnits).toEqual(['militia', 'guardian', 'archer', 'lancer', 'raider']);
   });
 
   it('exports a portable versioned save without store actions and imports it again', () => {
-    useGameStore.setState({ gold: 1_234, gems: 56, unlockedStage: 25, clearedStages: [1, 2, 3, 4, 5, 6, 12, 18, 24], formationSlotPurchases: 3 });
+    useGameStore.setState({ gold: 1_234, gems: 56, unlockedStage: 30, clearedStages: [1, 2, 3, 4, 5, 6, 12, 18, 24, 30], formationSlotPurchases: 3, triumphMonumentLevel: 4 });
 
     const serialized = useGameStore.getState().exportSave();
     const exported = JSON.parse(serialized) as { format: string; version: number; gameVersion: string; saveSchemaVersion: number; exportedAt: string; state: Record<string, unknown> };
@@ -260,14 +263,27 @@ describe('shared troop progression', () => {
     expect(exported.state.gold).toBe(1_234);
     expect(exported.state.gems).toBe(56);
     expect(exported.state.formationSlotPurchases).toBe(3);
+    expect(exported.state.triumphMonumentLevel).toBe(4);
     expect(exported.state.exportSave).toBeUndefined();
     expect(exported.state.resetProgress).toBeUndefined();
 
     useGameStore.getState().resetProgress();
     expect(useGameStore.getState().importSave(serialized)).toBe(true);
     expect(useGameStore.getState().gold).toBe(1_234);
-    expect(useGameStore.getState().unlockedStage).toBe(25);
+    expect(useGameStore.getState().unlockedStage).toBe(30);
     expect(useGameStore.getState().formationSlotPurchases).toBe(3);
+    expect(useGameStore.getState().triumphMonumentLevel).toBe(4);
+  });
+
+  it('defaults missing monument progress to zero when importing an older save', () => {
+    useGameStore.setState({ triumphMonumentLevel: 4, clearedStages: [30] });
+
+    expect(useGameStore.getState().importSave(JSON.stringify({
+      gold: 500,
+      unlockedStage: 30,
+      clearedStages: [30],
+    }))).toBe(true);
+    expect(useGameStore.getState().triumphMonumentLevel).toBe(0);
   });
 
   it('rejects unrelated JSON and never lets imported fields replace store actions', () => {
@@ -293,5 +309,19 @@ describe('shared troop progression', () => {
     expect(useGameStore.getState().trainHeroMastery('warden', 'royal-tutoring')).toBe(true);
     expect(useGameStore.getState().heroMasteryXp.warden).toBe(xpCap);
     expect(useGameStore.getState().trainHeroMastery('warden', 'field-drill')).toBe(false);
+  });
+
+  it('turns post-finale gold into a bounded victory-monument level', () => {
+    useGameStore.setState({ gold: 20_000 });
+    expect(useGameStore.getState().upgradeTriumphMonument()).toBe(false);
+    expect(useGameStore.getState().gold).toBe(20_000);
+
+    useGameStore.setState({ clearedStages: [30] });
+    expect(useGameStore.getState().upgradeTriumphMonument()).toBe(true);
+    expect(useGameStore.getState().triumphMonumentLevel).toBe(1);
+    expect(useGameStore.getState().gold).toBe(20_000 - triumphMonumentCost(0));
+
+    useGameStore.setState({ gold: 999_999, triumphMonumentLevel: TRIUMPH_MONUMENT.maxLevel });
+    expect(useGameStore.getState().upgradeTriumphMonument()).toBe(false);
   });
 });

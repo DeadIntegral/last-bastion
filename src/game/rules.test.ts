@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { heroMasteryGrowth, heroSkillPower, soldierMasteryGrowth } from '../data/mastery';
 import { allTroopOrder, bossCombatTuning, bossDefinition, heroDefinitions, troopDefinitions } from '../data/units';
 import { challengeStages, stages } from '../data/stages';
-import { applyEnemyTerrain, attackPatternLabel, calculateDamage, canActivateMobilization, canAttackTarget, canReceiveRallyOrder, cooldownFillRatio, enemyFortressCanReinforce, enemyObjectiveDefeated, equipmentCost, fortressRearSpawnX, hasEquipmentCapstone, healedHp, heroAuraBonuses, heroAwakeningRank, heroMasteryLevelFromXp, isBehindLivingFortress, masteryLevelFromXp, mobilizedCommandStats, regenerateCommand, scaledBattleDelta, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, unitDeploymentCapacity, upgradedStats, upgradeCost, usesStatEquipmentCapstone } from './rules';
+import { applyEnemyTerrain, applyTriumphMonumentStats, attackPatternLabel, calculateDamage, canActivateMobilization, canAttackTarget, canReceiveRallyOrder, cooldownFillRatio, enemyFortressCanReinforce, enemyObjectiveDefeated, equipmentCost, fortressRearSpawnX, hasEquipmentCapstone, healedHp, heroAuraBonuses, heroAwakeningRank, heroMasteryLevelFromXp, isBehindLivingFortress, masteryLevelFromXp, mobilizedCommandStats, regenerateCommand, scaledBattleDelta, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, unitDeploymentCapacity, upgradedStats, upgradeCost, usesStatEquipmentCapstone } from './rules';
 
 describe('combat rules', () => {
   it('applies anti-large damage bonus', () => {
@@ -290,5 +290,15 @@ describe('combat rules', () => {
     expect(brute.attackDamage - troopDefinitions.brute.attackDamage).toBe(7);
     expect(militia.maxHp - troopDefinitions.militia.maxHp).toBe(18);
     expect(brute.maxHp - troopDefinitions.brute.maxHp).toBe(90);
+  });
+
+  it('applies bounded victory-monument bonuses only when explicitly requested for player stats', () => {
+    const priest = applyTriumphMonumentStats(troopDefinitions.priest, 20);
+    expect(priest.maxHp).toBe(Math.round(troopDefinitions.priest.maxHp * 1.2));
+    expect(priest.attackDamage).toBe(Math.round(troopDefinitions.priest.attackDamage * 1.2));
+    expect(priest.healingPower).toBe(Math.round((troopDefinitions.priest.healingPower ?? 0) * 1.2));
+    expect(applyTriumphMonumentStats(troopDefinitions.militia, 999)).toEqual(
+      applyTriumphMonumentStats(troopDefinitions.militia, 20),
+    );
   });
 });

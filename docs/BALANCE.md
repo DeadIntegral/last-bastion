@@ -8,7 +8,7 @@ This is the canonical reference for implemented economy, progression, combat, an
 
 | Currency | Initial | Sources | Current sinks |
 |---|---:|---|---|
-| Gold | 100 | battles, first-clear rewards, achievement claims | troop recruitment, equipment, heroes, hero training, fortress research |
+| Gold | 100 | battles, first-clear rewards, achievement claims | troop recruitment, equipment, heroes, hero training, fortress research, post-finale Victory Monument |
 | Royal Gems | 0 | daily attendance, achievement claims | permanent 1.5× battle-speed license; three permanent formation-slot licenses |
 
 - Royal Gems are currently non-purchasable with real money. There is no recharge, payment, or currency-exchange path.
@@ -27,6 +27,8 @@ Fortress growth research has two independent tier-2 roots in one branch: each `�
 | 야전 훈련 | 250 | 100 | 2.50 |
 | 전술 교습 | 1,000 | 500 | 2.00 |
 | 왕실 전수 | 2,500 | 1,500 | 1.67 |
+
+The `승전 기념비` is revealed only after campaign stage 30 is cleared. It has 20 persistent levels and costs `5,000 + current level × 2,500` Gold, producing the sequence 5,000 / 7,500 / … / 52,500 and a total completion cost of 575,000 Gold. Each level applies only to the player side: all soldiers and heroes gain +1% maximum HP, attack, and healing power, while the player fortress gains +150 maximum HP. The maximum effect is +20% combatant HP/attack/healing and +3,000 fortress HP. It does not strengthen active hero-skill formulas, enemy forces, or the offline campaign difficulty estimate.
 
 ## 2. Shared troop base stats
 
@@ -286,7 +288,7 @@ Fortress research has five ranks per node. Rank cost is `baseCost × (currentRan
 - Watchtower interval is floored at 900 ms, and bombardment cooldown is floored at 16 seconds.
 - Bombardment has a 1,000-unit base targeting range measured from the player fortress. `공성 계산학` adds 80 per rank, reaching 1,400 at rank 5; out-of-range ground enemies and fortresses cannot be selected, and an invalid activation spends neither cooldown nor use count.
 - Direct fortress bombardment requires at least one `공성 계산학` rank and the enemy fortress to be inside the resulting bombardment range.
-- Rally placement starts at a 20-second base redeploy cooldown. `집결 신호` rank 1 is required to use the flag and resolves the cooldown to 18 seconds; ranks 2–5 reduce it to 16/14/12/10 seconds. Clearing an order does not erase the remaining cooldown. Eligible units attack targets already in range, otherwise move to a deterministic slot within 27 units of the clicked center and hold within an 18-unit arrival radius.
+- Rally placement starts at a 20-second base redeploy cooldown. `집결 신호` rank 1 is required to use the flag and resolves the cooldown to 18 seconds; ranks 2–5 reduce it to 16/14/12/10 seconds. Every placed order lasts exactly 12 seconds of scaled battle time, then clears automatically and restores normal advance; manual clearing does not erase the remaining redeploy cooldown. Eligible units attack targets already in range, otherwise move to a deterministic slot within 27 units of the clicked center and hold within an 18-unit arrival radius.
 - `영웅 기치` rank 1 admits the selected hero and reduces the mastery-adjusted active cooldown by 3% per rank, capped at 15%. `야전 구난대` applies the same 3%-per-rank, 15%-maximum multiplier to mastery-adjusted hero respawn time.
 - `초월의 군기` rank 1 admits canonical 5-star transcendent troops and increases every eligible unit's movement toward the flag by 5% per rank, capped at +25%. The current 5-star roster is Ifrit and Ancient Sky Dragon. Grades 1–4 use ordinary-soldier permission, regardless of size, rarity, active-unit cap, or Command cost.
 - `전시 동원령` has three battle-local uses costing exactly 300, 400, and 500 Command. Each successful use deducts only its listed cost and adds exactly +100 maximum Command; stored Command above the cost is preserved. `동원 전술 훈련` adds +0.3 Command/s per rank to every activation, so rank 5 grants +1.5/s per use without changing the fixed maximum gain. The first activation requires enough `지휘 저장고` research to hold at least 300 Command.
@@ -303,12 +305,12 @@ At maximum `군수 표준화`, every one of the 51 deployment costs uses `max(10
 | 4 | 1,800 | 400 | 2/3/1 | Selene |
 | 5 | 2,300 | 500 | 4/4/3 | 500 gold |
 | 6 | 3,200 | 600 | 5/5/4 | Ria + 800 gold |
-| 7 | 3,600 | 700 | 5/5/5 | 700 gold |
-| 8 | 5,000 | 800 | 5/5/5 | 800 gold |
-| 9 | 6,000 | 900 | 5/5/5 | 900 gold + Hero Training Ground |
-| 10 | 8,500 | 1,000 | 5/5/5 | 1,000 gold |
-| 11 | 5,400 | 1,100 | 5/5/5 | 1,100 gold |
-| 12 | 7,500 | 1,200 | 5/5/5 | Mirena + 1,200 gold |
+| 7 | 4,000 | 700 | 5/5/5 | 700 gold |
+| 8 | 5,600 | 800 | 5/5/5 | 800 gold |
+| 9 | 6,800 | 900 | 5/5/5 | 900 gold + Hero Training Ground |
+| 10 | 9,500 | 1,000 | 5/5/5 | 1,000 gold |
+| 11 | 6,200 | 1,100 | 5/5/5 | 1,100 gold |
+| 12 | 8,500 | 1,200 | 5/5/5 | Mirena + 1,200 gold |
 
 - Defeat grants 20% of the listed battle gold, rounded down.
 - First-clear rewards are granted once per save.
@@ -320,24 +322,24 @@ At maximum `군수 표준화`, every one of the 51 deployment costs uses `max(10
 
 | Stage | Name | Fortress HP | Type |
 |---:|---|---:|---|
-| 13 | 백은 평원 | 14,500 | army + elite |
-| 14 | 바람 절벽 | 15,750 | army + elite |
-| 15 | 망각의 초소 | 18,250 | army + elite |
-| 16 | 붉은 수로 | 20,750 | army + elite |
-| 17 | 용광로 성벽 | 23,250 | army + elite |
-| 18 | 잿불 마수의 요새 | 21,500 | boss siege |
-| 19 | 서리 벌판 | 29,500 | army + elite |
-| 20 | 빙결 관문 | 30,750 | army + elite |
-| 21 | 유령 숲 | 33,250 | army + elite |
-| 22 | 부서진 첨탑 | 35,750 | army + elite |
-| 23 | 백야 성채 | 38,250 | army + elite |
-| 24 | 서리 정령수의 왕성 | 36,500 | boss siege |
-| 25 | 폭풍 해안 | 44,500 | army + elite |
-| 26 | 천둥 협곡 | 45,750 | army + elite |
-| 27 | 구름 요새 | 48,250 | army + elite |
-| 28 | 왕좌 회랑 | 51,000 | army + elite |
-| 29 | 최후의 장벽 | 53,250 | army + elite |
-| 30 | 마왕성의 심연수 | 51,500 | boss siege |
+| 13 | 백은 평원 | 16,500 | army + elite |
+| 14 | 바람 절벽 | 18,000 | army + elite |
+| 15 | 망각의 초소 | 20,750 | army + elite |
+| 16 | 붉은 수로 | 23,500 | army + elite |
+| 17 | 용광로 성벽 | 26,250 | army + elite |
+| 18 | 잿불 마수의 요새 | 24,750 | boss siege |
+| 19 | 서리 벌판 | 33,000 | army + elite |
+| 20 | 빙결 관문 | 34,500 | army + elite |
+| 21 | 유령 숲 | 37,250 | army + elite |
+| 22 | 부서진 첨탑 | 40,000 | army + elite |
+| 23 | 백야 성채 | 42,750 | army + elite |
+| 24 | 서리 정령수의 왕성 | 41,250 | boss siege |
+| 25 | 폭풍 해안 | 49,500 | army + elite |
+| 26 | 천둥 협곡 | 51,000 | army + elite |
+| 27 | 구름 요새 | 53,750 | army + elite |
+| 28 | 왕좌 회랑 | 56,750 | army + elite |
+| 29 | 최후의 장벽 | 59,250 | army + elite |
+| 30 | 마왕성의 심연수 | 57,750 | boss siege |
 
 Fortress distance is `min(1,390, 1,050 + (stage - 1) × 25)` virtual units. With the player fortress fixed at X 105, the enemy fortress moves from X 1,155 toward the capped X 1,495 position. Stage 14 resolves to 1,375, stage 15 reaches 1,390, and stages 16–30 stay at that maximum. Distance is therefore an early-to-mid-campaign expansion axis rather than an artificial per-stage late-game escalator.
 
@@ -347,9 +349,9 @@ Stages 13–30 add a basic enemy-fortress shot as a separate, visible difficulty
 
 | Campaign region | Stages | Damage | Range | Interval |
 |---|---:|---:|---:|---:|
-| Ash highland | 13–18 | 36 | 260 | 2.8 s |
-| Spirit tundra | 19–24 | 52 | 290 | 2.4 s |
-| Demon rift | 25–30 | 72 | 320 | 2.1 s |
+| Ash highland | 13–18 | 50 | 260 | 2.8 s |
+| Spirit tundra | 19–24 | 75 | 290 | 2.4 s |
+| Demon rift | 25–30 | 105 | 320 | 2.1 s |
 
 ### Advanced troop introduction pacing
 
@@ -374,7 +376,7 @@ Stages 13–30 add a basic enemy-fortress shot as a separate, visible difficulty
 - Shared campaign-beast base stats: 5,200 HP, 82 ATK, 68 range, 1.5 s attack interval, and 20 movement speed.
 - Its normal strike cleaves all valid targets in its melee range at full secondary damage.
 - Stomp radius is 175, knockback is 55, and its 850 ms warning remains unchanged.
-- Bounded rank-5 armor and weapon produce 5,550 HP and 112 ATK before stage modifiers. Campaign boss modifiers are: stage 6 `×1.08 HP / ×1.00 ATK / ×1.00 cadence`, stage 12 `×1.90 / ×1.20 / ×0.84`, stage 18 `×2.05 / ×1.18 / ×0.85`, stage 24 `×2.18 / ×1.24 / ×0.80`, and stage 30 `×2.33 / ×1.30 / ×0.75`. Every campaign boss stands in front of a separately damageable fortress; both must fall. Its weak garrison continues while that fortress survives and stops immediately when it falls. No boss has mastery scaling.
+- Bounded rank-5 armor and weapon produce 5,550 HP and 112 ATK before stage modifiers. Campaign boss modifiers are: stage 6 `×1.08 HP / ×1.00 ATK / ×1.00 cadence`, stage 12 `×2.10 / ×1.28 / ×0.84`, stage 18 `×2.20 / ×1.23 / ×0.85`, stage 24 `×2.33 / ×1.29 / ×0.80`, and stage 30 `×2.48 / ×1.35 / ×0.75`. Every campaign boss stands in front of a separately damageable fortress; both must fall. Its weak garrison continues while that fortress survives and stops immediately when it falls. No boss has mastery scaling.
 
 ### Beast-only challenges and terrain
 
@@ -400,21 +402,21 @@ After the scripted opening waves, every non-boss stage cycles through the follow
 | 4 | 36 s | 2.8 s | Lancer → Crossbow → Bulwark | 9 |
 | 5 | 48 s | 2.8 s | Raider → Bulwark → Crossbow → Swordsman → Lancer | 9 |
 | 6 | 5 s | 8.5 s | Raider → Militia | 4 |
-| 7 | 34 s | 2.3 s | Militia → Crossbow → Guardian → Swordsman | 13 |
-| 8 | 34 s | 2.3 s | Raider → Archer → Lancer → Crossbow → Royal Cavalry | 12 |
-| 9 | 37 s | 2.3 s | Guardian → Royal Cavalry → Militia → Lancer → Bulwark | 13 |
-| 10 | 39 s | 2.2 s | Bulwark → Crossbow → Guardian → Swordsman | 13 |
-| 11 | 39 s | 2.2 s | Royal Cavalry → Bulwark → Crossbow → Swordsman → Lancer | 12 |
-| 12 | 5 s | 8.0 s | Militia → Raider → Archer | 4 |
+| 7 | 34 s | 2.2 s | Militia → Crossbow → Guardian → Swordsman | 14 |
+| 8 | 34 s | 2.15 s | Raider → Archer → Lancer → Crossbow → Royal Cavalry | 13 |
+| 9 | 37 s | 2.15 s | Guardian → Royal Cavalry → Militia → Lancer → Bulwark | 14 |
+| 10 | 39 s | 2.1 s | Bulwark → Crossbow → Guardian → Swordsman | 14 |
+| 11 | 39 s | 2.1 s | Royal Cavalry → Bulwark → Crossbow → Swordsman → Lancer | 13 |
+| 12 | 5 s | 7.5 s | Militia → Raider → Archer | 4 |
 
 - Later boss garrisons are stage 18 `Raider → Goblin Archer / 7.8 s / cap 4`, stage 24 `Scout → Frost Spirit / 7.6 s / cap 4`, and stage 30 `Imp → Militia / 7.4 s / cap 5`; all begin at 5 seconds.
 - Every non-boss stage from 13–29 starts reinforcements at 55 seconds. Its rotation combines two regional foundation troops with up to four most recently introduced regional troops, excluding every 4–5-star unit. The strength-adjusted interval prevents the new regional roster from becoming a hidden pressure spike:
 
 | Stages | Reinforcement intervals |
 |---|---|
-| 13–17 | 2.4 / 4.6 / 5.0 / 4.6 / 3.3 s |
-| 19–23 | 3.1 / 5.3 / 5.8 / 4.8 / 3.2 s |
-| 25–29 | 4.1 / 5.0 / 4.8 / 2.9 / 2.9 s |
+| 13–17 | 2.2 / 4.2 / 4.5 / 4.2 / 3.0 s |
+| 19–23 | 2.8 / 4.8 / 5.2 / 4.3 / 2.9 s |
+| 25–29 | 3.7 / 4.5 / 4.3 / 2.6 / 2.6 s |
 
 - Non-boss stages 13–20 cap living reinforcement bodies at 13, non-boss stages 21–28 at 14, and stage 29 at 15. Ash-highland rotations are rooted in Raiders and Bulwarks, spirit-tundra rotations in Guardians and Archers, and demon-rift rotations in Imps and Crossbows. Recently introduced Trolls, Minotaurs, Spirits, Demon Guards, and Mages can therefore recur at a lower cadence, while Hydras, Griffins, Treants, Golems, Cerberus, Reapers, Abyss Knights, Ifrit, and Ancient Sky Dragon remain finite scripted or challenge threats.
 

@@ -120,7 +120,7 @@ const campaignStageBlueprints: Array<Omit<StageDefinition, 'fortressDistance' | 
     reinforcement: { startMs: 5_000, intervalMs: 8_500, unitIds: ['raider', 'militia'], maxAlive: 4 },
   },
   {
-    id: 7, name: '잿빛 협곡', subtitle: '마수의 성채 너머에서 밀려오는 배신자 부대를 저지하세요', reward: 700, enemyCastleHp: 3600,
+    id: 7, name: '잿빛 협곡', subtitle: '마수의 성채 너머에서 밀려오는 배신자 부대를 저지하세요', reward: 700, enemyCastleHp: 4000,
     enemyUpgrades: { equipment: { weapon: 5, armor: 5, boots: 5 } },
     firstClearReward: { label: '협곡 원정 보급', description: '동부 원정을 위한 금화 700개를 획득합니다.', icon: '●', gold: 700 },
     waves: [
@@ -129,11 +129,11 @@ const campaignStageBlueprints: Array<Omit<StageDefinition, 'fortressDistance' | 
       { timeMs: 13500, unitId: 'guardian', count: 2, intervalMs: 3200 },
       { timeMs: 22000, unitId: 'brute', count: 2, intervalMs: 4200 },
     ],
-    eliteGuard: { unitId: 'brute', name: '협곡 집행자', hpMultiplier: 1.2, attackMultiplier: 1.1, defenseBonus: 3 },
-    reinforcement: { startMs: 34_000, intervalMs: 2_300, unitIds: ['militia', 'crossbow', 'guardian', 'swordsman'], maxAlive: 13 },
+    eliteGuard: { unitId: 'brute', name: '협곡 집행자', hpMultiplier: 1.3, attackMultiplier: 1.15, defenseBonus: 3 },
+    reinforcement: { startMs: 34_000, intervalMs: 2_200, unitIds: ['militia', 'crossbow', 'guardian', 'swordsman'], maxAlive: 14 },
   },
   {
-    id: 8, name: '유리 사막', subtitle: '빠른 기동대와 장거리 사격을 견뎌내세요', reward: 800, enemyCastleHp: 5000,
+    id: 8, name: '유리 사막', subtitle: '빠른 기동대와 장거리 사격을 견뎌내세요', reward: 800, enemyCastleHp: 5600,
     enemyUpgrades: { equipment: { weapon: 5, armor: 5, boots: 5 } },
     firstClearReward: { label: '사막의 전리품', description: '금화 800개를 획득합니다.', icon: '◇', gold: 800 },
     waves: [
@@ -143,11 +143,11 @@ const campaignStageBlueprints: Array<Omit<StageDefinition, 'fortressDistance' | 
       { timeMs: 22000, unitId: 'lancer', count: 4, intervalMs: 1900 },
       { timeMs: 27000, unitId: 'crossbow', count: 5, intervalMs: 1500 },
     ],
-    eliteGuard: { unitId: 'bulwark', name: '사막의 철벽', hpMultiplier: 1.7, attackMultiplier: 1.2, defenseBonus: 3 },
-    reinforcement: { startMs: 34_000, intervalMs: 2_300, unitIds: ['raider', 'archer', 'lancer', 'crossbow', 'cavalry'], maxAlive: 12 },
+    eliteGuard: { unitId: 'bulwark', name: '사막의 철벽', hpMultiplier: 1.8, attackMultiplier: 1.25, defenseBonus: 3 },
+    reinforcement: { startMs: 34_000, intervalMs: 2_150, unitIds: ['raider', 'archer', 'lancer', 'crossbow', 'cavalry'], maxAlive: 13 },
   },
   {
-    id: 9, name: '무너진 수도', subtitle: '왕국의 옛 병종으로 이루어진 수비선을 돌파하세요', reward: 900, enemyCastleHp: 6000,
+    id: 9, name: '무너진 수도', subtitle: '왕국의 옛 병종으로 이루어진 수비선을 돌파하세요', reward: 900, enemyCastleHp: 6800,
     enemyUpgrades: { equipment: { weapon: 5, armor: 5, boots: 5 } },
     firstClearReward: { label: '왕실 훈련소 복구', description: '금화 900개를 획득하고, 금화로 영웅 숙련 경험치를 훈련하는 기능을 해금합니다.', icon: '♛', gold: 900, featureId: 'hero-training' },
     waves: [
@@ -157,11 +157,11 @@ const campaignStageBlueprints: Array<Omit<StageDefinition, 'fortressDistance' | 
       { timeMs: 21000, unitId: 'lancer', count: 4, intervalMs: 2100 },
       { timeMs: 28000, unitId: 'bulwark', count: 3, intervalMs: 2900 },
     ],
-    eliteGuard: { unitId: 'cavalry', name: '몰락한 근위대장', hpMultiplier: 2, attackMultiplier: 1.3, defenseBonus: 3 },
-    reinforcement: { startMs: 37_000, intervalMs: 2_300, unitIds: ['guardian', 'cavalry', 'militia', 'lancer', 'bulwark'], maxAlive: 13 },
+    eliteGuard: { unitId: 'cavalry', name: '몰락한 근위대장', hpMultiplier: 2.1, attackMultiplier: 1.35, defenseBonus: 3 },
+    reinforcement: { startMs: 37_000, intervalMs: 2_150, unitIds: ['guardian', 'cavalry', 'militia', 'lancer', 'bulwark'], maxAlive: 14 },
   },
   {
-    id: 10, name: '침묵 수도원', subtitle: '두꺼운 갑주를 넘어 처음 나타난 공중 수비대를 무너뜨리세요', reward: 1000, enemyCastleHp: 8500,
+    id: 10, name: '침묵 수도원', subtitle: '두꺼운 갑주를 넘어 처음 나타난 공중 수비대를 무너뜨리세요', reward: 1000, enemyCastleHp: 9500,
     enemyUpgrades: { equipment: { weapon: 5, armor: 5, boots: 5 } },
     firstClearReward: { label: '봉인된 성물', description: '금화 1,000개를 획득합니다.', icon: '✦', gold: 1000 },
     waves: [
@@ -171,11 +171,11 @@ const campaignStageBlueprints: Array<Omit<StageDefinition, 'fortressDistance' | 
       { timeMs: 20500, unitId: 'brute', count: 4, intervalMs: 3300 },
       { timeMs: 28500, unitId: 'griffin', count: 1, intervalMs: 2400 },
     ],
-    eliteGuard: { unitId: 'brute', name: '수도원 문지기', hpMultiplier: 1.25, attackMultiplier: 1.12, defenseBonus: 4 },
-    reinforcement: { startMs: 39_000, intervalMs: 2_200, unitIds: ['bulwark', 'crossbow', 'guardian', 'swordsman'], maxAlive: 13 },
+    eliteGuard: { unitId: 'brute', name: '수도원 문지기', hpMultiplier: 1.35, attackMultiplier: 1.17, defenseBonus: 4 },
+    reinforcement: { startMs: 39_000, intervalMs: 2_100, unitIds: ['bulwark', 'crossbow', 'guardian', 'swordsman'], maxAlive: 14 },
   },
   {
-    id: 11, name: '황혼의 관문', subtitle: '모든 병종이 결집한 마지막 성문을 여세요', reward: 1100, enemyCastleHp: 5400,
+    id: 11, name: '황혼의 관문', subtitle: '모든 병종이 결집한 마지막 성문을 여세요', reward: 1100, enemyCastleHp: 6200,
     enemyUpgrades: { equipment: { weapon: 5, armor: 5, boots: 5 } },
     firstClearReward: { label: '황혼의 군자금', description: '금화 1,100개를 획득합니다.', icon: '●', gold: 1100 },
     waves: [
@@ -186,16 +186,16 @@ const campaignStageBlueprints: Array<Omit<StageDefinition, 'fortressDistance' | 
       { timeMs: 22000, unitId: 'lancer', count: 6, intervalMs: 1700 },
       { timeMs: 29000, unitId: 'griffin', count: 2, intervalMs: 2500 },
     ],
-    eliteGuard: { unitId: 'brute', name: '황혼 사령관', hpMultiplier: 1.3, attackMultiplier: 1.15, defenseBonus: 5 },
-    reinforcement: { startMs: 39_000, intervalMs: 2_200, unitIds: ['cavalry', 'bulwark', 'crossbow', 'swordsman', 'lancer'], maxAlive: 12 },
+    eliteGuard: { unitId: 'brute', name: '황혼 사령관', hpMultiplier: 1.4, attackMultiplier: 1.2, defenseBonus: 5 },
+    reinforcement: { startMs: 39_000, intervalMs: 2_100, unitIds: ['cavalry', 'bulwark', 'crossbow', 'swordsman', 'lancer'], maxAlive: 13 },
   },
   {
-    id: 12, name: '철갑 마수의 귀환', subtitle: '배신한 인간군이 깨운 철갑 마수와 동부 성채를 함께 끝내세요', reward: 1200, enemyCastleHp: 7500, boss: true, bossName: '왕도 철갑 마수',
-    bossModifiers: { hpMultiplier: 1.9, attackMultiplier: 1.2, stompCadenceMultiplier: 0.84 },
+    id: 12, name: '철갑 마수의 귀환', subtitle: '배신한 인간군이 깨운 철갑 마수와 동부 성채를 함께 끝내세요', reward: 1200, enemyCastleHp: 8500, boss: true, bossName: '왕도 철갑 마수',
+    bossModifiers: { hpMultiplier: 2.1, attackMultiplier: 1.28, stompCadenceMultiplier: 0.84 },
     enemyUpgrades: { equipment: { weapon: 5, armor: 5, boots: 5 } },
     firstClearReward: { label: '새벽의 성녀 합류', description: '영웅 미레나가 합류하고 금화 1,200개를 획득합니다.', icon: '✚', heroId: 'saint', gold: 1200 },
     waves: [],
-    reinforcement: { startMs: 5_000, intervalMs: 8_000, unitIds: ['militia', 'raider', 'archer'], maxAlive: 4 },
+    reinforcement: { startMs: 5_000, intervalMs: 7_500, unitIds: ['militia', 'raider', 'archer'], maxAlive: 4 },
   },
 ];
 
@@ -234,15 +234,15 @@ const lateRegionalReinforcementCore: Record<3 | 4 | 5, UnitId[]> = {
 };
 
 const lateReinforcementIntervalMs: Record<number, number> = {
-  13: 2_400, 14: 4_600, 15: 5_000, 16: 4_600, 17: 3_300,
-  19: 3_100, 20: 5_300, 21: 5_800, 22: 4_800, 23: 3_200,
-  25: 4_100, 26: 5_000, 27: 4_800, 28: 2_900, 29: 2_900,
+  13: 2_200, 14: 4_200, 15: 4_500, 16: 4_200, 17: 3_000,
+  19: 2_800, 20: 4_800, 21: 5_200, 22: 4_300, 23: 2_900,
+  25: 3_700, 26: 4_500, 27: 4_300, 28: 2_600, 29: 2_600,
 };
 
 const lateFortressAttack = (stageId: number): NonNullable<StageDefinition['enemyFortressAttack']> => {
-  if (stageId >= 25) return { damage: 72, range: 320, intervalMs: 2_100 };
-  if (stageId >= 19) return { damage: 52, range: 290, intervalMs: 2_400 };
-  return { damage: 36, range: 260, intervalMs: 2_800 };
+  if (stageId >= 25) return { damage: 105, range: 320, intervalMs: 2_100 };
+  if (stageId >= 19) return { damage: 75, range: 290, intervalMs: 2_400 };
+  return { damage: 50, range: 260, intervalMs: 2_800 };
 };
 
 function lateStageRegionalUnits(id: number): UnitId[] {
@@ -284,6 +284,7 @@ function createLateStage(id: number): Omit<StageDefinition, 'fortressDistance' |
   const composition = boss ? [] : lateStageComposition(id);
   const waveInterval = Math.max(1_450, 2_150 - progress * 30);
   const regionOpeningFortressBonus = !boss && id % 6 === 1 ? 1_250 : 0;
+  const fortressHardening = 2_000 + progress * 250;
   const waves = composition.map(({ unitId, signature }, index) => ({
     timeMs: 700 + index * 4_500,
     unitId,
@@ -303,7 +304,7 @@ function createLateStage(id: number): Omit<StageDefinition, 'fortressDistance' |
     name,
     subtitle,
     reward: id * 100,
-    enemyCastleHp: (boss ? 9_000 : 13_250) + progress * 2_500 + regionOpeningFortressBonus + (id === 28 ? 250 : 0),
+    enemyCastleHp: (boss ? 9_000 : 13_250) + progress * 2_500 + fortressHardening + regionOpeningFortressBonus + (id === 28 ? 250 : 0),
     enemyFortressAttack: lateFortressAttack(id),
     enemyUpgrades: { equipment: { weapon: 5, armor: 5, boots: 5 } },
     firstClearReward: id === 18 ? {
@@ -322,17 +323,17 @@ function createLateStage(id: number): Omit<StageDefinition, 'fortressDistance' |
       bossName: bossNames[id],
       reinforcement: lateBossGarrison(id),
       bossModifiers: {
-        hpMultiplier: 1.75 + bossRank * 0.1 + (bossRank === 4 ? 0.03 : bossRank === 5 ? 0.08 : 0),
-        attackMultiplier: 1 + bossRank * 0.06,
+        hpMultiplier: 1.9 + bossRank * 0.1 + (bossRank === 4 ? 0.03 : bossRank === 5 ? 0.08 : 0),
+        attackMultiplier: 1.05 + bossRank * 0.06,
         stompCadenceMultiplier: Math.max(0.74, 1 - bossRank * 0.05),
       },
     } : {
       eliteGuard: {
         unitId: 'brute',
         name: `${name} 수비대장`,
-        hpMultiplier: 1.25 + progress * 0.03,
-        attackMultiplier: 1.1 + progress * 0.01,
-        defenseBonus: 5 + Math.floor(progress / 4),
+        hpMultiplier: 1.4 + progress * 0.03,
+        attackMultiplier: 1.15 + progress * 0.01,
+        defenseBonus: 6 + Math.floor(progress / 4),
       },
       reinforcement: {
         startMs: 55_000,

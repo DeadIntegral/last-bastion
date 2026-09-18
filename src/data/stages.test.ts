@@ -96,9 +96,9 @@ describe('campaign rewards', () => {
 
   it('introduces bounded enemy-fortress fire from the third region onward', () => {
     expect(stages.slice(0, 12).every((stage) => stage.enemyFortressAttack === undefined)).toBe(true);
-    expect(stages[12].enemyFortressAttack).toEqual({ damage: 36, range: 260, intervalMs: 2_800 });
-    expect(stages[18].enemyFortressAttack).toEqual({ damage: 52, range: 290, intervalMs: 2_400 });
-    expect(stages[24].enemyFortressAttack).toEqual({ damage: 72, range: 320, intervalMs: 2_100 });
+    expect(stages[12].enemyFortressAttack).toEqual({ damage: 50, range: 260, intervalMs: 2_800 });
+    expect(stages[18].enemyFortressAttack).toEqual({ damage: 75, range: 290, intervalMs: 2_400 });
+    expect(stages[24].enemyFortressAttack).toEqual({ damage: 105, range: 320, intervalMs: 2_100 });
     expect(challengeStages.every((stage) => stage.enemyFortressAttack === undefined)).toBe(true);
   });
 

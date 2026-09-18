@@ -9,7 +9,7 @@ describe('encrypted portable saves', () => {
 
     expect(envelope.format).toBe(ENCRYPTED_SAVE_FORMAT);
     expect(envelope.gameVersion).toBe('0.2.0');
-    expect(envelope.saveSchemaVersion).toBe(2);
+    expect(envelope.saveSchemaVersion).toBe(3);
     expect(envelope.encryption.algorithm).toBe('AES-GCM');
     expect(envelope.kdf.algorithm).toBe('PBKDF2');
     expect(envelope.kdf.iterations).toBe(SAVE_KDF_ITERATIONS);

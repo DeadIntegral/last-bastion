@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canUpgradeCastleTech, castleBattleStats, castleTechChildren, castleTechCost, castleTechDefinitions, castleTechOrder, castleTechPrerequisiteStatus, castleTechRoots, emptyCastleTech, fortressResearchTuning, fortressTierDefinitions, minimumFortressTierForResearch, soldierCommandCost, totalCastleResearch } from './castle';
+import { canUpgradeCastleTech, castleBattleStats, castleTechChildren, castleTechCost, castleTechDefinitions, castleTechOrder, castleTechPrerequisiteStatus, castleTechRoots, emptyCastleTech, fortressResearchTuning, fortressTierDefinitions, minimumFortressTierForResearch, rallyCommandTuning, soldierCommandCost, totalCastleResearch } from './castle';
 
 describe('castle technology tree', () => {
   it('applies all five fortress branches to battle stats', () => {
@@ -46,6 +46,7 @@ describe('castle technology tree', () => {
     expect(stats.rallyTranscendentControl).toBe(true);
     expect(stats.rallyCooldownMs).toBe(14_000);
     expect(stats.rallyMoveSpeedMultiplier).toBe(1.05);
+    expect(rallyCommandTuning.activeDurationMs).toBe(12_000);
     expect(stats.heroSkillCooldownMultiplier).toBe(0.94);
     expect(stats.heroRespawnMultiplier).toBe(0.97);
     expect(stats.mobilizationMaxCommandBonus).toBe(100);

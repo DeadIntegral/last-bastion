@@ -4,6 +4,7 @@ import { bossCodex, CODEX_TOTAL, codexEntryCount, heroCodex, troopCodex } from '
 import { achievementById, achievementGroups, achievementProgress, achievements, featuredAchievement } from './data/achievements';
 import { canUpgradeCastleTech, castleBattleStats, castleTechChildren, castleTechCost, castleTechDefinitions, castleTechPrerequisiteStatus, castleTechRoots, fortressTierDefinitions, totalCastleResearch } from './data/castle';
 import { battleFormationCapacity, BATTLE_SPEED_LICENSE, DAILY_REWARD, FORMATION_SLOT_LICENSES, MAX_FORMATION_SLOT_PURCHASES } from './data/economy';
+import { TRIUMPH_MONUMENT, triumphMonumentBonuses, triumphMonumentCost } from './data/endgame';
 import { gameFeatures, heroTrainingPackages, isGameFeatureUnlocked } from './data/features';
 import { OPENING_SCENE_DURATION_MS, openingScenes } from './data/opening';
 import { HERO_AWAKENING_LEVELS, HERO_MASTERY_MAX_LEVEL, heroAwakeningAuras, heroMasteryGrowth, heroSkillPower, soldierMasteryGrowth } from './data/mastery';
@@ -461,12 +462,14 @@ function MapCommandCenter({ onNavigate }: { onNavigate: (screen: Screen) => void
   const claimDailyReward = useGameStore((state) => state.claimDailyReward);
   const battleSpeedUnlocked = useGameStore((state) => state.battleSpeedUnlocked);
   const formationSlotPurchases = useGameStore((state) => state.formationSlotPurchases);
+  const triumphMonumentLevel = useGameStore((state) => state.triumphMonumentLevel);
   const muted = useGameStore((state) => state.muted);
   const toggleMuted = useGameStore((state) => state.toggleMuted);
   const [notice, setNotice] = useState('');
   const claimable = unlockedAchievements.filter((id) => !claimedAchievements.includes(id)).length;
   const dailyAvailable = lastDailyClaimDate !== localDateKey();
   const trainingUnlocked = isGameFeatureUnlocked('hero-training', clearedStages);
+  const monumentUnlocked = clearedStages.includes(TRIUMPH_MONUMENT.unlockStage);
   const speedLicenseRevealed = clearedStages.includes(BATTLE_SPEED_LICENSE.unlockStage);
   const formationCapacity = battleFormationCapacity(formationSlotPurchases);
   const merchantStatus = battleSpeedUnlocked && formationSlotPurchases >= MAX_FORMATION_SLOT_PURCHASES
@@ -493,6 +496,7 @@ function MapCommandCenter({ onNavigate }: { onNavigate: (screen: Screen) => void
       <button onClick={() => onNavigate('heroes')}><i>{heroDefinitions[selectedHero].icon}</i><span>영웅의 전당<small>{heroDefinitions[selectedHero].name}</small></span></button>
       <button onClick={() => onNavigate('fortress')}><i>♜</i><span>성채 기술<small>5 BRANCHES</small></span></button>
       <button className={trainingUnlocked ? '' : 'feature-locked'} disabled={!trainingUnlocked} onClick={() => onNavigate('training')}><i>♛</i><span>영웅 훈련소<small>{trainingUnlocked ? 'GOLD → HERO XP' : `${gameFeatures['hero-training'].unlockStage}장 클리어 시 해금`}</small></span></button>
+      <button className={monumentUnlocked ? 'monument-ready' : 'feature-locked'} disabled={!monumentUnlocked} onClick={() => onNavigate('monument')}><i>♜</i><span>{TRIUMPH_MONUMENT.name}<small>{monumentUnlocked ? `${triumphMonumentLevel}/${TRIUMPH_MONUMENT.maxLevel}단계` : `${TRIUMPH_MONUMENT.unlockStage}장 클리어 시 건립`}</small></span></button>
       <button onClick={() => onNavigate('achievements')}><i>✦</i><span>업적 기록<small>{claimable ? `${claimable} 보상 대기` : `${unlockedAchievements.length}/${achievements.length}`}</small></span></button>
       <button onClick={() => onNavigate('codex')}><i>▤</i><span>전쟁 사전<small>{codexEntries}/{CODEX_TOTAL}</small></span></button>
       <button className={dailyAvailable ? 'daily-ready' : ''} disabled={!dailyAvailable} onClick={receiveDaily}><i>◆</i><span>{DAILY_REWARD.label}<small>{dailyAvailable ? `보석 ${DAILY_REWARD.gems}개 받기` : '오늘 수령 완료'}</small></span></button>
@@ -811,7 +815,16 @@ function Armory({ onBack }: { onBack: () => void }) {
       </section>
       <section className="formation-strip">
         <div><span className="eyebrow">BATTLE FORMATION</span><strong>현재 편성 {equippedUnits.length}/{formationCapacity}</strong></div>
-        <div>{equippedUnits.map((id, index) => <span key={id}><i>{index + 1}</i>{troopDefinitions[id].icon} {troopDefinitions[id].name}</span>)}</div>
+        <div>{equippedUnits.map((id, index) => (
+          <button
+            key={id}
+            type="button"
+            disabled={equippedUnits.length <= 1}
+            onClick={() => toggleFormation(id)}
+            aria-label={`${troopDefinitions[id].name} 편성 제외`}
+            title={equippedUnits.length <= 1 ? '전투 편성은 최소 1종이 필요합니다.' : `${troopDefinitions[id].name} 편성 제외`}
+          ><i>{index + 1}</i>{troopDefinitions[id].icon} {troopDefinitions[id].name}<b aria-hidden="true">×</b></button>
+        ))}</div>
       </section>
       <nav className="roster-filters" aria-label="병종 계열 필터">
         <button className={familyFilter === 'all' ? 'active' : ''} onClick={() => setFamilyFilter('all')}>전체 <b>{allTroopOrder.length}</b></button>
@@ -1043,6 +1056,48 @@ function HeroTrainingGround({ onBack }: { onBack: () => void }) {
             </article>
           );
         })}
+      </section>
+      {notice && <div className="toast" role="status">{notice}</div>}
+    </main>
+  );
+}
+
+function TriumphMonument({ onBack }: { onBack: () => void }) {
+  const gold = useGameStore((state) => state.gold);
+  const level = useGameStore((state) => state.triumphMonumentLevel);
+  const upgrade = useGameStore((state) => state.upgradeTriumphMonument);
+  const [notice, setNotice] = useState('');
+  const bonuses = triumphMonumentBonuses(level);
+  const maxed = level >= TRIUMPH_MONUMENT.maxLevel;
+  const cost = triumphMonumentCost(level);
+
+  const strengthen = () => {
+    const success = upgrade();
+    setNotice(success ? `승전 기념비가 ${level + 1}단계로 강화되었습니다.` : '금화가 부족하거나 이미 최고 단계입니다.');
+    window.setTimeout(() => setNotice(''), 1_800);
+  };
+
+  return (
+    <main className="panel-screen monument-screen">
+      <ShellHeader title={TRIUMPH_MONUMENT.name} onBack={onBack} />
+      <section className="monument-panel">
+        <div className="monument-visual" aria-hidden="true"><span>♜</span><i /></div>
+        <div className="monument-copy">
+          <span className="eyebrow">CONTINENTAL VICTORY MEMORIAL</span>
+          <h2>끝나지 않는 원정을 위한 유산</h2>
+          <p>30장 탈환 이후 남는 금화를 왕국 전체의 전투 기반에 투자합니다. 효과는 아군에게만 적용되며 최대 20단계에서 멈춥니다.</p>
+          <div className="monument-ranks" aria-label={`기념비 단계 ${level}/${TRIUMPH_MONUMENT.maxLevel}`}>
+            {Array.from({ length: TRIUMPH_MONUMENT.maxLevel }, (_, rank) => <i key={rank} className={rank < level ? 'filled' : ''} />)}
+          </div>
+          <div className="monument-bonuses">
+            <div><span>병사·영웅 HP</span><strong>+{level}%</strong><small>다음 +{Math.min(TRIUMPH_MONUMENT.maxLevel, level + 1)}%</small></div>
+            <div><span>병사·영웅 공격·치유</span><strong>+{level}%</strong><small>다음 +{Math.min(TRIUMPH_MONUMENT.maxLevel, level + 1)}%</small></div>
+            <div><span>아군 성채 HP</span><strong>+{bonuses.fortressHpBonus.toLocaleString()}</strong><small>단계당 +{TRIUMPH_MONUMENT.fortressHpPerLevel}</small></div>
+          </div>
+          <button className="monument-upgrade" disabled={maxed || gold < cost} onClick={strengthen}>
+            {maxed ? '기념비 완성' : <>기념비 강화 <span>● {cost.toLocaleString()}</span></>}
+          </button>
+        </div>
       </section>
       {notice && <div className="toast" role="status">{notice}</div>}
     </main>
@@ -1471,6 +1526,7 @@ export default function App() {
   if (screen === 'stages') return <StageSelect onBack={() => setScreen('menu')} onSelect={startStage} onNavigate={setScreen} />;
   if (screen === 'merchant') return <MysteryMerchant onBack={() => setScreen('stages')} />;
   if (screen === 'training') return <HeroTrainingGround onBack={() => setScreen('stages')} />;
+  if (screen === 'monument') return <TriumphMonument onBack={() => setScreen('stages')} />;
   if (screen === 'armory') return <Armory onBack={() => setScreen('stages')} />;
   if (screen === 'heroes') return <HeroHall onBack={() => setScreen('stages')} />;
   if (screen === 'fortress') return <FortressWorkshop onBack={() => setScreen('stages')} />;
