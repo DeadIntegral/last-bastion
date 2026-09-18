@@ -1,6 +1,6 @@
 # Character roster atlases
 
-The repository contains an original AI-generated full playable roster, correction sources, and six runtime atlases:
+The repository contains an original AI-generated full playable roster, correction sources, and seven runtime atlases:
 
 - `roster-sheet.png`: 1225 × 1284 RGBA master output.
 - `griffin-source.png`: 1280 × 1280 RGBA replacement source for the wide Griffin Rider.
@@ -12,7 +12,9 @@ The repository contains an original AI-generated full playable roster, correctio
 - `regional-atlas.png`, `elemental-atlas.png`, and `demon-atlas.png`: 612 × 640 RGBA runtime atlases containing the remaining playable roster.
 - `dragon-source.png`: 1254 × 1254 RGBA standalone source for Ancient Sky Dragon.
 - `transcendent-atlas.png`: 612 × 640 RGBA runtime atlas with Ancient Sky Dragon in frame 0 and fifteen transparent cells.
-- `yarn art:atlas`: deterministic local rebuild of every non-core runtime atlas. It detects real transparent gutters in generated source grids, isolates each subject, alpha-crops it into a fixed frame, and preserves transparency in occupied and unused cells.
+- `hero-sources/karuk-source.png` and `hero-sources/neris-source.png`: standalone RGBA sources for the non-human heroes.
+- `alliance-atlas.png`: 612 × 640 RGBA runtime atlas with Karuk and Neris in frames 0–1 and fourteen transparent cells.
+- `yarn art:atlas`: deterministic local rebuild of all six non-core runtime atlases. It detects real transparent gutters in generated source grids, isolates each subject, alpha-crops it into a fixed frame, and preserves transparency in occupied and unused cells.
 
 Core frame order is left-to-right, top-to-bottom:
 
@@ -56,11 +58,18 @@ Transcendent frame order is:
 3. empty, empty, empty, empty
 4. empty, empty, empty, empty
 
+Alliance frame order is:
+
+1. Orc Champion Karuk, Wind Spirit Neris, empty, empty
+2. empty, empty, empty, empty
+3. empty, empty, empty, empty
+4. empty, empty, empty, empty
+
 `src/data/characterArt.ts` is the canonical sheet-and-frame mapping. React resolves CSS background images and positions from the same mapping, while Phaser loads every declared sheet as a spritesheet. Enemy troops reuse and horizontally flip the same faction-neutral art.
 
 ## Runtime attack motion
 
-The current six atlases contain one neutral pose per character. They are transparent PNGs, but the file extension does not contain skeletal joints or separable limbs. Phaser therefore keeps each portrait and combatant container stable and layers a spawn-time arm/weapon/effect rig over it. `src/game/combatMotion.ts` selects slash, thrust, shoot, cast, crush, or lunge from the canonical combat definition and samples the motion without allocating objects per strike. Canonical 5-star transcendent troops render their portrait at 1.9× the ordinary battle-art scale while leaving collision and combat geometry unchanged. A future authored animation pass must add separated-part source files or multi-frame attack sheets; converting these same pixels to WebP, GIF, or another extension alone would not enable arm articulation.
+The current seven atlases contain one neutral pose per character. They are transparent PNGs, but the file extension does not contain skeletal joints or separable limbs. Phaser therefore keeps each portrait and combatant container stable and layers a spawn-time arm/weapon/effect rig over it. `src/game/combatMotion.ts` selects slash, thrust, shoot, cast, crush, or lunge from the canonical combat definition and samples the motion without allocating objects per strike. Canonical 5-star transcendent troops render their portrait at 1.9× the ordinary battle-art scale while leaving collision and combat geometry unchanged. A future authored animation pass must add separated-part source files or multi-frame attack sheets; converting these same pixels to WebP, GIF, or another extension alone would not enable arm articulation.
 
 ## Generation record
 
@@ -145,3 +154,19 @@ Demon final subject prompt:
 Final prompt:
 
 > Create one original full-body massive ancient sky dragon facing right on a genuinely transparent square canvas for a side-view low-fantasy lane-strategy game. Use dark midnight-blue scales, broad crimson wing membranes, aged-gold horns and chest armor, and a compact cyan glow in the throat suggesting magic breath. Match the project's polished hand-painted 2D chibi proportions, subtle inked edges, restrained detail, and crisp silhouette, while making the creature feel much larger and more imposing than ordinary troops. Keep exactly one dragon and every wing, horn, claw, and tail inside the canvas with generous padding and a low consistent baseline. No rider, extra creatures, scenery, floor, cast shadow, text, border, logo, watermark, black background, pixel art, photorealism, front view, or isometric view.
+
+## Alliance hero generation record
+
+- Mode: built-in image generation tool
+- Use case: `transparent-background`
+- Generated: 2026-09-18
+- Saved editable sources: `hero-sources/karuk-source.png`, `hero-sources/neris-source.png`
+- Saved runtime atlas: `alliance-atlas.png`
+
+Karuk final prompt:
+
+> Create one original full-body male Orc hero facing right for a side-view low-fantasy lane-strategy game. Give him unmistakable olive-green skin, large ivory lower tusks, pointed ears, a black topknot, heavy bronze-and-crimson clan armor, a massive one-handed war axe, broken chains, and a small blue liberation ribbon. Match the project's hand-painted 2D chibi proportions, crisp readable silhouette, subtle inked edges, and generous padding on a genuinely transparent background. No scenery, floor, cast shadow, text, logo, watermark, extra figures, crop, pixel art, photorealism, front view, or isometric view.
+
+Neris final prompt and transparency extraction:
+
+> Create one original full-body female Wind Spirit hero facing right for a side-view low-fantasy lane-strategy game. Make her clearly non-human: a translucent cyan body fading into curling air instead of feet, luminous pale eyes, floating teal-and-silver armor pieces, ribbon-like wind currents, and a crescent crystal staff. Match the project's hand-painted 2D chibi proportions, crisp readable silhouette, subtle inked edges, and generous padding on a genuinely transparent background. No scenery, rectangle, floor, cast shadow, text, logo, watermark, extra figures, crop, pixel art, photorealism, front view, or isometric view. Preserve the character and isolate the surrounding wind glow into RGBA transparency for atlas use.

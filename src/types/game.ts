@@ -12,7 +12,7 @@ export type CodexEnemyId = EnemyId | 'boss';
 export type EnemyFaction = 'betrayers' | 'goblins' | 'orcs' | 'monsters' | 'demons' | 'spirits' | 'mixed';
 export type UnitFamily = 'kingdom' | 'betrayer' | 'goblin' | 'orc' | 'ogre' | 'beast' | 'spirit' | 'demon';
 export type UnitGrade = 1 | 2 | 3 | 4 | 5;
-export type HeroId = 'warden' | 'pyromancer' | 'huntress' | 'saint' | 'marshal';
+export type HeroId = 'warden' | 'pyromancer' | 'huntress' | 'saint' | 'marshal' | 'orcChampion' | 'windSpirit';
 export type FortressTier = 1 | 2 | 3;
 export type CastleTechId =
   | 'war_coffers' | 'logistics' | 'command_vault' | 'drill_yard' | 'supply_standardization' | 'spoils_accounting' | 'field_manuals' | 'war_tithe'

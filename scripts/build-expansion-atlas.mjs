@@ -18,6 +18,13 @@ const generatedSheets = [
 const standaloneSheets = [
   { source: 'dragon-source.png', output: 'transcendent-atlas.png' },
 ];
+const individualSourceSheets = [
+  {
+    directory: 'hero-sources',
+    sources: ['karuk-source.png', 'neris-source.png'],
+    output: 'alliance-atlas.png',
+  },
+];
 
 function paeth(left, up, upperLeft) {
   const prediction = left + up - upperLeft;
@@ -222,5 +229,17 @@ for (const sheet of generatedSheets) {
 for (const sheet of standaloneSheets) {
   const sheetAtlas = Buffer.alloc(atlasWidth * atlasHeight * 4);
   compositeFrame(sheetAtlas, decodeRgbaPng(path.join(root, 'public/assets/characters', sheet.source)), 0);
+  writeAtlas(sheetAtlas, path.join(root, 'public/assets/characters', sheet.output));
+}
+
+for (const sheet of individualSourceSheets) {
+  const sheetAtlas = Buffer.alloc(atlasWidth * atlasHeight * 4);
+  sheet.sources.forEach((source, frameIndex) => {
+    compositeFrame(
+      sheetAtlas,
+      decodeRgbaPng(path.join(root, 'public/assets/characters', sheet.directory, source)),
+      frameIndex,
+    );
+  });
   writeAtlas(sheetAtlas, path.join(root, 'public/assets/characters', sheet.output));
 }

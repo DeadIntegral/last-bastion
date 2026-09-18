@@ -166,8 +166,8 @@ Expansion troops created through `makeTroop` derive readable fixed growth once a
 - Every 3-star troop uses base 200: 200 / 400 / 600 / 800 / 1,000 gold; one complete branch costs 3,000.
 - Every 4-star troop uses base 300: 300 / 600 / 900 / 1,200 / 1,500 gold; one complete branch costs 4,500.
 - Every 5-star troop uses base 400: 400 / 800 / 1,200 / 1,600 / 2,000 gold; one complete branch costs 6,000.
-- Heroes retain authored bases: Edric 100, Selene/Ria/Mirena 125, and Bran 150.
-- Soldier equipment capstone: when any one of Weapon, Armor, or Boots reaches rank 5, ordinary, 3-star, and non-large 4-star troops permanently gain +1 deployment body. Every 5-star troop and 4-star `large` troop instead stays at its canonical squad size and gains one additional fixed rank of Weapon attack/healing, Armor HP/defense, and Boots movement simultaneously. The current stat-capstone roster is Griffin Rider, Ancient Treant, Rune Golem, Swamp Hydra, Cerberus, Ifrit, and Ancient Sky Dragon. Completing additional slots does not stack either bonus. The rule applies symmetrically to stage-equipped regular enemies; heroes and bosses receive neither bonus, named elite spawning remains single-body, and reinforcement `maxAlive` remains an exact living-body cap rather than a deployment count.
+- Heroes retain authored bases: Edric 100, Selene/Ria/Mirena 125, Bran 150, Karuk 175, and Neris 200.
+- Soldier equipment capstone: when any one of Weapon, Armor, or Boots reaches rank 5, ordinary, 3-star, and non-large 4-star troops permanently gain +1 deployment body. Every 5-star troop and 4-star `large` troop instead stays at its canonical squad size and gains three additional fixed ranks of Weapon attack/healing, Armor HP/defense, and Boots movement simultaneously. The current stat-capstone roster is Griffin Rider, Ancient Treant, Rune Golem, Swamp Hydra, Cerberus, Ifrit, and Ancient Sky Dragon. Completing additional slots does not stack either bonus. Swamp Hydra therefore receives a clearly visible capstone-only +630 HP, +36 ATK, +4.5 defense, and +3 move rather than the previous one-rank +210/+12/+1.5/+1. The rule applies symmetrically to stage-equipped regular enemies; heroes and bosses receive neither bonus, named elite spawning remains single-body, and reinforcement `maxAlive` remains an exact living-body cap rather than a deployment count.
 - Soldier mastery maximum: level 50. Hero mastery maximum: level 30.
 - XP for next mastery level: `round(45 × level^1.32)`.
 - Mastery uses character-specific flat gains. At level `L`, add `(L - 1) × listed gain` to canonical HP and ATK before adding equipment.
@@ -199,12 +199,16 @@ Expansion troops created through `makeTroop` derive readable fixed growth once a
 | 리아 | 350 | 48 | 230 | 1050 ms | 47 | 24 s | 16 s | 800 |
 | 미레나 | 330 | 24 | 185 | 1200 ms | 38 | 23 s | 17 s | 1,200 |
 | 브란 | 455 | 39 | 46 | 950 ms | 52 | 24 s | 19 s | 1,800 |
+| 카루크 | 720 | 68 | 54 | 1150 ms | 40 | 26 s | 22 s | 2,500 |
+| 네리스 | 420 | 58 | 230 | 1050 ms | 72 | 21 s | 16 s | 4,000 |
 
 - Edric: normal attacks cleave at ×0.70 secondary damage; nearby non-hero troops take 15% less damage; active grants 100 shield.
 - Selene: attacks splash for 35%; active meteor deals 240 area damage and 160 damage to a fortress caught in the impact.
 - Ria: normal attacks pierce up to three targets at ×0.80 follow-through damage; ×1.75 damage to large targets; active deals 105 to every active normal enemy or 155 to a boss.
 - Mirena: base attacks give way to a 58-point heal at 215 range whenever a nearby ally is injured; active heals allies within 240 range for 150 and the player fortress for 100.
 - Bran: first charge deals ×1.60 damage and normal attacks cleave at ×0.72 secondary damage; active gives allies within 220 range 85 shield.
+- Karuk: the Orc champion's first charge deals ×1.60 damage and his axe cleaves at ×0.85 secondary damage; active deals 180 damage to enemies within 205 and gives nearby allies 80 shield.
+- Neris: the flying wind spirit pierces two targets at ×0.80 follow-through; active centers a radius-185 storm 190 units ahead, dealing 200 to ground and flying enemies and 130 to a fortress in the area.
 
 Hero mastery is deliberately stronger than troop mastery and also improves each active skill and respawn cadence. Every entry below is a fixed gain per mastery rank after level 1. Hero mastery stops at level 30.
 
@@ -215,10 +219,12 @@ Hero mastery is deliberately stronger than troop mastery and also improves each 
 | 리아 | +17 | +3 | normal target +8; boss +12 | normal +45; boss +65 | -0.22 s | -5.6 s (10.4 s final) |
 | 미레나 | +16 | +2 | ally heal +10; fortress +6 | ally +60; fortress +40 | -0.24 s | -6.0 s (11.0 s final) |
 | 브란 | +21 | +3 | shield +8 | shield +40 | -0.28 s | -6.5 s (12.5 s final) |
+| 카루크 | +30 | +4 | damage +12; shield +6 | damage +70; shield +30 | -0.32 s | -7.5 s (14.5 s final) |
+| 네리스 | +18 | +4 | unit +14; fortress +9 | unit +80; fortress +50 | -0.24 s | -5.8 s (10.2 s final) |
 
-Awakenings occur at levels 10, 20, and 30. Each awakening also reduces active cooldown by exactly 1.5 seconds; final cooldowns are 20.5 seconds for Edric, 17.5 seconds for Selene, 19.5 seconds for Ria, 18.5 seconds for Mirena, and 19.5 seconds for Bran. Final level-30 active values are 540 shield, 1,004/630 meteor unit/fortress damage, 472/698 arrow-rain normal/boss damage, 620/394 Mirena ally/fortress healing, and 437 Bran shield.
+Awakenings occur at levels 10, 20, and 30. Each awakening also reduces active cooldown by exactly 1.5 seconds; final cooldowns are 20.5 seconds for Edric, 17.5 seconds for Selene, 19.5 seconds for Ria, 18.5 seconds for Mirena, 19.5 seconds for Bran, 21.5 seconds for Karuk, and 16.5 seconds for Neris. Final level-30 active values are 540 shield, 1,004/630 meteor unit/fortress damage, 472/698 arrow-rain normal/boss damage, 620/394 Mirena ally/fortress healing, 437 Bran shield, 738/344 Karuk damage/shield, and 846/541 Neris unit/fortress storm damage.
 
-Each awakening rank also enables one level of a nearby-soldier aura: Edric gives +2 defense per rank within 170, Selene +3 attack within 180, Ria +15 attack range within 210, Mirena +4 HP/s regeneration within 195, and Bran +4 movement speed within 185. At rank III these resolve to +6 defense, +9 attack, +45 range, +12 HP/s, and +12 move respectively. Auras require the selected hero to be alive and do not buff the hero itself.
+Each awakening rank also enables one level of a nearby-allied aura: Edric gives +2 defense per rank within 170, Selene +3 attack within 180, Ria +15 attack range within 210, Mirena +4 HP/s regeneration within 195, Bran +4 movement speed within 185, Karuk +2 attack and +1 defense within 185, and Neris +12 range and +3 movement within 215. At rank III Karuk grants +6/+3 and Neris grants +36/+9. Auras require the selected hero to be alive and do not buff the hero itself.
 
 ## 5. Battle and fortress baseline
 
@@ -303,43 +309,43 @@ At maximum `군수 표준화`, every one of the 51 deployment costs uses `max(10
 | 2 | 1,100 | 200 | 1/1/0 | Archer |
 | 3 | 1,400 | 300 | 2/1/1 | Lancer + 300 gold |
 | 4 | 1,800 | 400 | 2/3/1 | Selene |
-| 5 | 2,300 | 500 | 4/4/3 | 500 gold |
+| 5 | 2,500 | 500 | 4/4/3 | 500 gold |
 | 6 | 3,200 | 600 | 5/5/4 | Ria + 800 gold |
-| 7 | 4,000 | 700 | 5/5/5 | 700 gold |
-| 8 | 5,600 | 800 | 5/5/5 | 800 gold |
-| 9 | 6,800 | 900 | 5/5/5 | 900 gold + Hero Training Ground |
-| 10 | 9,500 | 1,000 | 5/5/5 | 1,000 gold |
-| 11 | 6,200 | 1,100 | 5/5/5 | 1,100 gold |
-| 12 | 8,500 | 1,200 | 5/5/5 | Mirena + 1,200 gold |
+| 7 | 5,000 | 700 | 5/5/5 | 700 gold |
+| 8 | 7,600 | 800 | 5/5/5 | 800 gold |
+| 9 | 9,800 | 900 | 5/5/5 | 900 gold + Hero Training Ground |
+| 10 | 13,500 | 1,000 | 5/5/5 | 1,000 gold |
+| 11 | 11,200 | 1,100 | 5/5/5 | 1,100 gold |
+| 12 | 14,500 | 1,200 | 5/5/5 | Mirena + 1,200 gold |
 
 - Defeat grants 20% of the listed battle gold, rounded down.
 - First-clear rewards are granted once per save.
 - The campaign contains 30 stages in five six-stage regions. The next region becomes visible after clearing stages 6, 12, 18, and 24.
 - Stage metadata identifies seven occupation groupings: traitorous humans, goblins, orcs, monsters, bound spirits, demons, and mixed Demon Army formations. Campaign terrain multipliers remain ×1 for now; visible non-neutral multipliers are reserved for the separate beast challenges and are included by the difficulty estimator.
 - Enemy weapon, armor, and boots upgrades are each capped at rank 5. No enemy or boss receives mastery XP, a mastery level, or a mastery multiplier.
-- Stages 13–30 keep enemy equipment at 5/5/5. Their battle reward and first-clear gold both equal `stage × 100`; stage 18 additionally grants Bran.
+- Stages 13–30 keep enemy equipment at 5/5/5. Their battle reward and first-clear gold both equal `stage × 100`; stage 15 additionally grants Karuk, stage 18 grants Bran, and stage 24 grants Neris.
 - Each non-boss stage from 13–29 adds three entries from its 15-unit regional roster to the scripted opening. Five normal stages per region therefore expose all 15 entries exactly as an encounter path. Familiar and regional waves alternate for the first six entries, placing the first regional troop at 5.2 seconds and the other two at 14.2 and 23.2 seconds; remaining familiar formations follow afterward. Regional deployments of cost 120 or less use two deployments, while more expensive signatures use one.
 
 | Stage | Name | Fortress HP | Type |
 |---:|---|---:|---|
-| 13 | 백은 평원 | 16,500 | army + elite |
-| 14 | 바람 절벽 | 18,000 | army + elite |
-| 15 | 망각의 초소 | 20,750 | army + elite |
-| 16 | 붉은 수로 | 23,500 | army + elite |
-| 17 | 용광로 성벽 | 26,250 | army + elite |
-| 18 | 잿불 마수의 요새 | 24,750 | boss siege |
-| 19 | 서리 벌판 | 33,000 | army + elite |
-| 20 | 빙결 관문 | 34,500 | army + elite |
-| 21 | 유령 숲 | 37,250 | army + elite |
-| 22 | 부서진 첨탑 | 40,000 | army + elite |
-| 23 | 백야 성채 | 42,750 | army + elite |
-| 24 | 서리 정령수의 왕성 | 41,250 | boss siege |
-| 25 | 폭풍 해안 | 49,500 | army + elite |
-| 26 | 천둥 협곡 | 51,000 | army + elite |
-| 27 | 구름 요새 | 53,750 | army + elite |
-| 28 | 왕좌 회랑 | 56,750 | army + elite |
-| 29 | 최후의 장벽 | 59,250 | army + elite |
-| 30 | 마왕성의 심연수 | 57,750 | boss siege |
+| 13 | 백은 평원 | 24,000 | army + elite |
+| 14 | 바람 절벽 | 26,000 | army + elite |
+| 15 | 망각의 초소 | 29,750 | army + elite |
+| 16 | 붉은 수로 | 33,500 | army + elite |
+| 17 | 용광로 성벽 | 37,250 | army + elite |
+| 18 | 잿불 마수의 요새 | 36,750 | boss siege |
+| 19 | 서리 벌판 | 46,000 | army + elite |
+| 20 | 빙결 관문 | 48,500 | army + elite |
+| 21 | 유령 숲 | 52,250 | army + elite |
+| 22 | 부서진 첨탑 | 56,000 | army + elite |
+| 23 | 백야 성채 | 59,750 | army + elite |
+| 24 | 서리 정령수의 왕성 | 59,250 | boss siege |
+| 25 | 폭풍 해안 | 68,500 | army + elite |
+| 26 | 천둥 협곡 | 71,000 | army + elite |
+| 27 | 구름 요새 | 74,750 | army + elite |
+| 28 | 왕좌 회랑 | 78,750 | army + elite |
+| 29 | 최후의 장벽 | 83,250 | army + elite |
+| 30 | 마왕성의 심연수 | 81,750 | boss siege |
 
 Fortress distance is `min(1,390, 1,050 + (stage - 1) × 25)` virtual units. With the player fortress fixed at X 105, the enemy fortress moves from X 1,155 toward the capped X 1,495 position. Stage 14 resolves to 1,375, stage 15 reaches 1,390, and stages 16–30 stay at that maximum. Distance is therefore an early-to-mid-campaign expansion axis rather than an artificial per-stage late-game escalator.
 
@@ -349,9 +355,9 @@ Stages 13–30 add a basic enemy-fortress shot as a separate, visible difficulty
 
 | Campaign region | Stages | Damage | Range | Interval |
 |---|---:|---:|---:|---:|
-| Ash highland | 13–18 | 50 | 260 | 2.8 s |
-| Spirit tundra | 19–24 | 75 | 290 | 2.4 s |
-| Demon rift | 25–30 | 105 | 320 | 2.1 s |
+| Ash highland | 13–18 | 60 | 260 | 2.8 s |
+| Spirit tundra | 19–24 | 90 | 290 | 2.4 s |
+| Demon rift | 25–30 | 125 | 320 | 2.1 s |
 
 ### Advanced troop introduction pacing
 
@@ -376,7 +382,7 @@ Stages 13–30 add a basic enemy-fortress shot as a separate, visible difficulty
 - Shared campaign-beast base stats: 5,200 HP, 82 ATK, 68 range, 1.5 s attack interval, and 20 movement speed.
 - Its normal strike cleaves all valid targets in its melee range at full secondary damage.
 - Stomp radius is 175, knockback is 55, and its 850 ms warning remains unchanged.
-- Bounded rank-5 armor and weapon produce 5,550 HP and 112 ATK before stage modifiers. Campaign boss modifiers are: stage 6 `×1.08 HP / ×1.00 ATK / ×1.00 cadence`, stage 12 `×2.10 / ×1.28 / ×0.84`, stage 18 `×2.20 / ×1.23 / ×0.85`, stage 24 `×2.33 / ×1.29 / ×0.80`, and stage 30 `×2.48 / ×1.35 / ×0.75`. Every campaign boss stands in front of a separately damageable fortress; both must fall. Its weak garrison continues while that fortress survives and stops immediately when it falls. No boss has mastery scaling.
+- Bounded rank-5 armor and weapon produce 5,550 HP and 112 ATK before stage modifiers. Campaign boss modifiers are: stage 6 `×1.08 HP / ×1.00 ATK / ×1.00 cadence`, stage 12 `×2.40 / ×1.35 / ×0.82`, stage 18 `×2.44 / ×1.32 / ×0.85`, stage 24 `×2.65 / ×1.40 / ×0.80`, and stage 30 `×2.90 / ×1.48 / ×0.75`. Every campaign boss stands in front of a separately damageable fortress; both must fall. Its weak garrison continues while that fortress survives and stops immediately when it falls. No boss has mastery scaling.
 
 ### Beast-only challenges and terrain
 
@@ -385,10 +391,10 @@ Stages 13–30 add a basic enemy-fortress shot as a separate, visible difficulty
 | 오우거 대족장 | stage 6 | 400 | 오우거 파쇄자 | ×10 / ×2.5 / ×1 | ×1.5 / ×1 / ×0.92 | 오우거 파쇄자 |
 | 폭풍의 대정령 | stage 18 | 1,000 | 폭풍 정령 | ×10 / ×2.5 / ×1.15 | ×8 / ×1.05 / ×0.68 | 폭풍 정령 |
 | 심연의 마염수 | stage 30 | 1,800 | 마염견 | ×10 / ×2.5 / ×1.2 | ×12 / ×1.05 / ×0.56 | 마염견 |
-| 태양 감옥의 이프리트 | stage 30 | 2,400 | 이프리트 | ×10 / ×2.5 / ×1.1 | ×1.5 / ×1 / ×0.52 | 이프리트 |
-| 창공의 고룡 | stage 30 | 3,000 | 창공의 고룡 | ×10 / ×2.5 / ×1.15 | ×1 / ×0.7 / ×0.48 | 창공의 고룡 |
+| 태양 감옥의 이프리트 | stage 30 | 2,400 | 이프리트 | ×10 / ×2.5 / ×1.1 | ×4/3 / ×8/9 / ×0.52 | 이프리트 |
+| 창공의 고룡 | stage 30 | 3,000 | 창공의 고룡 | ×10 / ×2.5 / ×1.15 | ×8/9 / ×28/45 / ×0.48 | 창공의 고룡 |
 
-Challenges contain no enemy fortress, fortress fire, waves, reinforcements, or elite. The enemy is derived from the same base troop later granted to the player, then receives rank-5 stage equipment, the visible terrain multipliers, and its named-boss modifier. The common HP ×10 terrain rule remains legible while the named modifier preserves progression; combined effective HP multipliers are ×15, ×80, ×120, ×15, and ×10 before equipment. Ifrit's base HP increase is offset only inside challenge 104 by reducing its named modifier from ×7.5 to ×1.5, so its rank-5 equipment/stat-capstone encounter durability remains 264,000 HP rather than jumping fivefold. Challenge 105 instead uses the dragon's canonical base, rank-5 armor, stat capstone, and ×10 terrain for 240,000 HP; its named attack modifier yields 672 trained attack after terrain. First-clear acquisition is persistent and does not advance the campaign; the acquired troop never receives terrain or named-boss multipliers. Listed battle gold is repeatable and defeat still grants 20%.
+Challenges contain no enemy fortress, fortress fire, waves, reinforcements, or elite. The enemy is derived from the same base troop later granted to the player, then receives rank-5 stage equipment, the visible terrain multipliers, and its named-boss modifier. The common HP ×10 terrain rule remains legible while the named modifier preserves progression; combined pre-equipment HP multipliers are ×15, ×80, ×120, ×40/3, and ×80/9. Because the apex stat capstone now contributes three equipment ranks instead of one, challenge 104 uses ×4/3 HP and ×8/9 ATK to preserve 264,000 trained HP and its prior attack pressure. Challenge 105 likewise uses ×8/9 HP and ×28/45 ATK, preserving 240,000 trained HP and 672 trained attack. First-clear acquisition is persistent and does not advance the campaign; the acquired troop never receives terrain or named-boss multipliers. Listed battle gold is repeatable and defeat still grants 20%.
 
 ### Continuous enemy reinforcements
 
@@ -402,29 +408,31 @@ After the scripted opening waves, every non-boss stage cycles through the follow
 | 4 | 36 s | 2.8 s | Lancer → Crossbow → Bulwark | 9 |
 | 5 | 48 s | 2.8 s | Raider → Bulwark → Crossbow → Swordsman → Lancer | 9 |
 | 6 | 5 s | 8.5 s | Raider → Militia | 4 |
-| 7 | 34 s | 2.2 s | Militia → Crossbow → Guardian → Swordsman | 14 |
-| 8 | 34 s | 2.15 s | Raider → Archer → Lancer → Crossbow → Royal Cavalry | 13 |
-| 9 | 37 s | 2.15 s | Guardian → Royal Cavalry → Militia → Lancer → Bulwark | 14 |
-| 10 | 39 s | 2.1 s | Bulwark → Crossbow → Guardian → Swordsman | 14 |
-| 11 | 39 s | 2.1 s | Royal Cavalry → Bulwark → Crossbow → Swordsman → Lancer | 13 |
-| 12 | 5 s | 7.5 s | Militia → Raider → Archer | 4 |
+| 7 | 34 s | 2.0 s | Militia → Crossbow → Guardian → Swordsman | 15 |
+| 8 | 34 s | 1.95 s | Raider → Archer → Lancer → Crossbow → Royal Cavalry | 15 |
+| 9 | 37 s | 1.9 s | Guardian → Royal Cavalry → Militia → Lancer → Bulwark | 16 |
+| 10 | 39 s | 1.85 s | Bulwark → Crossbow → Guardian → Swordsman | 16 |
+| 11 | 39 s | 1.8 s | Royal Cavalry → Bulwark → Crossbow → Swordsman → Lancer | 16 |
+| 12 | 5 s | 6.5 s | Militia → Raider → Archer | 5 |
 
-- Later boss garrisons are stage 18 `Raider → Goblin Archer / 7.8 s / cap 4`, stage 24 `Scout → Frost Spirit / 7.6 s / cap 4`, and stage 30 `Imp → Militia / 7.4 s / cap 5`; all begin at 5 seconds.
+- Later boss garrisons are stage 18 `Raider → Goblin Archer / 6.8 s / cap 5`, stage 24 `Scout → Frost Spirit / 6.5 s / cap 5`, and stage 30 `Imp → Militia / 6.2 s / cap 6`; all begin at 5 seconds.
 - Every non-boss stage from 13–29 starts reinforcements at 55 seconds. Its rotation combines two regional foundation troops with up to four most recently introduced regional troops, excluding every 4–5-star unit. The strength-adjusted interval prevents the new regional roster from becoming a hidden pressure spike:
 
 | Stages | Reinforcement intervals |
 |---|---|
-| 13–17 | 2.2 / 4.2 / 4.5 / 4.2 / 3.0 s |
-| 19–23 | 2.8 / 4.8 / 5.2 / 4.3 / 2.9 s |
-| 25–29 | 3.7 / 4.5 / 4.3 / 2.6 / 2.6 s |
+| 13–17 | 2.0 / 3.8 / 4.0 / 3.8 / 2.7 s |
+| 19–23 | 2.5 / 4.3 / 4.6 / 3.8 / 2.6 s |
+| 25–29 | 3.3 / 4.0 / 3.8 / 2.3 / 2.3 s |
 
-- Non-boss stages 13–20 cap living reinforcement bodies at 13, non-boss stages 21–28 at 14, and stage 29 at 15. Ash-highland rotations are rooted in Raiders and Bulwarks, spirit-tundra rotations in Guardians and Archers, and demon-rift rotations in Imps and Crossbows. Recently introduced Trolls, Minotaurs, Spirits, Demon Guards, and Mages can therefore recur at a lower cadence, while Hydras, Griffins, Treants, Golems, Cerberus, Reapers, Abyss Knights, Ifrit, and Ancient Sky Dragon remain finite scripted or challenge threats.
+- Non-boss stages 13–20 cap living reinforcement bodies at 15, non-boss stages 21–28 at 16, and stage 29 at 17. Ash-highland rotations are rooted in Raiders and Bulwarks, spirit-tundra rotations in Guardians and Archers, and demon-rift rotations in Imps and Crossbows. Recently introduced Trolls, Minotaurs, Spirits, Demon Guards, and Mages can therefore recur at a lower cadence, while Hydras, Griffins, Treants, Golems, Cerberus, Reapers, Abyss Knights, Ifrit, and Ancient Sky Dragon remain finite scripted or challenge threats.
 
 - Enemy equipment reaches the shared +5/+5/+5 cap at stage 7. Later difficulty uses composition, advanced mechanics, reinforcement timing/caps, fortress HP and fire, and boss patterns rather than additional generic stat multipliers.
 
 ### Elite defenders
 
 Stages 2, 3, 4, 5, 7–11, and every non-boss stage from 13–29 place one named elite near the enemy fortress. Each elite starts from the stage-trained shared troop, is forced to one body, and then applies only the explicit HP/ATK/DEF modifier in `eliteGuard`. Campaign stages 6/12/18/24/30 use a boss instead. The map exposes the elite name but hides all enemy equipment ranks and modifier numbers.
+
+The hardened eastern elites at stages 7–11 use HP/ATK/flat-DEF profiles `1.45/1.22/+4`, `1.95/1.30/+4`, `2.25/1.42/+4`, `1.50/1.24/+5`, and `1.55/1.27/+6`. For non-boss stages 13–29, with `progress = stage - 13`, the structured profile is HP `1.55 + progress × 0.035`, ATK `1.22 + progress × 0.012`, and defense `8 + floor(progress / 4)`. These values are a separate difficulty axis and never alter the canonical recruitable troop.
 
 ## 7. Automated difficulty model
 
@@ -471,7 +479,7 @@ The map tier and campaign curve measure absolute enemy pressure. They intentiona
 | 2 | 200 | Militia weapon +2 | 3 | ×1.18 | 370.1 |
 | 3 | 400 | Militia weapon +3 | 3 | ×1.27 | 483.2 |
 | 4 | 1,000 | Militia weapon +5 | 4 | ×1.93 | 507.7 |
-| 5 | 1,400 | Militia weapon +5 | 4 | ×1.93 | 548.0 |
+| 5 | 1,400 | Militia weapon +5 | 4 | ×1.93 | 554.0 |
 | 6 | 2,400 | Militia weapon +5 | 4 | ×1.93 | 699.8 |
 
 The stress case remains real: before stage 4, the optimized Militia build jumps from weapon +3 to +5 and receives its free fourth body, increasing deployment power to ×1.93 of base. The rebalanced encounter now raises pressure per optimized power from 483.2 to 507.7, a ×1.05 step, instead of allowing the capstone to erase the increase. At +5, weapon stats alone account for ×1.45 base power and the 3→4 body capstone multiplies that by another ×1.33.
@@ -497,9 +505,9 @@ Each row lists aligned `target / Gold / Royal Gem` sequences. Every threshold is
 | Hero skill uses | 5 / 15 / 50 / 100 / 200 / 500 | 90 / 180 / 400 / 650 / 900 / 2,000 | 4 / 8 / 15 / 22 / 30 / 65 |
 | Fortress bombardments | 1 / 10 / 50 / 100 / 200 / 500 | 60 / 160 / 400 / 650 / 900 / 2,000 | 2 / 7 / 15 / 22 / 30 / 65 |
 | Battles | 1 / 10 / 25 / 50 / 100 / 250 | 50 / 220 / 500 / 900 / 1,800 / 4,000 | 2 / 10 / 18 / 30 / 55 / 110 |
-| Codex entries | 10 / 29 / 43 / 57 | 100 / 180 / 350 / 600 | 6 / 12 / 24 / 40 |
+| Codex entries | 10 / 30 / 45 / 59 | 100 / 180 / 350 / 600 | 6 / 12 / 24 / 40 |
 
-- The codex ladder uses 10 entries, `ceil(CODEX_TOTAL × 0.5)`, `ceil(CODEX_TOTAL × 0.75)`, and `CODEX_TOTAL`; with the current 57-entry codex these resolve to 10/29/43/57.
+- The codex ladder uses 10 entries, `ceil(CODEX_TOTAL × 0.5)`, `ceil(CODEX_TOTAL × 0.75)`, and `CODEX_TOTAL`; with the current 59-entry codex these resolve to 10/30/45/59.
 - The 64 definitions remain presented as twelve compact series by default, with the full list available as an alternate view.
 
 ## 9. Balance change workflow

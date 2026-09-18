@@ -755,6 +755,12 @@ button:disabled { cursor: not-allowed; }
 .hero-marshal { background: linear-gradient(155deg, #2c3957, #171d2b 62%); border-color: rgba(132,157,218,.34); }
 .hero-marshal .hero-art { background: radial-gradient(circle at 50% 56%, rgba(112,141,210,.3), transparent 31%), linear-gradient(180deg, #2d3b5b, #191f30); }
 .hero-marshal .hero-traits > div { border-color: #7f9bd2; }
+.hero-orcChampion { background: linear-gradient(155deg, #3f4930, #1c2119 62%); border-color: rgba(190,145,82,.36); }
+.hero-orcChampion .hero-art { background: radial-gradient(circle at 50% 56%, rgba(163,119,59,.3), transparent 31%), linear-gradient(180deg, #40482d, #202419); }
+.hero-orcChampion .hero-traits > div { border-color: #b4864d; }
+.hero-windSpirit { background: linear-gradient(155deg, #244b59, #14252d 62%); border-color: rgba(112,218,229,.38); }
+.hero-windSpirit .hero-art { background: radial-gradient(circle at 50% 56%, rgba(102,215,230,.32), transparent 31%), linear-gradient(180deg, #28515f, #172b33); }
+.hero-windSpirit .hero-traits > div { border-color: #68cad8; }
 .hero-traits > .awakening-aura-active { background: rgba(113,91,42,.2); box-shadow: inset 0 0 22px rgba(221,189,112,.06); }
 .hero-traits > .awakening-aura-active span { color: var(--gold-bright); }
 .hero-locked .hero-art { filter: grayscale(.8) brightness(.58); }

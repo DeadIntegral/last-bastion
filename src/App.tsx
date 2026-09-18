@@ -15,7 +15,7 @@ import { analyzeCampaignDifficulty, stageDifficultyPresentation } from './game/d
 import { decryptSave, encryptSave, isEncryptedSave, MAX_SAVE_FILE_BYTES } from './game/saveCrypto';
 import { activeSaveSlot, deleteSaveSlot, readSaveSlot, saveSlotSummaries, saveSlotSummary, setActiveSaveSlot, type SaveSlotId } from './game/saveSlots';
 import { musicEngine, type MusicScene } from './audio/music';
-import { attackPatternLabel, equipmentCost, formatTime, hasEquipmentCapstone, heroAwakeningRank, heroMasteryLevelFromXp, heroRespawnReductionMs, masteryLevelFromXp, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, upgradedStats, usesStatEquipmentCapstone } from './game/rules';
+import { STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS, attackPatternLabel, equipmentCost, formatTime, hasEquipmentCapstone, heroAwakeningRank, heroMasteryLevelFromXp, heroRespawnReductionMs, masteryLevelFromXp, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, upgradedStats, usesStatEquipmentCapstone } from './game/rules';
 import { useGameStore } from './store/useGameStore';
 import { CharacterSprite } from './components/CharacterSprite';
 import type { BattleResult, CastleTechId, EquipmentSlot, FortressTier, HeroId, Screen, UnitDefinition, UnitFamily, UnitId } from './types/game';
@@ -51,7 +51,17 @@ function heroSkillPowerSummary(id: HeroId, masteryLevel: number): string {
     const castleHeal = scaledHeroSkillPower(heroSkillPower.saint.castleHeal, heroSkillPower.saint.castleHealPerRank, heroSkillPower.saint.castleHealPerAwakening, masteryLevel);
     return `아군 회복 ${heal} · 성채 ${castleHeal}`;
   }
-  return `보호막 ${scaledHeroSkillPower(heroSkillPower.marshal.shield, heroSkillPower.marshal.shieldPerRank, heroSkillPower.marshal.shieldPerAwakening, masteryLevel)}`;
+  if (id === 'marshal') {
+    return `보호막 ${scaledHeroSkillPower(heroSkillPower.marshal.shield, heroSkillPower.marshal.shieldPerRank, heroSkillPower.marshal.shieldPerAwakening, masteryLevel)}`;
+  }
+  if (id === 'orcChampion') {
+    const damage = scaledHeroSkillPower(heroSkillPower.orcChampion.damage, heroSkillPower.orcChampion.damagePerRank, heroSkillPower.orcChampion.damagePerAwakening, masteryLevel);
+    const shield = scaledHeroSkillPower(heroSkillPower.orcChampion.shield, heroSkillPower.orcChampion.shieldPerRank, heroSkillPower.orcChampion.shieldPerAwakening, masteryLevel);
+    return `범위 피해 ${damage} · 보호막 ${shield}`;
+  }
+  const unitDamage = scaledHeroSkillPower(heroSkillPower.windSpirit.unitDamage, heroSkillPower.windSpirit.unitDamagePerRank, heroSkillPower.windSpirit.unitDamagePerAwakening, masteryLevel);
+  const castleDamage = scaledHeroSkillPower(heroSkillPower.windSpirit.castleDamage, heroSkillPower.windSpirit.castleDamagePerRank, heroSkillPower.windSpirit.castleDamagePerAwakening, masteryLevel);
+  return `폭풍 피해 ${unitDamage} · 성채 ${castleDamage}`;
 }
 
 const BattleView = lazy(() => import('./components/BattleView').then((module) => ({ default: module.BattleView })));
@@ -872,7 +882,7 @@ function Armory({ onBack }: { onBack: () => void }) {
                     <span>{equipmentCapstone ? '✦' : '◇'}</span>
                     <div><b>{statEquipmentCapstone ? '최상위 개체 완성 보너스' : '장비 완성 보너스'}</b><small>{equipmentCapstone
                       ? statEquipmentCapstone
-                        ? `활성화 · 1명 유지 · HP +${unit.equipmentGrowth.hp} · 공격 +${unit.equipmentGrowth.attack} · 방어 +${unit.equipmentGrowth.defense} · 속도 +${unit.equipmentGrowth.moveSpeed}`
+                        ? `활성화 · 1명 유지 · 장비 ${STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS}단계분 추가 · HP +${unit.equipmentGrowth.hp * STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS} · 공격 +${unit.equipmentGrowth.attack * STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS} · 방어 +${unit.equipmentGrowth.defense * STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS} · 속도 +${unit.equipmentGrowth.moveSpeed * STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS}`
                         : '활성화 · 1회 배치 인원 +1'
                       : statEquipmentCapstone
                         ? `장비 하나를 5단계까지 강화 · 완성 시 1명 유지 · ${closestCapstoneLevel}/5`
@@ -966,7 +976,7 @@ function HeroHall({ onBack }: { onBack: () => void }) {
                 {unlocked && <><div className="mastery-line"><b>숙련 경험치</b><span>{mastery.requiredXp ? `${mastery.currentXp}/${mastery.requiredXp} XP` : 'MAX'}</span></div><div className="mastery-track"><i style={{ width: mastery.requiredXp ? `${mastery.currentXp / mastery.requiredXp * 100}%` : '100%' }} /></div><div className="awakening-track"><div>{HERO_AWAKENING_LEVELS.map((level, index) => <i className={mastery.level >= level ? 'active' : ''} key={level}>{index + 1}</i>)}</div><span>{nextAwakeningLevel ? `다음 각성 LV.${nextAwakeningLevel}` : '최종 각성 완료'}</span></div><div className="mastery-benefit hero-mastery-benefit"><b>레벨당 HP +{masteryGrowth.hp} · 공격 +{masteryGrowth.attack}</b><span>{heroSkillPowerSummary(id, mastery.level)}</span><span>재사용 {(skillCooldownMs / 1000).toFixed(1)}초 · 부활 -{(respawnReduction / 1000).toFixed(1)}초</span></div></>}
                 <div className="hero-traits">
                   <div><span>PASSIVE</span><strong>{hero.passiveName}</strong><p>{hero.passiveDescription}</p></div>
-                  <div className={awakeningRank > 0 ? 'awakening-aura-active' : ''}><span>AWAKENING AURA</span><strong>{awakeningAura.name}</strong><p>{awakeningRank > 0 ? `각성 ${awakeningRank}단계 · ${awakeningAura.description.replace(/\+\d+/, (value) => `+${Number(value.slice(1)) * awakeningRank}`)} · 범위 ${awakeningAura.radius}` : `숙련 10에 해금 · ${awakeningAura.description} · 범위 ${awakeningAura.radius}`}</p></div>
+                  <div className={awakeningRank > 0 ? 'awakening-aura-active' : ''}><span>AWAKENING AURA</span><strong>{awakeningAura.name}</strong><p>{awakeningRank > 0 ? `각성 ${awakeningRank}단계 · ${awakeningAura.description.replace(/\+\d+/g, (value) => `+${Number(value.slice(1)) * awakeningRank}`)} · 범위 ${awakeningAura.radius}` : `숙련 10에 해금 · ${awakeningAura.description} · 범위 ${awakeningAura.radius}`}</p></div>
                   <div><span>ACTIVE</span><strong>{hero.skillName}</strong><p>{hero.skillDescription}</p></div>
                 </div>
                 <dl className="hero-stats">
@@ -1404,7 +1414,7 @@ function WarCodex({ onBack }: { onBack: () => void }) {
       </section>
 
       <section className="codex-section">
-        <header><span>♛</span><div><small>HEROES</small><h3>원정대 영웅</h3></div><b>{unlockedHeroes.length}/3</b></header>
+        <header><span>♛</span><div><small>HEROES</small><h3>원정대 영웅</h3></div><b>{unlockedHeroes.length}/{heroOrder.length}</b></header>
         <div className="codex-grid">
           {unlockedHeroes.map((id) => {
             const entry = heroCodex[id];

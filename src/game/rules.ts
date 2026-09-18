@@ -8,6 +8,7 @@ export const COMMAND_REGEN_PER_SECOND = 10;
 export const HERO_RESPAWN_MS = 20_000;
 export const HERO_SKILL_COOLDOWN_MS = 25_000;
 export const EQUIPMENT_CAPSTONE_LEVEL = 5;
+export const STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS = 3;
 
 export function scaledBattleDelta(deltaMs: number, speed: BattleSpeed): number {
   return Math.min(Math.max(0, deltaMs), 50) * speed;
@@ -198,7 +199,9 @@ export function upgradedStats(definition: UnitDefinition, equipment: number | Eq
   const masteryRanks = Math.max(0, Math.min(masteryCap, masteryLevel) - 1);
   const masteryGrowth = masteryStatGrowth(definition);
   const equipmentCapstone = isSoldier && hasEquipmentCapstone(levels);
-  const eliteCapstoneRanks = equipmentCapstone && usesStatEquipmentCapstone(definition) ? 1 : 0;
+  const eliteCapstoneRanks = equipmentCapstone && usesStatEquipmentCapstone(definition)
+    ? STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS
+    : 0;
   return {
     ...definition,
     maxHp: Math.round(definition.maxHp + masteryRanks * masteryGrowth.hp + (levels.armor + eliteCapstoneRanks) * growth.hp),

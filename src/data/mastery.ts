@@ -54,6 +54,8 @@ export const heroMasteryGrowth: Record<HeroId, MasteryStatGrowth & {
   huntress: { hp: 17, attack: 3, respawnReductionMs: 220, maxRespawnReductionMs: 5_600 },
   saint: { hp: 16, attack: 2, respawnReductionMs: 240, maxRespawnReductionMs: 6_000 },
   marshal: { hp: 21, attack: 3, respawnReductionMs: 280, maxRespawnReductionMs: 6_500 },
+  orcChampion: { hp: 30, attack: 4, respawnReductionMs: 320, maxRespawnReductionMs: 7_500 },
+  windSpirit: { hp: 18, attack: 4, respawnReductionMs: 240, maxRespawnReductionMs: 5_800 },
 };
 
 export const heroAwakeningAuras: Record<HeroId, HeroAwakeningAura> = {
@@ -62,6 +64,8 @@ export const heroAwakeningAuras: Record<HeroId, HeroAwakeningAura> = {
   huntress: { name: '매의 시야', description: '주변 아군 사거리 +15', radius: 210, rangeBonusPerRank: 15 },
   saint: { name: '새벽의 숨결', description: '주변 아군 초당 체력 +4', radius: 195, healingPerSecondPerRank: 4 },
   marshal: { name: '진군의 깃발', description: '주변 아군 이동 속도 +4', radius: 185, moveSpeedBonusPerRank: 4 },
+  orcChampion: { name: '부족의 맹세', description: '주변 아군 공격 +2 · 방어 +1', radius: 185, attackBonusPerRank: 2, defenseBonusPerRank: 1 },
+  windSpirit: { name: '순풍의 길', description: '주변 아군 사거리 +12 · 이동 속도 +3', radius: 215, rangeBonusPerRank: 12, moveSpeedBonusPerRank: 3 },
 };
 
 export const heroSkillPower = {
@@ -79,4 +83,12 @@ export const heroSkillPower = {
     castleHeal: 100, castleHealPerRank: 6, castleHealPerAwakening: 40,
   },
   marshal: { shield: 85, shieldPerRank: 8, shieldPerAwakening: 40 },
+  orcChampion: {
+    damage: 180, damagePerRank: 12, damagePerAwakening: 70,
+    shield: 80, shieldPerRank: 6, shieldPerAwakening: 30,
+  },
+  windSpirit: {
+    unitDamage: 200, unitDamagePerRank: 14, unitDamagePerAwakening: 80,
+    castleDamage: 130, castleDamagePerRank: 9, castleDamagePerAwakening: 50,
+  },
 } as const;

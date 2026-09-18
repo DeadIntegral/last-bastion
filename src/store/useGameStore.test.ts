@@ -84,11 +84,15 @@ describe('shared troop progression', () => {
     expect(useGameStore.getState().gold).toBe(430);
   });
 
-  it('grants the two late heroes from their structured boss milestones', () => {
+  it('grants late human and non-human heroes from structured campaign milestones', () => {
     expect(useGameStore.getState().completeStage(12)?.heroId).toBe('saint');
     expect(useGameStore.getState().unlockedHeroes).toContain('saint');
     expect(useGameStore.getState().completeStage(18)?.heroId).toBe('marshal');
     expect(useGameStore.getState().unlockedHeroes).toContain('marshal');
+    expect(useGameStore.getState().completeStage(15)?.heroId).toBe('orcChampion');
+    expect(useGameStore.getState().unlockedHeroes).toContain('orcChampion');
+    expect(useGameStore.getState().completeStage(24)?.heroId).toBe('windSpirit');
+    expect(useGameStore.getState().unlockedHeroes).toContain('windSpirit');
   });
 
   it('sells the permanent 1.5x battle license for 200 gems after the first boss', () => {
@@ -284,6 +288,17 @@ describe('shared troop progression', () => {
       clearedStages: [30],
     }))).toBe(true);
     expect(useGameStore.getState().triumphMonumentLevel).toBe(0);
+  });
+
+  it('recovers milestone heroes for older saves that already cleared their stages', () => {
+    expect(useGameStore.getState().importSave(JSON.stringify({
+      gold: 500,
+      unlockedStage: 25,
+      unlockedHeroes: ['warden'],
+    }))).toBe(true);
+    expect(useGameStore.getState().unlockedHeroes).toEqual([
+      'warden', 'pyromancer', 'huntress', 'saint', 'orcChampion', 'marshal', 'windSpirit',
+    ]);
   });
 
   it('rejects unrelated JSON and never lets imported fields replace store actions', () => {

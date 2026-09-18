@@ -874,6 +874,8 @@ export class BattleScene extends Phaser.Scene {
     if (this.heroDefinition.id === 'huntress') this.activateHuntressSkill();
     if (this.heroDefinition.id === 'saint') this.activateSaintSkill();
     if (this.heroDefinition.id === 'marshal') this.activateMarshalSkill();
+    if (this.heroDefinition.id === 'orcChampion') this.activateOrcChampionSkill();
+    if (this.heroDefinition.id === 'windSpirit') this.activateWindSpiritSkill();
     this.emitHud();
   }
 
@@ -1000,6 +1002,58 @@ export class BattleScene extends Phaser.Scene {
       unit.shield += shield;
       this.flashAt(unit.container.x, unit.container.y, 0xa8bbff);
     }
+  }
+
+  private activateOrcChampionSkill(): void {
+    const centerX = this.hero!.container.x;
+    const damage = scaledHeroSkillPower(
+      heroSkillPower.orcChampion.damage,
+      heroSkillPower.orcChampion.damagePerRank,
+      heroSkillPower.orcChampion.damagePerAwakening,
+      this.heroMasteryLevel,
+    );
+    const shield = scaledHeroSkillPower(
+      heroSkillPower.orcChampion.shield,
+      heroSkillPower.orcChampion.shieldPerRank,
+      heroSkillPower.orcChampion.shieldPerAwakening,
+      this.heroMasteryLevel,
+    );
+    const shockwave = this.add.circle(centerX, GROUND_Y, 28, 0xb8864c, 0.2).setStrokeStyle(5, 0xe8bd78, 0.85).setDepth(700);
+    this.tweens.add({ targets: shockwave, radius: 210, alpha: 0, duration: 620, onComplete: () => shockwave.destroy() });
+    this.cameras.main.shake(160, 0.004);
+    for (const unit of this.units) {
+      if (!unit.alive || Math.abs(unit.container.x - centerX) > 205) continue;
+      if (unit.side === 'enemy') this.damageUnit(unit, damage);
+      else {
+        unit.shield += shield;
+        this.flashAt(unit.container.x, unit.container.y, 0xd9ab68);
+      }
+    }
+  }
+
+  private activateWindSpiritSkill(): void {
+    const centerX = Phaser.Math.Clamp(this.hero!.container.x + 190, PLAYER_CASTLE_X + 120, this.enemyCastleX);
+    const unitDamage = scaledHeroSkillPower(
+      heroSkillPower.windSpirit.unitDamage,
+      heroSkillPower.windSpirit.unitDamagePerRank,
+      heroSkillPower.windSpirit.unitDamagePerAwakening,
+      this.heroMasteryLevel,
+    );
+    const castleDamage = scaledHeroSkillPower(
+      heroSkillPower.windSpirit.castleDamage,
+      heroSkillPower.windSpirit.castleDamagePerRank,
+      heroSkillPower.windSpirit.castleDamagePerAwakening,
+      this.heroMasteryLevel,
+    );
+    const storm = this.add.circle(centerX, GROUND_Y - 55, 35, 0x83e8f1, 0.16).setStrokeStyle(5, 0xd9fbff, 0.82).setDepth(700);
+    this.tweens.add({ targets: storm, radius: 190, angle: 300, alpha: 0, duration: 720, onComplete: () => storm.destroy() });
+    for (const unit of this.units) {
+      if (unit.alive && unit.side === 'enemy' && Math.abs(unit.container.x - centerX) <= 185) {
+        this.damageUnit(unit, unitDamage);
+        this.flashAt(unit.container.x, unit.container.y, 0x8beaf1);
+      }
+    }
+    if (!this.stageDefinition.challenge && Math.abs(this.enemyCastleX - centerX) <= 185) this.damageCastle('enemy', castleDamage);
   }
 
   private activateCastleSkill(): void {

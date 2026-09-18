@@ -2,7 +2,7 @@ import type { HeroId, UnitId } from '../types/game';
 import { heroDefinitions, troopDefinitions } from './units';
 
 export type CharacterArtId = UnitId | HeroId;
-export type CharacterArtSheetId = 'core' | 'expansion' | 'regional' | 'elemental' | 'demon' | 'transcendent';
+export type CharacterArtSheetId = 'core' | 'expansion' | 'regional' | 'elemental' | 'demon' | 'transcendent' | 'alliance';
 
 export interface CharacterArtFrame {
   sheet: CharacterArtSheetId;
@@ -17,6 +17,7 @@ export const characterArtSheets: Record<CharacterArtSheetId, { url: string; text
   elemental: { url: '/assets/characters/elemental-atlas.png?v=1', textureKey: 'character-elemental-atlas' },
   demon: { url: '/assets/characters/demon-atlas.png?v=1', textureKey: 'character-demon-atlas' },
   transcendent: { url: '/assets/characters/transcendent-atlas.png?v=1', textureKey: 'character-transcendent-atlas' },
+  alliance: { url: '/assets/characters/alliance-atlas.png?v=1', textureKey: 'character-alliance-atlas' },
 };
 export const CHARACTER_ART_COLUMNS = 4;
 export const CHARACTER_ART_FRAME_WIDTH = 153;
@@ -80,6 +81,8 @@ export const characterArtFrames: Partial<Record<CharacterArtId, CharacterArtFram
   abyssKnight: { sheet: 'demon', column: 0, row: 2 },
   marshal: { sheet: 'demon', column: 1, row: 2 },
   dragon: { sheet: 'transcendent', column: 0, row: 0 },
+  orcChampion: { sheet: 'alliance', column: 0, row: 0 },
+  windSpirit: { sheet: 'alliance', column: 1, row: 0 },
 };
 
 export const proceduralCharacterIcons = Object.fromEntries(

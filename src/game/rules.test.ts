@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { heroMasteryGrowth, heroSkillPower, soldierMasteryGrowth } from '../data/mastery';
 import { allTroopOrder, bossCombatTuning, bossDefinition, heroDefinitions, troopDefinitions } from '../data/units';
 import { challengeStages, stages } from '../data/stages';
-import { applyEnemyTerrain, applyTriumphMonumentStats, attackPatternLabel, calculateDamage, canActivateMobilization, canAttackTarget, canReceiveRallyOrder, cooldownFillRatio, enemyFortressCanReinforce, enemyObjectiveDefeated, equipmentCost, fortressRearSpawnX, hasEquipmentCapstone, healedHp, heroAuraBonuses, heroAwakeningRank, heroMasteryLevelFromXp, isBehindLivingFortress, masteryLevelFromXp, mobilizedCommandStats, regenerateCommand, scaledBattleDelta, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, unitDeploymentCapacity, upgradedStats, upgradeCost, usesStatEquipmentCapstone } from './rules';
+import { STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS, applyEnemyTerrain, applyTriumphMonumentStats, attackPatternLabel, calculateDamage, canActivateMobilization, canAttackTarget, canReceiveRallyOrder, cooldownFillRatio, enemyFortressCanReinforce, enemyObjectiveDefeated, equipmentCost, fortressRearSpawnX, hasEquipmentCapstone, healedHp, heroAuraBonuses, heroAwakeningRank, heroMasteryLevelFromXp, isBehindLivingFortress, masteryLevelFromXp, mobilizedCommandStats, regenerateCommand, scaledBattleDelta, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, unitDeploymentCapacity, upgradedStats, upgradeCost, usesStatEquipmentCapstone } from './rules';
 
 describe('combat rules', () => {
   it('applies anti-large damage bonus', () => {
@@ -262,7 +262,7 @@ describe('combat rules', () => {
     expect(upgradedStats(troopDefinitions.reaper, completed).squadSize).toBe(2);
   });
 
-  it('keeps apex large deployments single-bodied and grants one fixed all-equipment bonus', () => {
+  it('keeps apex large deployments single-bodied and grants three fixed all-equipment ranks', () => {
     const completed = { weapon: 5, armor: 0, boots: 0 };
     const base = troopDefinitions.griffin;
     const trained = upgradedStats(base, completed);
@@ -271,10 +271,15 @@ describe('combat rules', () => {
     expect(usesStatEquipmentCapstone(troopDefinitions.reaper)).toBe(false);
     expect(usesStatEquipmentCapstone(troopDefinitions.ifrit)).toBe(true);
     expect(trained.squadSize).toBe(1);
-    expect(trained.maxHp).toBe(base.maxHp + base.equipmentGrowth.hp);
-    expect(trained.attackDamage).toBe(base.attackDamage + base.equipmentGrowth.attack * 6);
-    expect(trained.defense).toBe((base.defense ?? 0) + base.equipmentGrowth.defense);
-    expect(trained.moveSpeed).toBe(base.moveSpeed + base.equipmentGrowth.moveSpeed);
+    expect(trained.maxHp).toBe(base.maxHp + base.equipmentGrowth.hp * STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS);
+    expect(trained.attackDamage).toBe(base.attackDamage + base.equipmentGrowth.attack * (5 + STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS));
+    expect(trained.defense).toBe((base.defense ?? 0) + base.equipmentGrowth.defense * STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS);
+    expect(trained.moveSpeed).toBe(base.moveSpeed + base.equipmentGrowth.moveSpeed * STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS);
+
+    const hydra = troopDefinitions.hydra;
+    const trainedHydra = upgradedStats(hydra, completed);
+    expect(trainedHydra.maxHp - hydra.maxHp).toBe(630);
+    expect(trainedHydra.attackDamage - hydra.attackDamage).toBe(96);
   });
 
   it('does not apply the soldier deployment capstone to heroes or bosses', () => {

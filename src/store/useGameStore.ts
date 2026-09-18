@@ -169,12 +169,16 @@ function hydrateSavedProfile(saved: SavedGameProfile | undefined, current: GameP
   const savedUnlockedUnits = Array.isArray(saved?.unlockedUnits) ? saved.unlockedUnits.filter(validUnit) : undefined;
   const savedUnlockedHeroes = Array.isArray(saved?.unlockedHeroes) ? saved.unlockedHeroes.filter(validHero) : undefined;
   const unlockedStage = Math.max(1, Math.min(stages.length, nonNegative(saved?.unlockedStage, current.unlockedStage)));
+  const clearedStages = (Array.isArray(saved?.clearedStages) ? saved.clearedStages : []).filter((id): id is number => Number.isInteger(id) && id >= 1 && id <= stages.length);
   const inferredUnits: UnitId[] = savedUnlockedUnits ?? (saved ? [
     'militia', 'guardian',
     ...(unlockedStage >= 2 ? ['archer' as UnitId] : []),
     ...(unlockedStage >= 3 ? ['lancer' as UnitId] : []),
   ] : defaults.unlockedUnits);
-  const inferredHeroes = savedUnlockedHeroes ?? defaults.unlockedHeroes;
+  const milestoneHeroes = stages
+    .filter((stage) => (clearedStages.includes(stage.id) || unlockedStage > stage.id) && stage.firstClearReward.heroId)
+    .map((stage) => stage.firstClearReward.heroId!);
+  const inferredHeroes = [...new Set([...(savedUnlockedHeroes ?? defaults.unlockedHeroes), ...milestoneHeroes])];
   const discoveredEnemies = (Array.isArray(saved?.discoveredEnemies) ? saved.discoveredEnemies : []).filter((id): id is CodexEnemyId => id === 'boss' || validUnit(id));
   const formationSlotPurchases = Math.min(
     MAX_FORMATION_SLOT_PURCHASES,
@@ -213,7 +217,6 @@ function hydrateSavedProfile(saved: SavedGameProfile | undefined, current: GameP
   const claimedAchievementIds = Array.isArray(saved?.claimedAchievementIds)
     ? saved.claimedAchievementIds.filter((id): id is string => typeof id === 'string' && unlockedAchievementIds.includes(id))
     : [];
-  const clearedStages = (Array.isArray(saved?.clearedStages) ? saved.clearedStages : []).filter((id): id is number => Number.isInteger(id) && id >= 1 && id <= stages.length);
   const clearedChallenges = (Array.isArray(saved?.clearedChallenges) ? saved.clearedChallenges : []).filter((id): id is number => Number.isInteger(id) && Boolean(getStage(id).challenge));
   return {
     ...current,

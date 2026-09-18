@@ -4,8 +4,8 @@ import { calculateDamage, heroAuraBonuses } from '../game/rules';
 import { bossDefinition } from './units';
 
 describe('hero roster', () => {
-  it('contains five heroes with complete skill and respawn data', () => {
-    expect(heroOrder).toHaveLength(5);
+  it('contains seven human and non-human heroes with complete skill and respawn data', () => {
+    expect(heroOrder).toHaveLength(7);
     for (const id of heroOrder) {
       const hero = heroDefinitions[id];
       expect(hero.skillName.length).toBeGreaterThan(0);
@@ -34,5 +34,7 @@ describe('hero roster', () => {
     expect(heroDefinitions.huntress.unlockCost).toBeGreaterThan(heroDefinitions.pyromancer.unlockCost);
     expect(heroDefinitions.saint.unlockCost).toBeGreaterThan(heroDefinitions.huntress.unlockCost);
     expect(heroDefinitions.marshal.unlockCost).toBeGreaterThan(heroDefinitions.saint.unlockCost);
+    expect(heroDefinitions.orcChampion.unlockCost).toBeGreaterThan(heroDefinitions.marshal.unlockCost);
+    expect(heroDefinitions.windSpirit.unlockCost).toBeGreaterThan(heroDefinitions.orcChampion.unlockCost);
   });
 });

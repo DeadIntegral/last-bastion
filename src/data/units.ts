@@ -215,9 +215,27 @@ export const heroDefinitions: Record<HeroId, HeroDefinition> = {
     skillName: '왕국의 진군', skillDescription: '주변 모든 아군에게 보호막을 부여하고 전열을 다시 정비합니다.',
     skillCooldownMs: 24_000, respawnMs: 19_000, unlockCost: 1_800,
   },
+  orcChampion: {
+    id: 'orcChampion', name: '카루크', title: '쇠사슬을 끊은 족장', cost: 0, maxHp: 720, defense: 8, attackDamage: 68,
+    attackRange: 54, attackIntervalMs: 1_150, moveSpeed: 40, spawnCooldownMs: 0,
+    color: 0x6e8248, accent: 0xe2b06f, size: 31, tags: ['ground', 'hero', 'armored', 'large', 'charge'], icon: '⚒', squadSize: 1, attackPattern: { kind: 'cleave', secondaryDamageMultiplier: 0.85 }, equipmentCostBase: 175, equipmentGrowth: { attack: 7, hp: 55, defense: 2.3, moveSpeed: 1.3 },
+    description: '마왕군의 쇠사슬을 끊고 부족의 생존을 위해 해방군 선봉에 선 오크 족장입니다.',
+    passiveName: '해방자의 돌진', passiveDescription: '첫 공격이 60% 강하며 무거운 도끼가 근접 범위의 전열 전체를 공격합니다.',
+    skillName: '대지의 포효', skillDescription: '주변 적을 강타하는 동시에 가까운 아군에게 보호막을 부여합니다.',
+    skillCooldownMs: 26_000, respawnMs: 22_000, unlockCost: 2_500,
+  },
+  windSpirit: {
+    id: 'windSpirit', name: '네리스', title: '해방된 바람 정령', cost: 0, maxHp: 420, defense: 3, attackDamage: 58,
+    attackRange: 230, attackIntervalMs: 1_050, moveSpeed: 72, spawnCooldownMs: 0,
+    color: 0x62c9db, accent: 0xe9fbff, size: 27, tags: ['flying', 'hero', 'ranged', 'magic', 'elemental'], icon: '✧', squadSize: 1, attackPattern: { kind: 'pierce', maxTargets: 2, followThroughRange: 125, secondaryDamageMultiplier: 0.8 }, equipmentCostBase: 200, equipmentGrowth: { attack: 7, hp: 32, defense: 1.3, moveSpeed: 2.2 },
+    description: '속박의 핵을 깨뜨린 뒤 스스로 해방군과 계약한 고대 바람 정령입니다.',
+    passiveName: '자유의 기류', passiveDescription: '지상 공격을 받지 않는 공중 영웅이며 기본 공격이 적 두 명을 관통합니다.',
+    skillName: '해방의 폭풍', skillDescription: '전방에 거대한 폭풍을 일으켜 지상과 공중의 적을 함께 휩쓸고 성채를 타격합니다.',
+    skillCooldownMs: 21_000, respawnMs: 16_000, unlockCost: 4_000,
+  },
 };
 
-export const heroOrder: HeroId[] = ['warden', 'pyromancer', 'huntress', 'saint', 'marshal'];
+export const heroOrder: HeroId[] = ['warden', 'pyromancer', 'huntress', 'saint', 'marshal', 'orcChampion', 'windSpirit'];
 
 export const bossDefinition: UnitDefinition = {
   id: 'boss', name: '봉인된 마수', cost: 0, maxHp: 5200, attackDamage: 82,

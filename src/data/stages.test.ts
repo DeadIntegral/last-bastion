@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { UNIT_IDS } from '../types/game';
+import { upgradedStats } from '../game/rules';
 import { advancedEnemyIntroductionStages, challengeStages, ENEMY_EQUIPMENT_MAX_LEVEL, MAX_FORTRESS_DISTANCE, MIN_FORTRESS_DISTANCE, stages } from './stages';
 import { allTroopOrder, troopDefinitions, unitFamilyById } from './units';
 
@@ -31,21 +32,24 @@ describe('campaign rewards', () => {
     expect(stages[11].boss).toBe(true);
     expect(stages[11].firstClearReward.heroId).toBe('saint');
     expect(stages[17].firstClearReward.heroId).toBe('marshal');
+    expect(stages[14].firstClearReward.heroId).toBe('orcChampion');
+    expect(stages[23].firstClearReward.heroId).toBe('windSpirit');
     expect(stages.filter((stage) => stage.boss).map((stage) => stage.id)).toEqual([6, 12, 18, 24, 30]);
     for (const stage of stages.filter((item) => item.boss)) {
       expect(stage.challenge).not.toBe(true);
       expect(stage.enemyCastleHp).toBeGreaterThan(0);
       expect(stage.reinforcement).toBeDefined();
       expect(stage.reinforcement!.startMs).toBeLessThanOrEqual(5_000);
-      expect(stage.reinforcement!.intervalMs).toBeGreaterThanOrEqual(7_400);
-      expect(stage.reinforcement!.maxAlive).toBeLessThanOrEqual(5);
+      expect(stage.reinforcement!.intervalMs).toBeGreaterThanOrEqual(6_200);
+      expect(stage.reinforcement!.maxAlive).toBeLessThanOrEqual(6);
       expect(Math.max(...stage.reinforcement!.unitIds.map((id) => troopDefinitions[id].cost))).toBeLessThanOrEqual(105);
     }
   });
 
   it('keeps boss-only encounters in a separate challenge roster', () => {
     expect(challengeStages).toHaveLength(5);
-    expect(challengeStages.map((challenge) => challenge.terrain.enemyHpMultiplier * (challenge.bossModifiers?.hpMultiplier ?? 1))).toEqual([15, 80, 120, 15, 10]);
+    const combinedHpMultipliers = challengeStages.map((challenge) => challenge.terrain.enemyHpMultiplier * (challenge.bossModifiers?.hpMultiplier ?? 1));
+    [15, 80, 120, 40 / 3, 80 / 9].forEach((expected, index) => expect(combinedHpMultipliers[index]).toBeCloseTo(expected));
     for (const challenge of challengeStages) {
       expect(challenge.challenge).toBe(true);
       expect(challenge.boss).toBe(true);
@@ -96,9 +100,9 @@ describe('campaign rewards', () => {
 
   it('introduces bounded enemy-fortress fire from the third region onward', () => {
     expect(stages.slice(0, 12).every((stage) => stage.enemyFortressAttack === undefined)).toBe(true);
-    expect(stages[12].enemyFortressAttack).toEqual({ damage: 50, range: 260, intervalMs: 2_800 });
-    expect(stages[18].enemyFortressAttack).toEqual({ damage: 75, range: 290, intervalMs: 2_400 });
-    expect(stages[24].enemyFortressAttack).toEqual({ damage: 105, range: 320, intervalMs: 2_100 });
+    expect(stages[12].enemyFortressAttack).toEqual({ damage: 60, range: 260, intervalMs: 2_800 });
+    expect(stages[18].enemyFortressAttack).toEqual({ damage: 90, range: 290, intervalMs: 2_400 });
+    expect(stages[24].enemyFortressAttack).toEqual({ damage: 125, range: 320, intervalMs: 2_100 });
     expect(challengeStages.every((stage) => stage.enemyFortressAttack === undefined)).toBe(true);
   });
 
@@ -147,7 +151,9 @@ describe('campaign rewards', () => {
     expect(stages.some((stage) => stage.waves.some((wave) => wave.unitId === 'ifrit') || stage.reinforcement?.unitIds.includes('ifrit'))).toBe(false);
     const ifritChallenge = challengeStages.find((stage) => stage.bossUnitId === 'ifrit');
     expect(ifritChallenge?.requiredCampaignStage).toBe(30);
-    expect(ifritChallenge?.bossModifiers?.hpMultiplier).toBe(1.5);
+    expect(ifritChallenge?.bossModifiers?.hpMultiplier).toBeCloseTo(4 / 3);
+    const trained = upgradedStats(troopDefinitions.ifrit, ifritChallenge!.enemyUpgrades.equipment);
+    expect(trained.maxHp * ifritChallenge!.terrain.enemyHpMultiplier * ifritChallenge!.bossModifiers!.hpMultiplier).toBeCloseTo(264_000);
   });
 
   it('introduces the transcendent dragon only through its post-finale challenge', () => {
@@ -156,6 +162,9 @@ describe('campaign rewards', () => {
     expect(dragonChallenge?.requiredCampaignStage).toBe(30);
     expect(dragonChallenge?.firstClearReward.unitId).toBe('dragon');
     expect(troopDefinitions.dragon.grade).toBe(5);
+    const trained = upgradedStats(troopDefinitions.dragon, dragonChallenge!.enemyUpgrades.equipment);
+    expect(trained.maxHp * dragonChallenge!.terrain.enemyHpMultiplier * dragonChallenge!.bossModifiers!.hpMultiplier).toBeCloseTo(240_000);
+    expect(trained.attackDamage * dragonChallenge!.terrain.enemyAttackMultiplier * dragonChallenge!.bossModifiers!.attackMultiplier).toBeCloseTo(672);
   });
 
   it('gives every shared troop an acquisition or encounter path', () => {
@@ -217,8 +226,8 @@ describe('campaign rewards', () => {
       expect(reinforcement.unitIds.length).toBeGreaterThan(0);
     }
     const lateReinforcements = stages.filter((stage) => stage.id >= 5 && !stage.boss).map((stage) => stage.reinforcement!);
-    expect(Math.max(...lateReinforcements.map((reinforcement) => reinforcement.maxAlive))).toBeLessThanOrEqual(15);
-    expect(Math.min(...lateReinforcements.map((reinforcement) => reinforcement.intervalMs))).toBeGreaterThanOrEqual(2_100);
+    expect(Math.max(...lateReinforcements.map((reinforcement) => reinforcement.maxAlive))).toBeLessThanOrEqual(17);
+    expect(Math.min(...lateReinforcements.map((reinforcement) => reinforcement.intervalMs))).toBeGreaterThanOrEqual(1_800);
   });
 
   it('keeps late regional threats visible without infinitely repeating legendary troops', () => {

@@ -51,6 +51,8 @@ export const heroCodex: Record<HeroId, CodexEntry> = {
   huntress: { id: 'huntress', kind: 'hero', title: '리아 · 마수 사냥꾼', role: '보스 특화 영웅', description: '대형 적의 약점을 노리고 전장 전체에 화살비를 내립니다.', lore: '잿빛 산맥에서 돌아온 유일한 사냥꾼이며 마수의 심장 박동을 기억합니다.' },
   saint: { id: 'saint', kind: 'hero', title: '미레나 · 새벽의 성녀', role: '치유 지원 영웅', description: '부상자를 우선 치유하고 기도로 아군과 성채를 함께 회복합니다.', lore: '함락된 성당의 마지막 등불을 들고 피난민을 최후의 성채까지 이끌었습니다.' },
   marshal: { id: 'marshal', kind: 'hero', title: '브란 · 해방군 기수', role: '기동 지휘 영웅', description: '돌격으로 전열을 열고 각성 오라로 주변 병사의 진군을 가속합니다.', lore: '빼앗긴 도시마다 왕국의 깃발을 다시 세우겠다고 맹세한 야전 지휘관입니다.' },
+  orcChampion: { id: 'orcChampion', kind: 'hero', title: '카루크 · 쇠사슬을 끊은 족장', role: '오크 전열 파괴 영웅', description: '강력한 범위 도끼 공격과 대지의 포효로 적진을 깨고 아군을 보호합니다.', lore: '부족을 소모품으로 쓰는 마왕군의 명령을 거부하고 쇠사슬 부족의 깃발을 해방군 곁에 세웠습니다.' },
+  windSpirit: { id: 'windSpirit', kind: 'hero', title: '네리스 · 해방된 바람 정령', role: '공중 관통 마법 영웅', description: '지상 공격을 넘어 비행하며 관통 마법과 전방 폭풍으로 전장을 휩씁니다.', lore: '서리 왕성의 속박핵이 파괴된 날, 처음 얻은 자유를 대륙의 해방에 쓰기로 맹세했습니다.' },
 };
 
 export const bossCodex: Record<'boss', CodexEntry> = {
