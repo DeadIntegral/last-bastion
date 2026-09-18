@@ -421,12 +421,15 @@ export class BattleScene extends Phaser.Scene {
     const auraRange = awakeningAura
       ? this.add.circle(0, flightHeight, awakeningAura.radius, definition.accent, 0.025).setStrokeStyle(1, definition.accent, 0.22)
       : undefined;
-    const body = this.add.circle(0, 0, size, definition.color).setStrokeStyle(hero || boss || eliteName ? 3 : 2, definition.accent, 0.9);
-    const inner = this.add.circle(-size * 0.2, -size * 0.25, size * 0.42, definition.accent, 0.3);
     const artId = definition.id === 'boss' ? undefined : definition.id as CharacterArtId;
     const sheet = artId ? characterArtSheet(artId) : undefined;
+    const frame = artId ? characterArtFrames[artId] : undefined;
+    const fallbackBackdrop = frame && sheet ? [] : [
+      this.add.circle(0, 0, size, definition.color).setStrokeStyle(hero || boss || eliteName ? 3 : 2, definition.accent, 0.9),
+      this.add.circle(-size * 0.2, -size * 0.25, size * 0.42, definition.accent, 0.3),
+    ];
     const artScale = definition.grade === 5 ? TRANSCENDENT_BATTLE_ART_SCALE : 1;
-    const portrait = artId && characterArtFrames[artId] && sheet
+    const portrait = artId && frame && sheet
       ? this.add.image(0, -size * 0.12, sheet.textureKey, characterArtFrameIndex(artId))
         .setDisplaySize(size * 3.25 * artScale, size * 3.4 * artScale)
         .setFlipX(side === 'enemy')
@@ -436,7 +439,7 @@ export class BattleScene extends Phaser.Scene {
     const hpBg = this.add.rectangle(-size, -size - 11, size * 2, 4, 0x111111, 0.8).setOrigin(0, 0.5);
     const hpBar = this.add.rectangle(-size, -size - 11, size * 2, 4, side === 'player' ? 0x75d5ee : 0xef6b6b).setOrigin(0, 0.5);
     const attackRig = this.createAttackRig(definition, side, size);
-    container.add([shadow, ...(auraRange ? [auraRange] : []), aura, body, inner, portrait, attackRig.root, hpBg, hpBar]);
+    container.add([shadow, ...(auraRange ? [auraRange] : []), aura, ...fallbackBackdrop, portrait, attackRig.root, hpBg, hpBar]);
     container.setDepth(flying ? 650 : Math.round(container.y));
 
     const unit: CombatUnit = {
