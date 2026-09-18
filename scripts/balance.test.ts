@@ -12,6 +12,7 @@ describe('campaign difficulty audit', () => {
       target: stage.target,
       step: stage.step,
       total: stage.total,
+      fortressFire: stage.fortressFire,
       field: stage.battlefield,
       army: stage.scriptedArmy,
       repeat: stage.reinforcement,

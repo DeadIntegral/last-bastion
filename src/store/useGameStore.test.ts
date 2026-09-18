@@ -228,10 +228,12 @@ describe('shared troop progression', () => {
     useGameStore.setState({ gold: 1_234, gems: 56, unlockedStage: 7, clearedStages: [1, 2, 3, 4, 5, 6] });
 
     const serialized = useGameStore.getState().exportSave();
-    const exported = JSON.parse(serialized) as { format: string; version: number; exportedAt: string; state: Record<string, unknown> };
+    const exported = JSON.parse(serialized) as { format: string; version: number; gameVersion: string; saveSchemaVersion: number; exportedAt: string; state: Record<string, unknown> };
 
     expect(exported.format).toBe(SAVE_EXPORT_FORMAT);
     expect(exported.version).toBe(SAVE_EXPORT_VERSION);
+    expect(exported.gameVersion).toBe('0.2.0');
+    expect(exported.saveSchemaVersion).toBe(SAVE_EXPORT_VERSION);
     expect(Number.isNaN(Date.parse(exported.exportedAt))).toBe(false);
     expect(exported.state.gold).toBe(1_234);
     expect(exported.state.gems).toBe(56);

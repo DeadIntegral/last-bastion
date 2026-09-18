@@ -84,6 +84,10 @@ export function hasEquipmentCapstone(levels: EquipmentLevels): boolean {
   return Object.values(levels).some((level) => level >= EQUIPMENT_CAPSTONE_LEVEL);
 }
 
+export function usesStatEquipmentCapstone(definition: Pick<UnitDefinition, 'grade' | 'tags'>): boolean {
+  return definition.grade === 5 || definition.grade === 4 && definition.tags.includes('large');
+}
+
 export function canActivateMobilization(command: number, maxCommand: number, uses: number, maxUses: number): boolean {
   return uses < maxUses && command >= maxCommand;
 }
@@ -111,11 +115,27 @@ export function applyEnemyTerrain(definition: UnitDefinition, terrain: TerrainEf
   };
 }
 
-export function mobilizedCommandStats(maxCommand: number, commandRegen: number): { maxCommand: number; commandRegen: number } {
+export function mobilizedCommandStats(
+  maxCommand: number,
+  commandRegen: number,
+  maxCommandBonus: number = battleMobilizationTuning.maxCommandBonus,
+  commandRegenBonus: number = battleMobilizationTuning.commandRegenBonus,
+): { maxCommand: number; commandRegen: number } {
   return {
-    maxCommand: maxCommand + battleMobilizationTuning.maxCommandBonus,
-    commandRegen: commandRegen + battleMobilizationTuning.commandRegenBonus,
+    maxCommand: maxCommand + maxCommandBonus,
+    commandRegen: commandRegen + commandRegenBonus,
   };
+}
+
+export function canReceiveRallyOrder(
+  definition: Pick<UnitDefinition, 'tags' | 'grade'>,
+  isHero: boolean,
+  permissions: { soldiers: boolean; heroes: boolean; transcendent: boolean },
+): boolean {
+  if (isHero) return permissions.heroes;
+  if (definition.tags.includes('boss')) return false;
+  if (definition.grade === 5) return permissions.transcendent;
+  return permissions.soldiers;
 }
 
 export function masteryStatGrowth(definition: UnitDefinition): MasteryStatGrowth {
@@ -176,16 +196,18 @@ export function upgradedStats(definition: UnitDefinition, equipment: number | Eq
   const masteryCap = isHero ? HERO_MASTERY_MAX_LEVEL : SOLDIER_MASTERY_MAX_LEVEL;
   const masteryRanks = Math.max(0, Math.min(masteryCap, masteryLevel) - 1);
   const masteryGrowth = masteryStatGrowth(definition);
+  const equipmentCapstone = isSoldier && hasEquipmentCapstone(levels);
+  const eliteCapstoneRanks = equipmentCapstone && usesStatEquipmentCapstone(definition) ? 1 : 0;
   return {
     ...definition,
-    maxHp: Math.round(definition.maxHp + masteryRanks * masteryGrowth.hp + levels.armor * growth.hp),
-    attackDamage: Math.round(definition.attackDamage + masteryRanks * masteryGrowth.attack + levels.weapon * growth.attack),
+    maxHp: Math.round(definition.maxHp + masteryRanks * masteryGrowth.hp + (levels.armor + eliteCapstoneRanks) * growth.hp),
+    attackDamage: Math.round(definition.attackDamage + masteryRanks * masteryGrowth.attack + (levels.weapon + eliteCapstoneRanks) * growth.attack),
     healingPower: definition.healingPower === undefined
       ? undefined
-      : Math.round(definition.healingPower + masteryRanks * masteryGrowth.attack + levels.weapon * growth.attack),
-    defense: Math.round(((definition.defense ?? 0) + levels.armor * growth.defense) * 10) / 10,
-    moveSpeed: Math.round((definition.moveSpeed + levels.boots * growth.moveSpeed) * 10) / 10,
-    squadSize: definition.squadSize + (isSoldier && hasEquipmentCapstone(levels) ? 1 : 0),
+      : Math.round(definition.healingPower + masteryRanks * masteryGrowth.attack + (levels.weapon + eliteCapstoneRanks) * growth.attack),
+    defense: Math.round(((definition.defense ?? 0) + (levels.armor + eliteCapstoneRanks) * growth.defense) * 10) / 10,
+    moveSpeed: Math.round((definition.moveSpeed + (levels.boots + eliteCapstoneRanks) * growth.moveSpeed) * 10) / 10,
+    squadSize: definition.squadSize + (equipmentCapstone && !usesStatEquipmentCapstone(definition) ? 1 : 0),
   };
 }
 

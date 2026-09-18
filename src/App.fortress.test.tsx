@@ -70,7 +70,7 @@ describe('fortress technology tree pointer controls', () => {
   });
 
   it('keeps an ordinary short click available for research', () => {
-    const researchButton = host.querySelector<HTMLButtonElement>('.branch-economy .tech-node button')!;
+    const researchButton = host.querySelector<HTMLButtonElement>('.branch-command .tech-node button')!;
 
     act(() => researchButton.dispatchEvent(pointerEvent('pointerdown', 100, 4)));
     act(() => researchButton.dispatchEvent(pointerEvent('pointerup', 100, 4)));

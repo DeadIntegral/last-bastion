@@ -10,6 +10,8 @@ export const BattleEvent = {
   SKILL: 'command:skill',
   CASTLE_SKILL: 'command:castle-skill',
   MOBILIZE: 'command:mobilize',
+  RALLY_MODE: 'command:rally-mode',
+  RALLY_CLEAR: 'command:rally-clear',
   PAUSE: 'command:pause',
   SPEED: 'command:speed',
 } as const;

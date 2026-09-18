@@ -41,7 +41,7 @@ function branchEquipment(slot: EquipmentSlot, level: number): EquipmentLevels {
 }
 
 describe('early focused-upgrade stress test', () => {
-  it('reports the strongest single-branch rush against stage pressure', () => {
+  it('keeps the strongest single-branch rush inside bounded relative-pressure steps', () => {
     const campaign = analyzeCampaignDifficulty(stages);
     const report = stages.slice(0, 8).map((stage) => {
       const budget = goldBeforeStage(stage.id);
@@ -89,10 +89,11 @@ describe('early focused-upgrade stress test', () => {
     }));
 
     console.table(report);
-    console.warn('Focused-upgrade finding: stage 4 reaches Militia weapon +5; the free fourth body flattens relative pressure growth after stage 3.');
+    console.warn('Focused-upgrade finding: stage 4 still reaches Militia weapon +5, but the live encounter curve preserves a bounded pressure increase through the capstone.');
     expect(report).toHaveLength(8);
     expect(report[3].rush).toContain('+5');
     expect(report[3].powerGain).toBeGreaterThan(1.9);
-    expect(report[3].relativePressureStep).toBeLessThan(1.05);
+    expect(report[3].relativePressureStep).toBeGreaterThanOrEqual(1.05);
+    expect(report.slice(1).every((entry) => entry.relativePressureStep >= 0.95 && entry.relativePressureStep <= 1.35)).toBe(true);
   });
 });

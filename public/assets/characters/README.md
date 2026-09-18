@@ -1,6 +1,6 @@
 # Character roster atlases
 
-The repository contains an original AI-generated core roster, correction sources, and an expandable second atlas:
+The repository contains an original AI-generated full playable roster, correction sources, and five runtime atlases:
 
 - `roster-sheet.png`: 1225 × 1284 RGBA master output.
 - `griffin-source.png`: 1280 × 1280 RGBA replacement source for the wide Griffin Rider.
@@ -8,7 +8,9 @@ The repository contains an original AI-generated core roster, correction sources
 - `roster-atlas.png`: 612 × 640 RGBA runtime atlas, divided into sixteen exact 153 × 160 frames. The compact Griffin source replaces the original overflow-prone frame, and the adjacent Warden frame is cleaned during atlas preparation.
 - `expansion-sources/`: transparent original sources for Goblin Archer, Goblin Bomber, Orc Berserker, and Orc Shaman.
 - `expansion-atlas.png`: 612 × 640 RGBA runtime atlas using the same sixteen-frame geometry. Its first row is occupied and its remaining twelve frames are transparent.
-- `yarn art:atlas`: deterministic local rebuild of the expansion runtime atlas from the four transparent sources. It alpha-crops and fits each source into the first row without changing the source art, while preserving transparent pixels in both occupied and unused cells.
+- `regional-source.png`, `elemental-source.png`, and `demon-source.png`: transparent 4 × 4 generation masters for the remaining thirty-six troops plus Mirena and Bran.
+- `regional-atlas.png`, `elemental-atlas.png`, and `demon-atlas.png`: 612 × 640 RGBA runtime atlases containing the remaining playable roster.
+- `yarn art:atlas`: deterministic local rebuild of every non-core runtime atlas. It detects real transparent gutters in generated source grids, isolates each subject, alpha-crops it into a fixed frame, and preserves transparency in occupied and unused cells.
 
 Core frame order is left-to-right, top-to-bottom:
 
@@ -24,11 +26,32 @@ Expansion frame order is:
 3. empty, empty, empty, empty
 4. empty, empty, empty, empty
 
+Regional frame order is:
+
+1. Swordsman, Pikeman, Scout, Priest
+2. Mage, Archmage, Assassin, Troll
+3. Ogre Mage, Wolf Rider, Harpy, Minotaur
+4. Wyvern, Slime deployment, Basilisk, Direwolf deployment
+
+Elemental frame order is:
+
+1. Storm Spirit, Fire Spirit, Ice Spirit, Earth Spirit
+2. Light Spirit, Dark Spirit, Giant Eagle, Treant
+3. Golem, Hydra, Hellhound, Saint Mirena
+4. empty, empty, empty, empty
+
+Demon frame order is:
+
+1. Imp, Succubus, Demon Guard, Demon Mage
+2. Gargoyle, Cerberus, Ifrit, Reaper
+3. Abyss Knight, Marshal Bran, empty, empty
+4. empty, empty, empty, empty
+
 `src/data/characterArt.ts` is the canonical sheet-and-frame mapping. React resolves CSS background images and positions from the same mapping, while Phaser loads every declared sheet as a spritesheet. Enemy troops reuse and horizontally flip the same faction-neutral art.
 
 ## Runtime attack motion
 
-The current atlases contain one neutral pose per character. They are transparent PNGs, but the file extension does not contain skeletal joints or separable limbs. Phaser therefore keeps each portrait and combatant container stable and layers a spawn-time arm/weapon/effect rig over it. `src/game/combatMotion.ts` selects slash, thrust, shoot, cast, crush, or lunge from the canonical combat definition and samples the motion without allocating objects per strike. A future authored animation pass must add separated-part source files or multi-frame attack sheets; converting these same pixels to WebP, GIF, or another extension alone would not enable arm articulation.
+The current five atlases contain one neutral pose per character. They are transparent PNGs, but the file extension does not contain skeletal joints or separable limbs. Phaser therefore keeps each portrait and combatant container stable and layers a spawn-time arm/weapon/effect rig over it. `src/game/combatMotion.ts` selects slash, thrust, shoot, cast, crush, or lunge from the canonical combat definition and samples the motion without allocating objects per strike. A future authored animation pass must add separated-part source files or multi-frame attack sheets; converting these same pixels to WebP, GIF, or another extension alone would not enable arm articulation.
 
 ## Generation record
 
@@ -75,3 +98,28 @@ Orc Berserker final subject prompt:
 Orc Shaman final subject prompt:
 
 > Create one lean elderly olive-green Orc Shaman with a long uncovered face, two ivory lower tusks, pointed ears, glowing pale-green eyes, braided gray-black topknot, moss-green and bone-white ritual cloth, bone charms, and small feathers. Give him one crooked staff crowned by a horned animal skull with a compact mint-green spirit flame, plus a small matching rune glow in his free hand; keep him visibly lightly armored.
+
+## Full-roster generation record
+
+- Mode: built-in image generation tool
+- Use case: `stylized-concept`
+- Generated: 2026-09-18
+- Style reference: `roster-atlas.png`; reference only, with no existing character copied
+- Saved editable sources: `regional-source.png`, `elemental-source.png`, `demon-source.png`
+- Saved runtime atlases: `regional-atlas.png`, `elemental-atlas.png`, `demon-atlas.png`
+
+All three final prompts shared this contract:
+
+> Create new original full-body fantasy game sprites in a strict four-column by four-row grid, one subject centered in each specified equal cell, all facing right. Use a genuine transparent square canvas, identical low baselines, generous padding, no overlap, no visible grid, and completely transparent unused cells. Match the reference's polished hand-painted 2D chibi proportions, subtle inked edges, restrained detail, and crisp silhouettes readable at 48 px. Keep every wing, head, banner, and weapon inside its own cell. No text, labels, border, scenery, floor, cast shadow, logo, watermark, duplicates, cropped limbs, black background, pixel art, photorealism, front view, or isometric view.
+
+Regional final subject prompt:
+
+> Row 1: blue kingdom swordsman with sword; gold-accented long-pike soldier; green-cloaked frontier scout with shortbow; ivory-and-gold battlefield priest with healing staff. Row 2: violet kingdom mage with wand and spellbook; imposing deep-violet archmage with tall staff; charcoal hooded shadow assassin with twin daggers; huge moss-green troll with stone club. Row 3: broad ochre ogre mage with rune staff; small green goblin riding one gray wolf; purple-feathered harpy; muscular brown minotaur with two horns and heavy axe. Row 4: compact purple wyvern with folded wings; three small acid-green slimes grouped as one deployment silhouette; olive basilisk lizard with venomous gaze; two lean charcoal direwolves grouped as one deployment silhouette.
+
+Elemental final subject prompt:
+
+> Row 1: blue-white flying storm elemental with a compact lightning core; orange-red flying fire elemental; pale-blue crystalline flying frost elemental; massive brown stone-and-earth elemental with mossy armor. Row 2: radiant ivory-gold flying light spirit; smoky dark-violet flying shadow spirit; one majestic golden-brown giant eagle with folded wings; ancient walking treant with a wooden face and branch arms. Row 3: towering slate rune golem with glowing blue runes; squat green three-headed swamp hydra; black-and-crimson hellhound with ember cracks; Saint Mirena, a human dawn healer in ivory-and-gold robes holding a sun-topped healing staff. Row 4 remains empty.
+
+Demon final subject prompt:
+
+> Row 1: tiny crimson winged imp with a forked spear; elegant burgundy succubus with folded bat wings and a compact magic focus; broad armored demon guard with horned shield; robed violet abyss mage with a crooked staff and purple flame. Row 2: gray stone gargoyle with folded wings; massive black-red three-headed cerberus; towering flying Ifrit formed from crimson flame with gold armor; hooded soul reaper with a compact curved scythe. Row 3 columns 1–2: imposing black-violet abyss knight with full plate and greatsword; Bran the human liberation marshal in blue-and-crimson commander armor carrying a rally banner and one-handed sword. Remaining cells stay empty.

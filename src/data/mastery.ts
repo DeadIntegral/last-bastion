@@ -31,10 +31,10 @@ const soldierMasteryOverrides: Partial<Record<UnitId, MasteryStatGrowth>> = {
   bulwark: { hp: 16, attack: 2 },
   cavalry: { hp: 10, attack: 2 },
   crossbow: { hp: 5, attack: 2 },
-  brute: { hp: 18, attack: 3 },
-  griffin: { hp: 7, attack: 2 },
-  spirit: { hp: 6, attack: 2 },
-  hellhound: { hp: 9, attack: 2 },
+  brute: { hp: 35, attack: 4 },
+  griffin: { hp: 55, attack: 6 },
+  spirit: { hp: 24, attack: 3 },
+  hellhound: { hp: 32, attack: 4 },
 };
 
 export const soldierMasteryGrowth = Object.fromEntries(allTroopOrder.map((id) => {

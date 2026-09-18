@@ -10,6 +10,11 @@ const frameHeight = 160;
 const atlasWidth = frameWidth * 4;
 const atlasHeight = frameHeight * 4;
 const sourceOrder = ['goblin-archer.png', 'goblin-bomber.png', 'orc-berserker.png', 'orc-shaman.png'];
+const generatedSheets = [
+  { source: 'regional-source.png', output: 'regional-atlas.png', occupiedFrames: 16 },
+  { source: 'elemental-source.png', output: 'elemental-atlas.png', occupiedFrames: 12 },
+  { source: 'demon-source.png', output: 'demon-atlas.png', occupiedFrames: 10 },
+];
 
 function paeth(left, up, upperLeft) {
   const prediction = left + up - upperLeft;
@@ -61,13 +66,13 @@ function decodeRgbaPng(filePath) {
   return { width, height, pixels };
 }
 
-function alphaBounds(image) {
-  let minX = image.width;
-  let minY = image.height;
+function alphaBounds(image, region = { minX: 0, minY: 0, maxX: image.width - 1, maxY: image.height - 1 }) {
+  let minX = region.maxX + 1;
+  let minY = region.maxY + 1;
   let maxX = -1;
   let maxY = -1;
-  for (let y = 0; y < image.height; y += 1) {
-    for (let x = 0; x < image.width; x += 1) {
+  for (let y = region.minY; y <= region.maxY; y += 1) {
+    for (let x = region.minX; x <= region.maxX; x += 1) {
       if (image.pixels[(y * image.width + x) * 4 + 3] <= 4) continue;
       minX = Math.min(minX, x);
       minY = Math.min(minY, y);
@@ -78,22 +83,24 @@ function alphaBounds(image) {
   if (maxX < minX || maxY < minY) throw new Error('Source image has no visible pixels.');
   const padding = 20;
   return {
-    minX: Math.max(0, minX - padding),
-    minY: Math.max(0, minY - padding),
-    maxX: Math.min(image.width - 1, maxX + padding),
-    maxY: Math.min(image.height - 1, maxY + padding),
+    minX: Math.max(region.minX, minX - padding),
+    minY: Math.max(region.minY, minY - padding),
+    maxX: Math.min(region.maxX, maxX + padding),
+    maxY: Math.min(region.maxY, maxY + padding),
   };
 }
 
-function compositeFrame(atlas, image, frameIndex) {
-  const bounds = alphaBounds(image);
+function compositeFrame(atlas, image, frameIndex, region) {
+  const bounds = alphaBounds(image, region);
   const cropWidth = bounds.maxX - bounds.minX + 1;
   const cropHeight = bounds.maxY - bounds.minY + 1;
   const scale = Math.min((frameWidth - 8) / cropWidth, (frameHeight - 6) / cropHeight);
   const destinationWidth = Math.max(1, Math.round(cropWidth * scale));
   const destinationHeight = Math.max(1, Math.round(cropHeight * scale));
-  const startX = frameIndex * frameWidth + Math.floor((frameWidth - destinationWidth) / 2);
-  const startY = frameHeight - destinationHeight - 2;
+  const frameColumn = frameIndex % 4;
+  const frameRow = Math.floor(frameIndex / 4);
+  const startX = frameColumn * frameWidth + Math.floor((frameWidth - destinationWidth) / 2);
+  const startY = frameRow * frameHeight + frameHeight - destinationHeight - 2;
   for (let y = 0; y < destinationHeight; y += 1) {
     for (let x = 0; x < destinationWidth; x += 1) {
       const sourceX = Math.min(bounds.maxX, bounds.minX + Math.floor((x + 0.5) / scale));
@@ -143,9 +150,68 @@ function encodeRgbaPng(width, height, pixels) {
   ]);
 }
 
+function transparentGridBoundaries(image, axis) {
+  const extent = axis === 'x' ? image.width : image.height;
+  const crossExtent = axis === 'x' ? image.height : image.width;
+  const boundaries = [0];
+  const searchRadius = Math.floor(extent * 0.07);
+  for (let division = 1; division < 4; division += 1) {
+    const ideal = division * extent / 4;
+    let bestPosition = Math.round(ideal);
+    let bestVisiblePixels = Number.POSITIVE_INFINITY;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (let position = Math.max(1, Math.floor(ideal - searchRadius)); position <= Math.min(extent - 2, Math.ceil(ideal + searchRadius)); position += 1) {
+      let visiblePixels = 0;
+      for (let cross = 0; cross < crossExtent; cross += 1) {
+        const x = axis === 'x' ? position : cross;
+        const y = axis === 'x' ? cross : position;
+        if (image.pixels[(y * image.width + x) * 4 + 3] > 4) visiblePixels += 1;
+      }
+      const distance = Math.abs(position - ideal);
+      if (visiblePixels < bestVisiblePixels || visiblePixels === bestVisiblePixels && distance < bestDistance) {
+        bestVisiblePixels = visiblePixels;
+        bestDistance = distance;
+        bestPosition = position;
+      }
+    }
+    boundaries.push(bestPosition);
+  }
+  boundaries.push(extent);
+  return boundaries;
+}
+
 const atlas = Buffer.alloc(atlasWidth * atlasHeight * 4);
 sourceOrder.forEach((file, index) => compositeFrame(atlas, decodeRgbaPng(path.join(sourceDirectory, file)), index));
-const transparentPixels = Array.from({ length: atlas.length / 4 }, (_, index) => atlas[index * 4 + 3]).filter((alpha) => alpha === 0).length;
-if (transparentPixels === 0) throw new Error('Atlas build failed: no transparent pixels were produced.');
-fs.writeFileSync(outputPath, encodeRgbaPng(atlasWidth, atlasHeight, atlas));
-console.log(`Wrote ${path.relative(root, outputPath)} with ${transparentPixels.toLocaleString()} transparent pixels.`);
+
+function writeAtlas(atlasPixels, destinationPath) {
+  let transparentPixels = 0;
+  for (let index = 3; index < atlasPixels.length; index += 4) {
+    if (atlasPixels[index] === 0) transparentPixels += 1;
+  }
+  if (transparentPixels === 0) throw new Error(`${destinationPath} build failed: no transparent pixels were produced.`);
+  fs.writeFileSync(destinationPath, encodeRgbaPng(atlasWidth, atlasHeight, atlasPixels));
+  console.log(`Wrote ${path.relative(root, destinationPath)} with ${transparentPixels.toLocaleString()} transparent pixels.`);
+}
+
+writeAtlas(atlas, outputPath);
+
+for (const sheet of generatedSheets) {
+  const sourcePath = path.join(root, 'public/assets/characters', sheet.source);
+  const image = decodeRgbaPng(sourcePath);
+  const sheetAtlas = Buffer.alloc(atlasWidth * atlasHeight * 4);
+  const columnBoundaries = transparentGridBoundaries(image, 'x');
+  const rowBoundaries = transparentGridBoundaries(image, 'y');
+  const gridGutter = Math.max(4, Math.floor(Math.min(image.width, image.height) * 0.008));
+  for (let frameIndex = 0; frameIndex < sheet.occupiedFrames; frameIndex += 1) {
+    const sourceColumn = frameIndex % 4;
+    const sourceRow = Math.floor(frameIndex / 4);
+    const region = {
+      minX: columnBoundaries[sourceColumn] + (sourceColumn > 0 ? gridGutter : 0),
+      minY: rowBoundaries[sourceRow] + (sourceRow > 0 ? gridGutter : 0),
+      maxX: columnBoundaries[sourceColumn + 1] - 1 - (sourceColumn < 3 ? gridGutter : 0),
+      maxY: rowBoundaries[sourceRow + 1] - 1 - (sourceRow < 3 ? gridGutter : 0),
+    };
+    compositeFrame(sheetAtlas, image, frameIndex, region);
+  }
+  writeAtlas(sheetAtlas, path.join(root, 'public/assets/characters', sheet.output));
+}

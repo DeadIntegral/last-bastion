@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { heroMasteryGrowth, heroSkillPower, soldierMasteryGrowth } from '../data/mastery';
-import { bossCombatTuning, bossDefinition, heroDefinitions, troopDefinitions } from '../data/units';
+import { allTroopOrder, bossCombatTuning, bossDefinition, heroDefinitions, troopDefinitions } from '../data/units';
 import { challengeStages, stages } from '../data/stages';
-import { applyEnemyTerrain, attackPatternLabel, calculateDamage, canActivateMobilization, canAttackTarget, cooldownFillRatio, enemyFortressCanReinforce, enemyObjectiveDefeated, equipmentCost, fortressRearSpawnX, hasEquipmentCapstone, healedHp, heroAuraBonuses, heroAwakeningRank, heroMasteryLevelFromXp, isBehindLivingFortress, masteryLevelFromXp, mobilizedCommandStats, regenerateCommand, scaledBattleDelta, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, unitDeploymentCapacity, upgradedStats, upgradeCost } from './rules';
+import { applyEnemyTerrain, attackPatternLabel, calculateDamage, canActivateMobilization, canAttackTarget, canReceiveRallyOrder, cooldownFillRatio, enemyFortressCanReinforce, enemyObjectiveDefeated, equipmentCost, fortressRearSpawnX, hasEquipmentCapstone, healedHp, heroAuraBonuses, heroAwakeningRank, heroMasteryLevelFromXp, isBehindLivingFortress, masteryLevelFromXp, mobilizedCommandStats, regenerateCommand, scaledBattleDelta, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, unitDeploymentCapacity, upgradedStats, upgradeCost, usesStatEquipmentCapstone } from './rules';
 
 describe('combat rules', () => {
   it('applies anti-large damage bonus', () => {
@@ -19,7 +19,7 @@ describe('combat rules', () => {
     expect(terrainCopy.maxHp).toBe(base.maxHp * 10);
     expect(terrainCopy.attackDamage).toBe(Math.round(base.attackDamage * 2.5));
     expect(terrainCopy.moveSpeed).toBeCloseTo(base.moveSpeed * 1.15);
-    expect(troopDefinitions.spirit.maxHp).toBe(130);
+    expect(troopDefinitions.spirit.maxHp).toBe(600);
   });
 
   it('keeps every optional beast challenge on the visible tenfold-health terrain rule', () => {
@@ -125,6 +125,9 @@ describe('combat rules', () => {
     expect(upgradeCost(1)).toBe(100);
     expect(upgradeCost(4)).toBe(250);
     expect(equipmentCost(troopDefinitions.brute, 0)).toBeGreaterThan(equipmentCost(troopDefinitions.militia, 0));
+    expect(equipmentCost(troopDefinitions.brute, 0)).toBe(200);
+    expect(equipmentCost(troopDefinitions.griffin, 0)).toBe(300);
+    expect(equipmentCost(troopDefinitions.ifrit, 0)).toBe(400);
   });
 
   it('grows mastery from accumulated experience without currency', () => {
@@ -191,6 +194,24 @@ describe('combat rules', () => {
     expect(canActivateMobilization(200, 200, 0, 3)).toBe(true);
     expect(canActivateMobilization(240, 240, 3, 3)).toBe(false);
     expect(mobilizedCommandStats(200, 10)).toEqual({ maxCommand: 225, commandRegen: 11.5 });
+    expect(mobilizedCommandStats(200, 10, 35, 2.1)).toEqual({ maxCommand: 235, commandRegen: 12.1 });
+  });
+
+  it('expands rally control from 1–4 star soldiers to heroes and 5-star transcendent troops', () => {
+    const soldiersOnly = { soldiers: true, heroes: false, transcendent: false };
+    const withHeroes = { ...soldiersOnly, heroes: true };
+    const fullCommand = { soldiers: true, heroes: true, transcendent: true };
+    expect(canReceiveRallyOrder(troopDefinitions.militia, false, soldiersOnly)).toBe(true);
+    expect(canReceiveRallyOrder(heroDefinitions.warden, true, soldiersOnly)).toBe(false);
+    expect(canReceiveRallyOrder(heroDefinitions.warden, true, withHeroes)).toBe(true);
+    expect(troopDefinitions.griffin.grade).toBe(4);
+    expect(troopDefinitions.minotaur.grade).toBe(3);
+    expect(canReceiveRallyOrder(troopDefinitions.griffin, false, soldiersOnly)).toBe(true);
+    expect(canReceiveRallyOrder(troopDefinitions.ifrit, false, withHeroes)).toBe(false);
+    expect(canReceiveRallyOrder(troopDefinitions.griffin, false, fullCommand)).toBe(true);
+    expect(canReceiveRallyOrder(troopDefinitions.ifrit, false, fullCommand)).toBe(true);
+    expect(allTroopOrder.every((id) => troopDefinitions[id].grade >= 1 && troopDefinitions[id].grade <= 5)).toBe(true);
+    expect(allTroopOrder.filter((id) => troopDefinitions[id].grade === 5)).toEqual(['ifrit']);
   });
 
   it('requires both the boss and fortress in campaign sieges but only the boss in challenges', () => {
@@ -228,7 +249,7 @@ describe('combat rules', () => {
     expect(equipmentCost(troopDefinitions.militia, 0)).toBe(50);
   });
 
-  it('adds one soldier when any equipment branch reaches rank five', () => {
+  it('adds one soldier to ordinary and three-star deployments when a branch reaches rank five', () => {
     const almostComplete = { weapon: 4, armor: 4, boots: 4 };
     const completed = { weapon: 5, armor: 0, boots: 0 };
     expect(hasEquipmentCapstone(almostComplete)).toBe(false);
@@ -236,6 +257,22 @@ describe('combat rules', () => {
     expect(hasEquipmentCapstone(completed)).toBe(true);
     expect(upgradedStats(troopDefinitions.militia, completed).squadSize).toBe(4);
     expect(upgradedStats(troopDefinitions.brute, completed).squadSize).toBe(2);
+    expect(upgradedStats(troopDefinitions.reaper, completed).squadSize).toBe(2);
+  });
+
+  it('keeps apex large deployments single-bodied and grants one fixed all-equipment bonus', () => {
+    const completed = { weapon: 5, armor: 0, boots: 0 };
+    const base = troopDefinitions.griffin;
+    const trained = upgradedStats(base, completed);
+    expect(usesStatEquipmentCapstone(base)).toBe(true);
+    expect(usesStatEquipmentCapstone(troopDefinitions.brute)).toBe(false);
+    expect(usesStatEquipmentCapstone(troopDefinitions.reaper)).toBe(false);
+    expect(usesStatEquipmentCapstone(troopDefinitions.ifrit)).toBe(true);
+    expect(trained.squadSize).toBe(1);
+    expect(trained.maxHp).toBe(base.maxHp + base.equipmentGrowth.hp);
+    expect(trained.attackDamage).toBe(base.attackDamage + base.equipmentGrowth.attack * 6);
+    expect(trained.defense).toBe((base.defense ?? 0) + base.equipmentGrowth.defense);
+    expect(trained.moveSpeed).toBe(base.moveSpeed + base.equipmentGrowth.moveSpeed);
   });
 
   it('does not apply the soldier deployment capstone to heroes or bosses', () => {
@@ -248,8 +285,8 @@ describe('combat rules', () => {
     const militia = upgradedStats(troopDefinitions.militia, { weapon: 1, armor: 1, boots: 1 });
     const brute = upgradedStats(troopDefinitions.brute, { weapon: 1, armor: 1, boots: 1 });
     expect(militia.attackDamage - troopDefinitions.militia.attackDamage).toBe(2);
-    expect(brute.attackDamage - troopDefinitions.brute.attackDamage).toBe(5);
+    expect(brute.attackDamage - troopDefinitions.brute.attackDamage).toBe(7);
     expect(militia.maxHp - troopDefinitions.militia.maxHp).toBe(18);
-    expect(brute.maxHp - troopDefinitions.brute.maxHp).toBe(42);
+    expect(brute.maxHp - troopDefinitions.brute.maxHp).toBe(90);
   });
 });

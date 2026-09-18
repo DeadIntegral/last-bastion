@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { bossDefinition, heroDefinitions, troopDefinitions } from '../data/units';
-import { attackMotionDurationMs, attackMotionStyle, createAttackMotionPose, sampleAttackMotion, type AttackMotionStyle } from './combatMotion';
+import { attackMotionDurationMs, attackMotionStyle, createAttackMotionPose, projectileVisualStyle, sampleAttackMotion, type AttackMotionStyle } from './combatMotion';
 
 describe('localized combat attack motion', () => {
   it('assigns every current troop, hero, and boss a bounded reusable motion style', () => {
@@ -30,5 +30,13 @@ describe('localized combat attack motion', () => {
     expect(pose.reach).toBeGreaterThan(0);
     sampleAttackMotion('cast', 0.5, pose);
     expect(pose.energyScale).toBeGreaterThan(1);
+  });
+
+  it('gives arrows, spells, and thrown bombs distinct pooled projectile silhouettes', () => {
+    expect(projectileVisualStyle(troopDefinitions.archer)).toBe('arrow');
+    expect(projectileVisualStyle(troopDefinitions.crossbow)).toBe('arrow');
+    expect(projectileVisualStyle(troopDefinitions.mage)).toBe('magic');
+    expect(projectileVisualStyle(troopDefinitions.ifrit)).toBe('magic');
+    expect(projectileVisualStyle(troopDefinitions.goblinBomber)).toBe('bomb');
   });
 });

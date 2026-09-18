@@ -1,6 +1,6 @@
 # Last Bastion — Living Game Specification
 
-Last updated: 2026-09-16
+Last updated: 2026-09-18
 
 This is the canonical specification for the game currently present in this repository. Future developers and AI agents must keep it synchronized with the code.
 
@@ -47,7 +47,9 @@ Status: **Implemented**.
 - Command starts at 70, regenerates at 10 per second, and is capped at 200.
 - Killing a normal enemy grants 6 Command.
 - When Command reaches exactly 100% of its current capacity, the player may activate `전시 동원령`. It consumes the entire gauge and permanently adds 25 maximum Command plus 1.5 Command/s for the rest of that battle. The rising capacity makes each later activation cost more, and the skill is capped at three uses per battle.
-- Fortress research can modify starting Command, regeneration, maximum Command, summon cooldowns, Command per kill, battle Gold and battle mastery XP, fortress HP and regeneration, flat damage reduction, automatic tower fire, and bombardment against armies, bosses, and fortresses.
+- Expedition-tactics research unlocks `원정 집결령`. Pressing `R` or its HUD button enters placement mode; clicking the lane places a persistent flag. Eligible player units still attack enemies already in range, otherwise move toward deterministic slots around the flag and hold there until the flag is cleared or moved. `집결 신호` controls 1–4-star soldiers, `영웅 기치` adds the selected hero, and `초월의 군기` adds canonical 5-star transcendent troops. Escape cancels placement before it pauses the battle. The flag, placement state, and redeployment cooldown reset after each battle and are not saved.
+- Fortress research can modify starting Command, regeneration, maximum Command, summon cooldowns, Command per kill, battle Gold and battle mastery XP, fortress HP and regeneration, flat damage reduction, automatic tower fire, and bombardment range/effect against armies, bosses, and fortresses.
+- From campaign stage 13 onward, the enemy fortress has a data-driven ranged basic attack. It fires only while the fortress lives, selects the foremost player combatant inside its range regardless of ground/flying domain, uses elapsed-time cadence and the shared projectile-effect pool, and exposes its range, damage, and interval in the mission panel before deployment.
 
 ### Battlefield dimensions
 
@@ -87,13 +89,15 @@ Priest is the roster's symmetric support unit: its 190 healing range exceeds its
 | 오크 철갑병 | 90 | 1 | 390 | 22 | 42 | 1250 ms | 350 | melee cleave |
 | 왕립 기마병 | 120 | 1 | 250 | 40 | 40 | 1050 ms | 700 | pierce 2 |
 | 석궁병 | 85 | 1 | 115 | 36 | 160 | 1450 ms | 400 | pierce 2 |
-| 오우거 파쇄자 | 140 | 1 | 440 | 45 | 52 | 1500 ms | challenge 101 | melee cleave |
-| 그리폰 기수 | 195 | 1 | 520 | 82 | 58 | 1050 ms | 1,500 | melee cleave |
-| 폭풍 정령 | 125 | 1 | 130 | 31 | 185 | 1150 ms | challenge 102 | pierce 2 |
-| 마염견 | 135 | 1 | 235 | 42 | 46 | 900 ms | challenge 103 | melee cleave |
+| 오우거 파쇄자 | 170 | 1 | 900 | 65 | 52 | 1500 ms | challenge 101 | melee cleave |
+| 그리폰 기수 | 200 | 1 | 1,600 | 150 | 58 | 1050 ms | 1,500 | melee cleave |
+| 폭풍 정령 | 155 | 1 | 600 | 55 | 185 | 1150 ms | challenge 102 | pierce 2 |
+| 마염견 | 170 | 1 | 850 | 70 | 46 | 900 ms | challenge 103 | melee cleave |
 
 - A new profile starts with only the militia. Guardian, archer, and lancer are earned from the first clears of stages 1, 2, and 3 respectively.
-- All fifty troops use `troopDefinitions` regardless of side. Human loyalists and betrayers, goblins, orcs, ogres, beasts, spirits, and demons can therefore use one canonical base record and later fight for the player. Exceptional beasts, spirits, and top-tier summons may declare `maxActivePerSide`; this is a simultaneous living-body cap, not a lifetime summon count. It applies identically to the player and computer, includes bodies gained from the equipment capstone, and is disclosed in the armory and battle card.
+- All fifty troops use `troopDefinitions` regardless of side. Human loyalists and betrayers, goblins, orcs, ogres, beasts, spirits, and demons can therefore use one canonical base record and later fight for the player. Exceptional beasts, spirits, and top-tier summons may declare `maxActivePerSide`; this is a simultaneous living-body cap, not a lifetime summon count. It applies identically to the player and computer, limits any bodies gained from a formation-style equipment capstone, and is disclosed in the armory and battle card.
+- Every troop has an intrinsic 1–5-star `grade`: 1-star general, 2-star trained, 3-star elite, 4-star legendary, and 5-star transcendent. Grade describes the troop's established combat stature, rarity, and acquisition expectation but contributes no automatic stat multiplier and cannot currently be raised. Equipment and mastery remain the only implemented player growth tracks. Griffin Rider is 4-star and Minotaur is 3-star; neither is transcendent. The armory, codex, and battle summon card disclose the grade only after the troop is otherwise known, preserving codex discovery secrecy.
+- Legendary 4-star and transcendent 5-star troops now retain a minimum four-digit base-health identity. Current examples range from the 1,200-HP Reaper to the 2,300-HP Rune Golem, while the 5-star Ifrit has 2,200 base HP. Their larger bodies are balanced through 190–200 Command costs, long deployment cooldowns, one-body deployment, and living-body caps rather than by making their names statistically cosmetic.
 - An encountered non-boss troop becomes visible as a recruitment candidate in the armory. Paying its recruit cost adds the same base troop to the player's roster.
 - Royal Cavalry and Griffin Riders are tier-signature recruits: tier 2 and tier 3 promotion respectively reveal their information and allow recruitment without a prior enemy encounter. They still enter the codex only after recruitment or battle encounter.
 - The player persists a battle formation containing one to four acquired troop types. The four battle cards and hotkeys follow formation order.
@@ -103,8 +107,8 @@ Priest is the roster's symmetric support unit: its 190 healing range exceeds its
   - Armor: adds the troop's fixed HP and defense values per level. Defense is subtracted from incoming attack damage, with a minimum of 1 damage.
   - Boots: adds the troop's fixed movement-speed value per level.
 - Equipment gains are absolute and role-specific rather than one shared percentage. The canonical values live on each combatant definition and are listed in `docs/BALANCE.md`; this prevents high-base-stat combatants from automatically receiving a larger upgrade solely because their base is larger.
-- Equipment prices use readable arithmetic steps: `combatant equipment base × (current level + 1)`. All three slots use that combatant's same sequence, while stronger combatants have a higher base of 75, 100, or 125 instead of the basic 50.
-- Finishing any one soldier equipment branch at rank 5 activates a one-time deployment capstone: that troop produces one additional body per summon without increasing Command cost or cooldown. Additional completed branches do not stack. Regular enemies receive the same bonus from their stage equipment profile; heroes, bosses, and named single-body elite defenders are excluded.
+- Equipment prices use readable arithmetic steps: `combatant equipment base × (current level + 1)`. Troop bases scale primarily by grade: ordinary 1-star troops use 50 or 75, 2-star troops use 100, 3-star troops use 200, 4-star troops use 300, and the 5-star Ifrit uses 400. Heroes retain their authored 100–150 bases.
+- Finishing any one soldier equipment branch at rank 5 activates one non-stacking capstone. Ordinary troops, every 3-star troop, and humanoid 4-star Reaper/Abyss Knight formations produce one additional body per summon without increasing Command cost or cooldown. Apex single-creature deployments instead remain one body: every 5-star troop and 4-star troops also tagged `large` receive one additional rank's fixed Weapon, Armor, and Boots gains simultaneously. The current stat-capstone roster is Griffin Rider, Ancient Treant, Rune Golem, Swamp Hydra, Cerberus, and Ifrit. Regular enemies derive the same capstone from their stage equipment profile; heroes and bosses receive neither soldier capstone.
 - Every summon grants that soldier mastery XP after the battle. Used soldiers receive `8 × summon count`, plus 12 XP on a victory or 4 XP on a defeat.
 - Mastery has up to 50 levels and requires `round(45 × level^1.32)` XP per next level.
 - Every mastery level after level 1 grants the troop's role-specific flat HP and damage gains without spending gold. These fixed gains are stored in `src/data/mastery.ts` and shown on each owned troop card; no shared percentage multiplier remains.
@@ -112,7 +116,7 @@ Priest is the roster's symmetric support unit: its 190 healing range exceeds its
 - Lancers deal 75% bonus damage to targets tagged `large`.
 - Archers and Crossbows are deliberately asymmetric roles shared by both factions: the two-body Archer formation has 215 range, faster attacks, and better single-target deployment pressure, while the tougher one-body Crossbow has 160 range and a slower attack but fires a 36-damage bolt through at most two lined-up enemies. Crossbow piercing never reaches three soldier targets.
 - Royal Cavalry move at 82 units/s and their first attack after spawning deals 60% bonus damage. The charge is consumed whether it hits a combatant or fortress.
-- Griffin Riders fly 112 virtual pixels above the lane. Their 520 HP, 6 defense, 82 attack, and 0.85-strength melee cleave make them a top-tier assault unit, balanced by 195 Command and a 6.5-second summon cooldown. Non-ranged combatants cannot select a flying target, while ranged troops, ranged heroes, and the fortress watchtower can. Flying units may attack ground units and fortresses normally.
+- Griffin Riders fly 112 virtual pixels above the lane. Their 1,600 HP, 8 defense, 150 attack, and 0.85-strength melee cleave make them a legendary assault unit, balanced by 200 Command, a 6.5-second summon cooldown, and a two-body living cap. Non-ranged combatants cannot select a flying target, while ranged troops, ranged heroes, fortress watchtowers, and late enemy-fortress fire can. Flying units may attack ground units and fortresses normally.
 - Fortress bombardment and the beast stomp are ground-only area attacks and skip flying targets. Ranged hero attacks and skills can damage them.
 
 ## 5. Heroes
@@ -155,6 +159,8 @@ Selected normal stages also define one named elite defender standing near the en
 
 Advanced mechanics follow explicit introduction milestones stored in `advancedEnemyIntroductionStages`. Stage 7 is a post-boss recovery stage containing only previously encountered troops. Stage 8 opens with familiar Raiders and Archers before introducing three Royal Cavalry at 15.5 seconds; its reinforcement rotation places Cavalry last. Stage 9 reuses Cavalry to reinforce the counterplay lesson without adding another new domain. Stage 10 introduces exactly one strengthened Griffin Rider in its final scripted wave at 28.5 seconds after four familiar formations. Stage 11 combines Cavalry with two scripted Griffins. Griffins are deliberately excluded from continuous reinforcement rotations so the top-tier flying body remains a legible event rather than an endlessly recycled pressure spike.
 
+After the upper-tier stature pass, troops such as Ogre Crushers and Griffins remain authored scripted threats rather than ordinary repeating filler. Stages 4, 5, 7, 10, and 11 replace Ogre Crusher in their continuous rotation with a regular frontline troop, and stages 13–29 use Swordsmen instead of Crushers in the stable reinforcement roster. Named elites and finite opening waves preserve the strong-unit encounters without allowing high-HP bodies to accumulate indefinitely.
+
 Every non-boss campaign stage has two production phases: handcrafted opening waves introduce its composition, then a repeating reinforcement rotation continues until the battle ends. Reinforcements pause only when the stage's living-enemy cap is reached and resume after the player thins the army. Campaign boss stages use a named beast in front of a real enemy fortress plus a low-tier garrison: at five seconds the fortress begins slowly rotating two or three region-appropriate soldiers while holding only four or five living regular enemies. Both fortress and beast must be destroyed, in either order, and destroying the fortress immediately ends further production. Beast challenges remain truly boss-only.
 
 | Stage | Enemy weapon | Enemy armor | Enemy boots |
@@ -174,9 +180,11 @@ Every non-boss campaign stage has two production phases: handcrafted opening wav
 
 Enemy equipment ranks and numeric elite modifiers are intentionally hidden from the map. Players see the stage theme, difficulty label, enemy roster icons, objective, reward, and elite defender name without receiving exact hidden-stat spoilers. Boss encounters still receive the equipment profile of their own stage.
 
-Enemy equipment reaches its finite maximum at stage 7. Stages 8–30 add no further generic equipment scaling; their difficulty comes from denser formations, finite alive-capped reinforcements, named elites, Royal Cavalry charges, Griffin flight rules, progressively tougher fortresses, and boss behavior. Stages 13–29 use a 55-second reinforcement start, intervals no faster than 2.1 seconds, and living-enemy caps no higher than 15.
+Enemy equipment reaches its finite maximum at stage 7. Stages 8–30 add no further generic equipment scaling; their difficulty comes from denser formations, finite alive-capped reinforcements, named elites, Royal Cavalry charges, Griffin flight rules, progressively tougher fortresses, late-fortress fire, and boss behavior. Stages 13–29 use a 55-second reinforcement start, intervals no faster than 2.1 seconds, and living-enemy caps no higher than 15. Fortress fire begins at stage 13 and advances in three regional profiles: 36 damage / 260 range / 2.8 seconds, then 52 / 290 / 2.4 seconds at stage 19, and 72 / 320 / 2.1 seconds at stage 25.
 
 The shared beast behavior is reused by five campaign boss sieges at stages 6, 12, 18, 24, and 30 plus four standalone challenges. Campaign beasts use a canonical 5,200 HP, 82 attack, 68 range, 1.5-second attack interval, and 20 movement-speed body, while challenge beasts start from the exact recruitable Ogre, Storm Spirit, Hellhound, or Ifrit definition. The first player attack triggers their advance and telegraphed ground-only stomp. At 55% HP they enter phase two: attack interval becomes 65%, movement becomes 160%, stomp cadence accelerates from 5.2 to 3.4 seconds, and stomp damage rises from 105% to 155% of trained attack.
+
+A pending stomp telegraph is canceled and removed immediately when its boss dies, the battle ends, or the scene shuts down. A canceled warning can never resolve damage or remain rendered over the battlefield.
 
 The campaign beast's normal melee strike also cleaves every valid target inside its attack range at full damage; its telegraphed stomp remains a separate, larger ground-only area pattern.
 
@@ -200,7 +208,7 @@ Status: **Implemented**.
 | 12 | 철갑 마수의 귀환 | second beast-and-fortress siege | 1,200 | recruit Mirena for free and gain 1,200 gold |
 
 - Stages 13–30 form three additional six-stage regions: north (13–18), white night (19–24), and crown wastes (25–30). Their stage names and waves remain structured in `src/data/stages.ts`; stages 18, 24, and 30 are boss-and-fortress sieges. Stage 18 grants Bran alongside its 1,800 gold. Normal battle and first-clear gold otherwise continue the readable `stage × 100` sequence, ending at 3,000 gold on stage 30.
-- Campaign selection is an illustrated interactive kingdom map with connected stage nodes, locked and cleared states, regional labels, a mission panel, a data-derived five-tier combat evaluation, and first-clear reward previews. `낮음`, `보통`, `높음`, `매우 높음`, and `극한` are calculated from fortress durability, battlefield distance, scripted armies and timing, reinforcement pressure, elites, and bosses; the former `stage/30` numeric duplicate and its authored `difficulty` field no longer exist. A new profile sees stages 1–6. Clearing stages 6, 12, 18, and 24 expands the horizontally scrollable world by the next six-stage region. Stage spacing is 185 virtual CSS pixels, the desktop viewport is at least 680 px high, and the world starts at 1,320 px wide before growing with revealed regions.
+- Campaign selection is an illustrated interactive kingdom map with connected stage nodes, locked and cleared states, regional labels, a mission panel, a data-derived five-tier combat evaluation, and first-clear reward previews. Campaign nodes are compact fortress silhouettes with battlement walls, side towers, windows, an arched gate, and the chapter number inside the gate; boss sieges use a larger red fortress, while challenge nodes remain pulsing rifts. `낮음`, `보통`, `높음`, `매우 높음`, and `극한` are calculated from fortress durability, enemy-fortress fire, battlefield distance, scripted armies and timing, reinforcement pressure, elites, and bosses; the former `stage/30` numeric duplicate and its authored `difficulty` field no longer exist. A new profile sees stages 1–6. Clearing stages 6, 12, 18, and 24 expands the horizontally scrollable world by the next six-stage region. Stage spacing is 185 virtual CSS pixels, the desktop viewport is at least 680 px high, and the world starts at 1,320 px wide before growing with revealed regions.
 - The map viewport supports native horizontal scrolling and grab-to-pan pointer dragging with mouse, pen, or touch. Pointer capture begins only after the 6 px movement threshold so an ordinary press remains owned by its stage button; completed drags suppress the synthetic stage click, while taps/clicks and keyboard activation still select nodes. Touch retains vertical page panning.
 - Winning unlocks the next stage. Losing grants 20% of the battle reward without unlocking progress.
 - A stage's first-clear reward is granted exactly once and its claimed state persists. Replaying a cleared stage still grants the normal battle reward and mastery, but not its first-clear reward.
@@ -215,40 +223,48 @@ Beast challenges have no separate menu. Clearing campaign milestones 6, 18, and 
 
 Status: **Implemented**.
 
-The fortress has three persistent tiers. It begins as tier 1, and the next promotion becomes purchasable after reaching its total-research requirement. Tier 2 requires 8 purchased ranks and 1,000 gold; tier 3 requires 24 purchased ranks and 2,500 gold. Promotions unlock both research facilities and recruitment permits. Every research node has five paid ranks, giving the full tree 18 nodes and 90 purchases. Each node uses the readable sequence `base cost × (current rank + 1)`.
+The fortress has three persistent tiers and five implemented research branches: command/supply, growth support, defense, artillery, and expedition tactics. It begins as tier 1, and the next promotion becomes purchasable after reaching its total-research requirement. Tier 2 requires 8 purchased ranks and 1,000 gold; tier 3 requires 24 purchased ranks and 2,500 gold. Promotions unlock both research facilities and recruitment permits. Every research node has five paid ranks, giving the full tree 23 nodes and 115 purchases. Each node uses the readable sequence `base cost × (current rank + 1)`.
 
 | Branch | Tier | Node | Effect per rank | Prerequisite |
 |---|---:|---|---|---|
-| Economy | 1 | 전쟁 금고 | starting Command +25 | none |
-| Economy | 1 | 보급로 | Command regeneration +2.5/s | 전쟁 금고 1 |
-| Economy | 1 | 지휘 저장고 | maximum Command +40 | 보급로 1 |
-| Economy | 2 | 상비군 훈련소 | soldier summon cooldown -5% | 지휘 저장고 2 |
-| Economy | 2 | 군수 표준화 | soldier Command cost -3% | 지휘 저장고 3 |
-| Economy | 2 | 전리품 회계 | battle and first-clear Gold +5% | 군수 표준화 2 |
-| Economy | 2 | 왕립 야전 교범 | battle-earned mastery XP +5% | 전리품 회계 2 |
-| Economy | 3 | 승전 공납제 | Command per normal kill +2 | 상비군 훈련소 3 |
+| Command | 1 | 전쟁 금고 | starting Command +25 | none |
+| Command | 1 | 보급로 | Command regeneration +2.5/s | 전쟁 금고 1 |
+| Command | 1 | 지휘 저장고 | maximum Command +40 | 보급로 1 |
+| Command | 2 | 상비군 훈련소 | soldier summon cooldown -5% | 지휘 저장고 2 |
+| Command | 2 | 군수 표준화 | soldier Command cost -3% | 지휘 저장고 3 |
+| Growth | 2 | 전리품 회계 | battle and first-clear Gold +5% | none |
+| Growth | 2 | 왕립 야전 교범 | battle-earned mastery XP +5% | none |
+| Command | 3 | 승전 공납제 | Command per normal kill +1 | 상비군 훈련소 3 |
 | Defense | 1 | 강화 성벽 | fortress HP +250 | none |
 | Defense | 1 | 석재 장갑 | flat incoming damage -3 | 강화 성벽 1 |
 | Defense | 1 | 수호 망루 | automatic shot damage +22 and faster interval | 강화 성벽 1 |
 | Defense | 2 | 고층 흉벽 | tower range +45 | 수호 망루 2 |
-| Defense | 3 | 재생 석재 | fortress regeneration +1.5 HP/s | 고층 흉벽 3 |
+| Defense | 3 | 재생 석재 | fortress regeneration +4 HP/s | 고층 흉벽 3 |
 | Artillery | 1 | 흑색 화약 | bombardment damage +45 | none |
 | Artillery | 1 | 신속 장전 | bombardment cooldown -3 s | 흑색 화약 1 |
 | Artillery | 1 | 광역 탄두 | bombardment radius +20 | 흑색 화약 2 |
 | Artillery | 2 | 마수 관통탄 | bombardment boss damage +70 | 광역 탄두 2 |
-| Artillery | 3 | 공성 계산학 | direct enemy-fortress bombardment damage +60 | 마수 관통탄 3 |
+| Artillery | 3 | 공성 계산학 | direct enemy-fortress bombardment damage +60; bombardment range +80 | 마수 관통탄 3 |
+| Expedition | 1 | 집결 신호 | regular-soldier rally control; flag redeploy cooldown -2 s | none |
+| Expedition | 2 | 영웅 기치 | hero rally control; hero active cooldown -3% | 집결 신호 3 |
+| Expedition | 2 | 동원 전술 훈련 | mobilization maximum +5 and regeneration +0.3/s | 집결 신호 2 |
+| Expedition | 3 | 야전 구난대 | hero respawn time -3% | 영웅 기치 3 |
+| Expedition | 3 | 초월의 군기 | 5-star transcendent rally control; rally movement +5% | 영웅 기치 5 |
 
-Base fortress stats are 70 starting Command, 10 Command/s, 200 maximum Command, 1800 HP, 175 bombardment damage, 125 bombardment radius, and 32 s bombardment cooldown. The watchtower is inactive until researched. Soldier Command costs start at 100% and `군수 표준화` lowers them to a maximum 85%; effective costs round upward and have a minimum of 10 Command.
+Base fortress stats are 70 starting Command, 10 Command/s, 200 maximum Command, 1800 HP, 175 bombardment damage, 125 bombardment radius, 1,000 bombardment targeting range, and 32 s bombardment cooldown. Bombardment acquires the nearest ground enemy only after it enters that player-fortress-relative range and does not consume its cooldown without an eligible unit or in-range directly targetable fortress. `공성 계산학` adds 80 range per rank, reaching 1,400 at rank 5. The watchtower is inactive until researched. Soldier Command costs start at 100% and `군수 표준화` lowers them to a maximum 85%; effective costs round upward and have a minimum of 10 Command.
 
 - Tier 2 grants recruitment permits for encountered Raiders and Bulwarks and reveals the Royal Cavalry as a direct royal recruit.
+- Tier 2 also opens `전리품 회계` and `왕립 야전 교범` as two independent roots inside the growth-support branch. A player can specialize in Gold or mastery XP without first buying Command-cost research or the other growth root, and existing saved ranks retain the same IDs and effects.
 - Tier 3 grants recruitment permits for encountered Crossbows and reveals the Griffin Rider as a direct royal recruit. Ogre Crushers, Storm Spirits, and Hellhounds ignore ordinary recruitment and come only from their corresponding first challenge clear.
+- `집결 신호` rank 1 enables the flag and `R` control for 1–4-star soldiers. Its ranks reduce the 20-second base redeployment cooldown to 18/16/14/12/10 seconds. `영웅 기치` and `초월의 군기` expand the same order rather than creating separate flags. `초월의 군기` admits only canonical 5-star troops; the current 5-star roster is Ifrit. Future dragons or equivalent apex units enter this scope by receiving grade 5 rather than through a separate tag or inferred cost/size.
+- Hero active and respawn reductions from expedition research multiply the already mastery-adjusted timings and each cap at 15%. `동원 전술 훈련` raises each full-gauge mobilization activation from its base +25/+1.5 per second to at most +50/+3.0 per second without changing the three-use battle cap.
 - Tier and prerequisite requirements gate the first rank of a technology. Once a save contains at least one rank, that node remains unlocked even if a later game update changes its requirements.
 - Every technology card with a prerequisite displays its exact target rank and the player's current rank. For example, `광역 탄두` at Black Powder rank 1 reads `선행: 흑색 화약 2단계 (현재 1단계)`, and its disabled action repeats the missing target instead of showing only the technology name.
 - The fortress screen renders each branch as a left-to-right prerequisite tree with visible split and connection lines. Roots and children are derived directly from technology prerequisite data, deep branches scroll horizontally, and the same tree remains usable on mobile without flattening back into an unrelated card list.
 - Every fortress branch supports pointer grab-to-scroll with mouse, pen, and touch. Pointer capture starts only after a 6 px drag threshold, a completed drag suppresses its following synthetic click so research is never purchased accidentally, and short clicks, keyboard activation, native scrollbars, and vertical page touch scrolling remain available.
 - Save migration derives a minimum valid fortress tier from already-researched nodes. A saved tier-2 or tier-3 node therefore restores at least fortress tier 2 or 3 respectively instead of relocking previous progress.
 - Campaign-reward troops do not require a fortress recruitment permit, and upgrading an old save never removes an already-owned troop.
-- Tier, accumulated ranks, promotion readiness, unlock descriptions, and ten derived battle statistics—including the current summon-cost discount—are visible on the fortress screen.
+- Tier, accumulated ranks, promotion readiness, unlock descriptions, and derived battle statistics—including summon-cost discount, rally scope, and hero timing reductions—are visible on the fortress screen.
 
 ## 9. Achievements and career statistics
 
@@ -282,17 +298,19 @@ Status: **Implemented**.
 
 Status: **Implemented** for menu, daily attendance, dual-currency wallet, mysterious merchant, permanent battle-speed entitlement, kingdom map, recruitment and formation armory, hero hall, fortress tree, achievements, war codex, results, settings, and local saving.
 
-- The title screen is intentionally limited to four choices and does not expose progression or settings menus. Without a save they are `새 게임`, disabled `불러오기`, `저장 관리`, and `크레딧`. When browser-local progress exists they become `계속하기`, `새 게임`, `저장 관리`, and `크레딧`; Continue moves to the first, emphasized position and displays the highest unlocked campaign chapter. Save Management keeps import and export together instead of adding a fifth title action.
+- The title screen is a three-slot campaign archive rather than separate Continue/New Game/Save Management actions. Each occupied slot shows chapter, clears, battles, Gold, last write time, game version, and Continue/Export/Delete actions. Each empty slot is itself a New Game action. Global Import and Credits remain below the slots.
 - New Game plays an approximately 21-second, four-scene illustrated counteroffensive cinematic after reset. Its project-owned 16:9 backgrounds show the fallen continent, refugees reaching the Last Bastion, the restored kingdom banner, and the march toward the Demon King's citadel. Each 5.2-second scene automatically advances with synchronized copy fades, a slow CSS camera push and light drift, and an animated progress segment; the final scene enters the map without requiring an advance action. The visible skip action or Escape ends it immediately. Continue and a successful Import go directly to the kingdom map so a saved player is never forced through the opening again.
-- Continue resumes the current browser-local automatic save and opens the kingdom map without mutating it. New Game resets the persistent profile after an in-game confirmation when meaningful progress exists. Credits opens a dedicated project-credit screen.
+- Continue activates and hydrates the selected browser-local slot before opening the kingdom map. New Game activates only the selected empty slot, writes defaults, and starts the opening. Deleting a slot uses the shared destructive-action modal, never affects another slot, and clears the active marker when necessary. Credits opens a dedicated project-credit screen.
 - The kingdom map is the persistent in-game hub. Its `왕국 운영` panel opens the armory, hero hall, fortress technology, stage-unlocked Hero Training Ground, achievements, war codex, daily reward, stage-unlocked mysterious merchant, and global sound setting. Beast challenges exist only as map nodes. On desktop this compact 176 px vertical panel occupies a dedicated left column outside the heading, stage map, and mission panel. At 820 px and below it becomes a compact toolbar above the map content, using four columns on tablet and two on phone; it never overlays or occupies the map canvas. Main labels remain at least 12–13 px and metadata at least 9 px even as button height is reduced.
 - First-clear rewards can unlock features through structured `featureId` metadata. `hero-training` is unlocked by the persisted stage-9 clear rather than a redundant save flag, so old profiles that already cleared stage 9 receive it automatically. Before that milestone its operations button remains visible but disabled with the requirement.
-- Hero Training Ground is the first repeatable late-game Gold sink. It offers 100 XP for 250 Gold, 500 XP for 1,000 Gold, and 1,500 XP for 2,500 Gold to any recruited hero. The store enforces the stage-9 gate, ownership, affordability, and the level-30 total-XP cap; battle usage continues to grant XP independently.
+- Hero Training Ground is the first repeatable late-game Gold sink. It offers 100 XP for 250 Gold, 500 XP for 1,000 Gold, and 1,500 XP for 2,500 Gold to any recruited hero. Every training card reuses the canonical hero illustration and overlays the selected-hero state plus current awakening rank so heroes remain visually distinguishable from their package controls. The store enforces the stage-9 gate, ownership, affordability, and the level-30 total-XP cap; battle usage continues to grant XP independently.
 - Back navigation from every progression screen returns to the kingdom map. Battle results also return to the map; the map header and Credits are the only current routes back to the title.
-- Persistence uses Zustand and localStorage key `last-bastion-profile-v1`.
-- Missing fields in old or damaged saves are merged with defaults. Codex completion and eligible codex achievements are recalculated from the migrated acquisition and encounter lists on load.
-- Save Management exports a human-readable JSON file named `last-bastion-save-YYYY-MM-DD.json`. Its portable wrapper contains the `last-bastion-save` format marker, export version, timestamp, and only the whitelisted persisted state; no store action is serialized.
-- Import accepts that portable export, a raw saved profile JSON object, or Zustand's `{ state, version }` storage wrapper. It rejects malformed or unrelated JSON, whitelists persisted fields, clamps resources and upgrade ranks, removes unknown IDs, repairs formations and fortress tiers, and cannot replace store actions. Importing over meaningful local progress requires an explicit in-game confirmation before applying the replacement.
+- Persistence uses three origin-local slot keys plus an active-slot marker. The previous Zustand key `last-bastion-profile-v1` remains the active-profile compatibility cache. On the first versioned-slot launch, an existing single save is copied once into slot 1 and marked active; a migration marker prevents a later deletion from recreating it.
+- Missing fields in old or damaged saves are merged with defaults. Codex completion and eligible codex achievements are recalculated from the migrated acquisition and encounter lists on load. Plain raw profiles, previous `{ state, version }` wrappers, and the earlier plaintext `last-bastion-save` portable wrapper remain import-compatible.
+- `src/data/version.ts` is canonical for game version `0.2.0` and save schema version `1`. Plain internal slot snapshots include `format`, legacy-compatible `version`, explicit `gameVersion`, explicit `saveSchemaVersion`, timestamp, and only the whitelisted persisted state; no store action is serialized.
+- New portable exports are files named `last-bastion-slot-N-YYYY-MM-DD.json`. The profile wrapper is encrypted with AES-256-GCM using a key derived from the player's 8+-character password through PBKDF2-SHA-256 with a random 16-byte salt and 210,000 iterations. Every file receives a random 12-byte IV. Salt, IV, ciphertext, and SHA-256 ciphertext checksum use Base64 encoding; the outer envelope also records encryption/KDF identifiers, game version, and save schema version. AES-GCM authentication is authoritative for password and tamper validation, while the explicit checksum detects file corruption before expensive key derivation.
+- The password is never persisted or recoverable. Import caps files at 2 MB and accepts KDF iteration counts only from 100,000 through 1,000,000 before attempting work. After decryption, the existing untrusted-import boundary rejects malformed or unrelated JSON, whitelists fields, clamps resources and upgrade ranks, removes unknown IDs, repairs formations and fortress tiers, and cannot replace store actions. Import selects one of the three target slots and requires explicit confirmation before overwriting an occupied slot.
+- Browser-local automatic slot snapshots remain origin-scoped plaintext. A bundled or locally stored automatic key would be recoverable by the same client and would not provide meaningful secrecy; password encryption is therefore reserved for portable files crossing the browser boundary.
 - All blocking confirmations and errors use the shared React game modal instead of browser `alert`, `confirm`, or `prompt`. The modal traps Tab focus, initially focuses the safe action for destructive choices, restores prior focus on close, supports Escape, and adapts to phone-width screens.
 - The hero hall provides lore, passive, skill, unlock, select, and upgrade actions.
 - New saves separately store gold, Royal Gems, the last daily claim date, battle-speed entitlement and preference, per-slot equipment levels for all shared troops, acquired troops, the one-to-four troop battle formation, cleared stages, mastery XP, recruited heroes, fortress research, career statistics, encountered troops and boss, unlocked achievements, and claimed rewards.
@@ -314,12 +332,13 @@ Status: **Implemented** for menu, daily attendance, dual-currency wallet, myster
 ## 13. Presentation and typography
 
 - The opening uses four 1672 × 941 original cinematic paintings optimized to roughly 250–355 KB WebP files. `src/data/opening.ts` owns their order, copy, duration, and runtime paths. `public/assets/opening/README.md` records the shared art direction, final prompt set, and the scene-2 kingdom-banner correction. CSS supplies responsive cover cropping, a slow Ken Burns-style push, light drift, fades, and a centered lower-third title/subtitle treatment over a shallow borderless bottom vignette. Descriptive copy is 18 px on desktop and 15 px on phones, using text shadow rather than a dialogue-box-strength container. This keeps the artwork dominant and avoids obscuring upper-scene landmarks without pretending the illustrations are frame animation.
-- Fourteen troops and three of the five heroes have original, simple hand-painted full-body character illustrations distributed across two transparent 4 × 4 runtime atlases. Mirena and Bran currently use their canonical procedural icon fallback.
-- The 1225 × 1284 RGBA core master and dedicated correction sources are preserved under `public/assets/characters`. Every production atlas is 612 × 640 and its sixteen frames are exactly 153 × 160. `roster-atlas.png` contains ten troops and three heroes; `expansion-atlas.png` adds Goblin Archer, Goblin Bomber, Orc Berserker, and Orc Shaman. Unused cells remain transparent for future additions.
-- `yarn art:atlas` deterministically rebuilds `expansion-atlas.png` from the four transparent expansion sources, crops their alpha bounds into the fixed first-row cells, and leaves every unused cell transparent. This command is the recovery path for atlas-alpha regressions and does not regenerate or reinterpret the source art.
+- All fifty troops and all five heroes have original, simple hand-painted full-body character illustrations distributed across five transparent 4 × 4 runtime atlases. The canonical playable roster no longer falls back to procedural letter or sigil art.
+- The RGBA core master, dedicated correction sources, and three generated source sheets are preserved under `public/assets/characters`. Every production atlas is 612 × 640 and its sixteen frames are exactly 153 × 160. `roster-atlas.png` contains ten troops and three heroes, `expansion-atlas.png` contains four goblin/orc troops, and the regional, elemental, and demon atlases contain the remaining thirty-six troops plus Mirena and Bran. Unused cells remain truly transparent.
+- `yarn art:atlas` deterministically rebuilds all four non-core runtime atlases from their transparent sources. For generated grid sources it detects the real transparent gutters between rows and columns before alpha-cropping each subject into the fixed frame, preventing a neighboring character's edge fragments from leaking into another cell. This command is the recovery path for atlas-alpha regressions and does not regenerate or reinterpret source art.
 - `src/data/characterArt.ts` is the canonical ID-to-sheet/frame mapping. The armory, hero hall, discovered codex entries, battle HUD, and Phaser combatants all resolve the selected atlas through that mapping. Enemy combatants horizontally flip the same faction-neutral frame instead of owning duplicate art.
-- The two atlases remain single-pose transparent PNG sheets. During battle, `src/game/combatMotion.ts` classifies every definition into slash, thrust, shoot, cast, crush, or lunge and drives a lightweight localized arm/weapon/effect rig layered over the unchanged portrait. This replaces the former whole-container squash pulse. Merely changing the image extension would not provide joint data; true limb articulation or authored frame animation remains a future asset-production task requiring separated body parts or multiple attack frames.
-- Campaign beasts intentionally retain distinct procedural boss rendering. Thirty-six troops without dedicated frames use data-driven procedural sigils; missing or undiscovered records do not leak their presentation.
+- The five atlases remain single-pose transparent PNG sheets. During battle, `src/game/combatMotion.ts` classifies every definition into slash, thrust, shoot, cast, crush, or lunge and drives a lightweight localized arm/weapon/effect rig layered over the unchanged portrait. This replaces the former whole-container squash pulse. Merely changing the image extension would not provide joint data; true limb articulation or authored frame animation remains a future asset-production task requiring separated body parts or multiple attack frames.
+- Campaign beasts intentionally retain distinct procedural boss rendering. Missing or undiscovered codex records still do not leak their presentation, even though every recruitable troop and hero now has dedicated art.
+- Battlefield fortresses use two original transparent hand-painted PNG cutouts rather than primitive rectangles. The player castle uses blue-gray kingdom stonework and right-facing gates; the enemy castle uses charcoal-burgundy occupied stonework and left-facing gates. `src/data/fortressArt.ts` owns their runtime paths and shared footprint, while generated masters and prompt records live under `public/assets/fortresses`.
 - Pretendard Variable is loaded at runtime from the official Pretendard jsDelivr dynamic-subset stylesheet (`v1.3.9`). It is not installed as a package or bundled into the repository.
 - Cinzel remains the display face for selected English labels and numerals.
 - The interface falls back to Apple SD Gothic Neo and sans-serif if the runtime font cannot load.
@@ -367,6 +386,7 @@ Important paths:
 - `src/game/difficulty.ts`: pure unit-threat and campaign-curve estimator shared by the map's five-tier combat evaluation and the separate balance audit
 - `src/data/units.ts`: canonical faction-neutral troop definitions plus hero and boss definitions
 - `src/data/characterArt.ts`: canonical troop/hero atlas sheet/frame mapping and Phaser frame dimensions
+- `src/data/fortressArt.ts`: canonical player/enemy battlefield-fortress image paths and display footprint
 - `src/data/stages.ts`: campaign waves and stage-level bounded enemy equipment profiles
 - `src/data/castle.ts`: fortress technology definitions, prerequisites, cost, and derived battle stats
 - `src/data/achievements.ts`: achievement definitions and progress evaluation
@@ -374,14 +394,18 @@ Important paths:
 - `src/data/economy.ts`: daily reward and permanent battle-speed license balance
 - `src/data/features.ts`: stage-unlocked facilities and Hero Training Ground package data
 - `src/data/opening.ts`: cinematic scene copy, image paths, order, and timing
+- `src/data/version.ts`: canonical game version and save-schema version
 - `src/game/daily.ts`: browser-local daily claim date rules
+- `src/game/saveSlots.ts`: three-slot local persistence, active-slot routing, summaries, deletion, and one-time legacy migration
+- `src/game/saveCrypto.ts`: password-based portable-save encryption, Base64 envelope encoding, checksum, and authenticated decryption
 - `src/audio/music.ts`: application-level procedural background music engine and scene patterns
 - `src/store/useGameStore.ts`: progression and persistence
 - `docs/BALANCE.md`: canonical implemented numeric balance reference
+- `docs/FUTURE_SYSTEMS.md`: canonical `Planned`/`Partial` backlog and implementation acceptance criteria; entries are not current game behavior
 - `scripts/balance.test.ts`: standalone campaign difficulty audit run by `yarn balance`; intentionally excluded from the normal app test/build path
 - `scripts/unit-efficiency.test.ts`: standalone roster Command-efficiency and deployability audit run by `yarn balance`
 - `scripts/progression-power.test.ts`: focused early-equipment rush stress report that compares stage pressure with the strongest affordable one-branch troop build
-- `scripts/build-expansion-atlas.mjs`: deterministic RGBA atlas builder that preserves source transparency
+- `scripts/build-expansion-atlas.mjs`: deterministic RGBA builder for every non-core character atlas that preserves source transparency and isolates generated grid cells
 - `public/assets/characters/`: generated RGBA sources, optimized runtime atlases, sheet/frame order, and generation prompts
 - `public/assets/opening/`: optimized cinematic WebP backgrounds and their generation record
 
@@ -391,7 +415,7 @@ Repository automation status: **Implemented**. Newly opened or reopened pull req
 
 The battle scene keeps only active combatants in its targeting collection. Deaths are queued during combat iteration and compacted at the frame boundary, so removing a unit cannot skip the next acting unit and long reinforcement battles do not retain every historical casualty. Cleave, pierce, bombardment, hero targeting, and watchtower selection scan the bounded active collection without sorting the full battlefield roster on each attack.
 
-High-frequency strike, projectile, and deployment-flash visuals use fixed-size scene pools and elapsed-time animation instead of creating and destroying Phaser objects for every attack. Unit hit flashes stay on existing combatants, while each combatant creates its localized attack rig and mutable pose once at spawn; strikes only reset a duration field and sample into that pose without allocating a tween, timer, Phaser object, or per-frame result. When all pooled effects are busy, extra cosmetic effects are skipped without affecting combat damage. Web Audio voices disconnect their oscillator and envelope nodes when playback ends. These bounds keep large multi-body battles from turning short-lived effects into periodic CPU and garbage-collection spikes.
+High-frequency strike, projectile, and deployment-flash visuals use fixed-size scene pools and elapsed-time animation instead of creating and destroying Phaser objects for every attack. The projectile pool exposes distinct arrow shaft/head, rotating magic sigil, thrown bomb, and fortress-shell silhouettes; canonical unit presentation selects the style symmetrically for player and enemy attacks. Unit hit flashes stay on existing combatants, while each combatant creates its localized attack rig and mutable pose once at spawn; strikes only reset a duration field and sample into that pose without allocating a tween, timer, Phaser object, or per-frame result. When all pooled effects are busy, extra cosmetic effects are skipped without affecting combat damage. Web Audio voices disconnect their oscillator and envelope nodes when playback ends. These bounds keep large multi-body battles from turning short-lived effects into periodic CPU and garbage-collection spikes.
 
 ## 15. Explicitly out of scope
 
@@ -402,20 +426,37 @@ High-frequency strike, projectile, and deployment-flash visuals use fixed-size s
 
 These require an explicit user request.
 
+Designed but unimplemented systems are tracked separately in `docs/FUTURE_SYSTEMS.md`. In particular, guard units stopping straight pierce, reducing directional area reach behind themselves, and ground-origin magic bypassing that line protection are currently **Planned**, not live combat rules.
+
 ## 16. Verification
 
-Every completed change must pass:
+Every completed code change must pass the normal static, test, and build checks:
 
 ```bash
 yarn lint
 yarn test
-yarn balance
 yarn build
 ```
 
-Browser verification is additionally required when an interactive browser is available.
+Run `yarn balance` when combat, economy, rewards, progression, waves, objectives, or campaign difficulty change. Browser verification is additionally required for affected player-facing flows when an interactive browser is available.
+
+Regression tests follow a minimum-sufficient strategy: protect formulas, combat rules, persistence and security boundaries, data invariants, accessibility-critical interactions, and proven bugs, while avoiding brittle assertions for CSS shape, decorative markup, static copy, or framework behavior. Prefer compact pure-function or table-driven coverage and one representative integration path over duplicated UI cases.
 
 ## 17. Changelog
+
+- 2026-09-18: Added prominent canonical hero portraits and awakening status to Hero Training Ground cards, reduced Victory Tithe from +2 to +1 Command per kill per rank, and raised Mending Stone from +1.5 to +4 fortress HP/s per rank with the live regeneration value exposed in the fortress summary.
+- 2026-09-18: Repriced troop equipment by canonical grade (3-star base 200, 4-star 300, 5-star 400) and split the rank-5 capstone so ordinary, 3-star, and humanoid 4-star formations gain a body while apex large 4-star/5-star creatures stay single-bodied and gain one fixed rank of every equipment stat.
+- 2026-09-18: Replaced every remaining playable troop and hero procedural fallback with thirty-eight dedicated transparent illustrations across regional, elemental, and demon atlases, and expanded `yarn art:atlas` with transparent-gutter detection and deterministic rebuilding for all non-core sheets.
+- 2026-09-18: Added a real player-fortress-relative targeting limit to fortress bombardment, range growth through `공성 계산학`, visible HUD disclosure, and pooled arrow, magic-sigil, bomb, and siege-shell projectile silhouettes shared by both factions.
+- 2026-09-17: Rebuilt elite, legendary, and transcendent troop stature around role-aware high base HP, guaranteed four-digit durability for every 4–5-star troop, strengthened their attack and mastery/equipment growth, removed upper-tier bodies from ordinary repeating reinforcement filler, and revalidated the full campaign and Command-efficiency curves.
+- 2026-09-17: Added visible data-driven enemy-fortress fire to stages 13–30 with three regional damage/range/cadence profiles, pooled projectile presentation, flying-target support, destruction shutdown, and a seventh fortress-fire axis in the shared difficulty estimator.
+- 2026-09-16: Added an intrinsic 1–5-star troop-grade system, surfaced known grades in the armory, codex, and battle cards, reclassified Griffin Rider as 4-star and Minotaur as 3-star, and restricted transcendent rally control to canonical 5-star troops without changing combat stats.
+- 2026-09-16: Implemented the fifth `원정 전술` fortress branch with 1–4-star soldier, hero, and 5-star transcendent rally-command progression; added an R-key/click battlefield flag, battle-local redeployment cooldown, formation holding, hero timing research, and stronger researched mobilization.
+- 2026-09-16: Reorganized the eighteen fortress technologies into four implemented branches—command, growth, defense, and artillery—and made Gold and mastery XP independent tier-2 roots in the shared growth branch without changing their saved IDs or effect values.
+- 2026-09-16: Replaced the battle scene's rectangular fortress primitives with original transparent hand-painted kingdom and Demon Army fortress sprites, retaining project-owned masters and generation records.
+- 2026-09-16: Fixed boss-stomp telegraphs so their warning circle, tween, and delayed event are canceled immediately on boss death, battle completion, or scene shutdown.
+- 2026-09-16: Adopted a minimum-sufficient test policy for future agents: retain unique behavioral and safety regressions, prefer focused pure-function coverage, and use browser verification instead of brittle CSS or decorative-markup assertions.
+- 2026-09-16: Added `docs/FUTURE_SYSTEMS.md` as the canonical planned-system backlog, beginning with faction-neutral tank interception, rear area-range attenuation, and ground-origin magic counterplay.
 
 - 2026-09-12: Created the playable campaign MVP.
 - 2026-09-12: Extended the battlefield from 1200 × 600 to 1600 × 720 to increase the real distance between fortresses.
@@ -500,3 +541,6 @@ Browser verification is additionally required when an interactive browser is ava
 - 2026-09-16: Expanded the hero roster to five with healer Mirena and commander Bran, added level-10/20/30 stat auras for every hero, converted the shared Priest into a symmetric battlefield healer, and included healing pressure in the offline difficulty model.
 - 2026-09-16: Added a least-privilege GitHub Actions workflow that automatically assigns newly opened or reopened pull requests to their authors without checking out pull-request code.
 - 2026-09-16: Added versioned portable JSON save export, consolidated import/export into the four-action title screen's Save Management dialog, and replaced browser confirmations with a responsive keyboard-accessible in-game modal.
+- 2026-09-16: Replaced separate Continue/New Game/Save Management actions with three independent campaign slots, one-time migration of the legacy single save into slot 1, per-slot Continue/Export/Delete, and target-slot import.
+- 2026-09-16: Added password-based AES-256-GCM portable-save encryption with PBKDF2-SHA-256, unique salt/IV, Base64 binary fields, an explicit SHA-256 checksum, game/save-schema versions, bounded import work, and backward-compatible plaintext imports.
+- 2026-09-16: Replaced generic diamond campaign markers with compact enemy-fortress silhouettes and larger red boss-siege fortresses while preserving separate beast-rift nodes.

@@ -94,6 +94,14 @@ describe('campaign rewards', () => {
     );
   });
 
+  it('introduces bounded enemy-fortress fire from the third region onward', () => {
+    expect(stages.slice(0, 12).every((stage) => stage.enemyFortressAttack === undefined)).toBe(true);
+    expect(stages[12].enemyFortressAttack).toEqual({ damage: 36, range: 260, intervalMs: 2_800 });
+    expect(stages[18].enemyFortressAttack).toEqual({ damage: 52, range: 290, intervalMs: 2_400 });
+    expect(stages[24].enemyFortressAttack).toEqual({ damage: 72, range: 320, intervalMs: 2_100 });
+    expect(challengeStages.every((stage) => stage.enemyFortressAttack === undefined)).toBe(true);
+  });
+
   it('builds every army from the shared troop definitions', () => {
     for (const wave of stages.flatMap((stage) => stage.waves)) {
       expect(troopDefinitions[wave.unitId]).toBeDefined();
@@ -124,6 +132,13 @@ describe('campaign rewards', () => {
       expect(Number.isInteger(unit.maxActivePerSide)).toBe(true);
       expect(unit.maxActivePerSide).toBeGreaterThanOrEqual(2);
     }
+  });
+
+  it('gives every legendary and transcendent troop a four-digit base-health identity', () => {
+    const upperTier = allTroopOrder.map((id) => troopDefinitions[id]).filter((unit) => unit.grade >= 4);
+    expect(upperTier.length).toBeGreaterThan(0);
+    expect(upperTier.every((unit) => unit.maxHp >= 1_000)).toBe(true);
+    expect(troopDefinitions.ifrit.maxHp).toBe(2_200);
   });
 
   it('gives every shared troop an acquisition or encounter path', () => {

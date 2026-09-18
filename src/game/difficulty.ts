@@ -8,6 +8,7 @@ export interface DifficultyBreakdown {
   label: string;
   total: number;
   objective: number;
+  fortressFire: number;
   battlefield: number;
   scriptedArmy: number;
   reinforcement: number;
@@ -61,6 +62,11 @@ export function analyzeStageDifficulty(stage: StageDefinition): DifficultyBreakd
   // including boss sieges, so it carries enough weight to represent the
   // sustained damage window rather than behaving like a minor bonus target.
   const objective = stage.enemyCastleHp / 5;
+  const fortressFire = stage.enemyFortressAttack
+    ? stage.enemyFortressAttack.damage / (stage.enemyFortressAttack.intervalMs / 1_000)
+      * (stage.enemyFortressAttack.range / 250)
+      * 18
+    : 0;
   const battlefield = Math.max(0, stage.fortressDistance - MIN_FORTRESS_DISTANCE) / 2;
   const scriptedArmyMass = stage.waves.reduce((total, wave) => {
     const timingPressure = Math.max(0.72, 1.08 - wave.timeMs / 120_000);
@@ -114,8 +120,9 @@ export function analyzeStageDifficulty(stage: StageDefinition): DifficultyBreakd
   return {
     stageId: stage.id,
     label: stage.name,
-    total: round(objective + battlefield + scriptedArmy + reinforcement + elite + boss),
+    total: round(objective + fortressFire + battlefield + scriptedArmy + reinforcement + elite + boss),
     objective: round(objective),
+    fortressFire: round(fortressFire),
     battlefield: round(battlefield),
     scriptedArmy: round(scriptedArmy),
     reinforcement: round(reinforcement),

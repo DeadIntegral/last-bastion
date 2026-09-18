@@ -1,6 +1,7 @@
 import type { UnitDefinition } from '../types/game';
 
 export type AttackMotionStyle = 'slash' | 'thrust' | 'shoot' | 'cast' | 'crush' | 'lunge';
+export type ProjectileVisualStyle = 'arrow' | 'magic' | 'bomb' | 'siege';
 
 export interface AttackMotionPose {
   shoulderAngle: number;
@@ -36,6 +37,13 @@ export function attackMotionDurationMs(style: AttackMotionStyle): number {
     case 'lunge': return 190;
     default: return 210;
   }
+}
+
+/** Resolve a pooled projectile silhouette from canonical presentation tags and icons. */
+export function projectileVisualStyle(definition: UnitDefinition): ProjectileVisualStyle {
+  if (definition.icon === '➶' || definition.icon === '➹') return 'arrow';
+  if (definition.id === 'goblinBomber') return 'bomb';
+  return 'magic';
 }
 
 export function createAttackMotionPose(): AttackMotionPose {

@@ -11,12 +11,14 @@ export type EnemyId = UnitId;
 export type CodexEnemyId = EnemyId | 'boss';
 export type EnemyFaction = 'betrayers' | 'goblins' | 'orcs' | 'monsters' | 'demons' | 'spirits' | 'mixed';
 export type UnitFamily = 'kingdom' | 'betrayer' | 'goblin' | 'orc' | 'ogre' | 'beast' | 'spirit' | 'demon';
+export type UnitGrade = 1 | 2 | 3 | 4 | 5;
 export type HeroId = 'warden' | 'pyromancer' | 'huntress' | 'saint' | 'marshal';
 export type FortressTier = 1 | 2 | 3;
 export type CastleTechId =
   | 'war_coffers' | 'logistics' | 'command_vault' | 'drill_yard' | 'supply_standardization' | 'spoils_accounting' | 'field_manuals' | 'war_tithe'
   | 'fortified_walls' | 'stone_plating' | 'watchtower' | 'battlements' | 'mending_stone'
-  | 'black_powder' | 'rapid_reload' | 'wide_blast' | 'giantbreaker_shells' | 'siege_calculus';
+  | 'black_powder' | 'rapid_reload' | 'wide_blast' | 'giantbreaker_shells' | 'siege_calculus'
+  | 'rally_orders' | 'heroic_orders' | 'mobilization_drill' | 'field_recovery' | 'transcendent_orders';
 export type EquipmentSlot = 'weapon' | 'armor' | 'boots';
 export type EquipmentLevels = Record<EquipmentSlot, number>;
 export interface EquipmentGrowth {
@@ -62,7 +64,10 @@ export interface UnitDefinition {
   maxActivePerSide?: number;
   healingPower?: number;
   healingRange?: number;
+  grade?: UnitGrade;
 }
+
+export type TroopDefinition = UnitDefinition & { id: UnitId; grade: UnitGrade };
 
 export interface HeroDefinition extends UnitDefinition {
   id: HeroId;
@@ -90,6 +95,7 @@ export interface StageDefinition {
   subtitle: string;
   reward: number;
   enemyCastleHp: number;
+  enemyFortressAttack?: EnemyFortressAttack;
   fortressDistance: number;
   enemyUpgrades: EnemyUpgradeProfile;
   waves: WaveEntry[];
@@ -104,6 +110,12 @@ export interface StageDefinition {
   requiredCampaignStage?: number;
   bossModifiers?: BossStageModifiers;
   firstClearReward: FirstClearReward;
+}
+
+export interface EnemyFortressAttack {
+  damage: number;
+  range: number;
+  intervalMs: number;
 }
 
 export interface TerrainEffect {
@@ -170,6 +182,13 @@ export interface BattleHudState {
   castleSkillMaxCooldownMs: number;
   mobilizationUses: number;
   mobilizationMaxUses: number;
+  rallyUnlocked: boolean;
+  rallyHeroControl: boolean;
+  rallyTranscendentControl: boolean;
+  rallyTargeting: boolean;
+  rallyTargetActive: boolean;
+  rallyCooldownMs: number;
+  rallyCooldownMaxMs: number;
   spawnCooldowns: Partial<Record<UnitId, number>>;
   unitCosts: Partial<Record<UnitId, number>>;
   activeUnitCounts: Partial<Record<UnitId, number>>;
@@ -227,6 +246,8 @@ export interface CodexEntry {
 
 export type AchievementMetric = keyof PlayerStats;
 
+export type CastleTechBranch = 'command' | 'growth' | 'defense' | 'artillery' | 'expedition';
+
 export interface AchievementDefinition {
   id: string;
   name: string;
@@ -241,7 +262,7 @@ export interface AchievementDefinition {
 
 export interface CastleTechDefinition {
   id: CastleTechId;
-  branch: 'economy' | 'defense' | 'artillery';
+  branch: CastleTechBranch;
   name: string;
   description: string;
   icon: string;
@@ -277,7 +298,17 @@ export interface CastleBattleStats {
   towerIntervalMs: number;
   bombardDamage: number;
   bombardRadius: number;
+  bombardRange: number;
   bombardCooldownMs: number;
   bombardBossBonus: number;
   bombardCastleDamage: number;
+  heroSkillCooldownMultiplier: number;
+  heroRespawnMultiplier: number;
+  mobilizationMaxCommandBonus: number;
+  mobilizationCommandRegenBonus: number;
+  rallyUnlocked: boolean;
+  rallyHeroControl: boolean;
+  rallyTranscendentControl: boolean;
+  rallyCooldownMs: number;
+  rallyMoveSpeedMultiplier: number;
 }

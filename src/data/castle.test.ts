@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { canUpgradeCastleTech, castleBattleStats, castleTechChildren, castleTechCost, castleTechDefinitions, castleTechOrder, castleTechPrerequisiteStatus, castleTechRoots, emptyCastleTech, fortressTierDefinitions, minimumFortressTierForResearch, soldierCommandCost, totalCastleResearch } from './castle';
+import { canUpgradeCastleTech, castleBattleStats, castleTechChildren, castleTechCost, castleTechDefinitions, castleTechOrder, castleTechPrerequisiteStatus, castleTechRoots, emptyCastleTech, fortressResearchTuning, fortressTierDefinitions, minimumFortressTierForResearch, soldierCommandCost, totalCastleResearch } from './castle';
 
 describe('castle technology tree', () => {
-  it('applies economy, defense, and artillery levels to battle stats', () => {
+  it('applies all five fortress branches to battle stats', () => {
     const levels = emptyCastleTech();
     levels.war_coffers = 2;
     levels.logistics = 1;
@@ -19,6 +19,11 @@ describe('castle technology tree', () => {
     levels.mending_stone = 4;
     levels.giantbreaker_shells = 2;
     levels.siege_calculus = 3;
+    levels.rally_orders = 3;
+    levels.heroic_orders = 2;
+    levels.mobilization_drill = 2;
+    levels.field_recovery = 1;
+    levels.transcendent_orders = 1;
     const stats = castleBattleStats(levels);
     expect(stats.startingCommand).toBe(120);
     expect(stats.commandRegen).toBe(12.5);
@@ -26,15 +31,36 @@ describe('castle technology tree', () => {
     expect(stats.maxHp).toBe(2550);
     expect(stats.damageReduction).toBe(6);
     expect(stats.bombardDamage).toBe(220);
+    expect(stats.bombardRange).toBe(1240);
     expect(stats.summonCooldownMultiplier).toBe(0.9);
     expect(stats.summonCostMultiplier).toBe(0.94);
-    expect(stats.commandPerKill).toBe(12);
+    expect(stats.commandPerKill).toBe(9);
     expect(stats.battleGoldMultiplier).toBe(1.1);
     expect(stats.masteryXpMultiplier).toBe(1.15);
     expect(stats.towerRange).toBe(400);
-    expect(stats.castleRegenPerSecond).toBe(6);
+    expect(stats.castleRegenPerSecond).toBe(16);
     expect(stats.bombardBossBonus).toBe(140);
     expect(stats.bombardCastleDamage).toBe(180);
+    expect(stats.rallyUnlocked).toBe(true);
+    expect(stats.rallyHeroControl).toBe(true);
+    expect(stats.rallyTranscendentControl).toBe(true);
+    expect(stats.rallyCooldownMs).toBe(14_000);
+    expect(stats.rallyMoveSpeedMultiplier).toBe(1.05);
+    expect(stats.heroSkillCooldownMultiplier).toBe(0.94);
+    expect(stats.heroRespawnMultiplier).toBe(0.97);
+    expect(stats.mobilizationMaxCommandBonus).toBe(35);
+    expect(stats.mobilizationCommandRegenBonus).toBe(2.1);
+  });
+
+  it('keeps the tier-three economy and sustain capstones within their intended bounds', () => {
+    const levels = emptyCastleTech();
+    levels.war_tithe = 5;
+    levels.mending_stone = 5;
+    const stats = castleBattleStats(levels);
+    expect(fortressResearchTuning.warTitheCommandPerRank).toBe(1);
+    expect(stats.commandPerKill).toBe(11);
+    expect(fortressResearchTuning.mendingStoneRegenPerRank).toBe(4);
+    expect(stats.castleRegenPerSecond).toBe(20);
   });
 
   it('enforces technology prerequisites', () => {
@@ -81,8 +107,8 @@ describe('castle technology tree', () => {
     expect(fortressTierDefinitions[3].promotionCost).toBe(2_500);
   });
 
-  it('provides eighteen five-rank nodes gated by fortress tier', () => {
-    expect(castleTechOrder).toHaveLength(18);
+  it('provides twenty-three five-rank nodes gated by fortress tier', () => {
+    expect(castleTechOrder).toHaveLength(23);
     expect(castleTechOrder.every((id) => castleTechDefinitions[id].maxLevel === 5)).toBe(true);
     const levels = emptyCastleTech();
     levels.command_vault = 2;
@@ -91,13 +117,17 @@ describe('castle technology tree', () => {
   });
 
   it('derives visible tree roots and branches from prerequisite data', () => {
-    expect(castleTechRoots('economy')).toEqual(['war_coffers']);
+    expect(castleTechRoots('command')).toEqual(['war_coffers']);
+    expect(castleTechRoots('growth')).toEqual(['spoils_accounting', 'field_manuals']);
     expect(castleTechRoots('defense')).toEqual(['fortified_walls']);
     expect(castleTechRoots('artillery')).toEqual(['black_powder']);
+    expect(castleTechRoots('expedition')).toEqual(['rally_orders']);
     expect(castleTechChildren('command_vault')).toEqual(['drill_yard', 'supply_standardization']);
-    expect(castleTechChildren('supply_standardization')).toEqual(['spoils_accounting']);
-    expect(castleTechChildren('spoils_accounting')).toEqual(['field_manuals']);
+    expect(castleTechChildren('supply_standardization')).toEqual([]);
+    expect(castleTechChildren('spoils_accounting')).toEqual([]);
     expect(castleTechChildren('black_powder')).toEqual(['rapid_reload', 'wide_blast']);
+    expect(castleTechChildren('rally_orders')).toEqual(['heroic_orders', 'mobilization_drill']);
+    expect(castleTechChildren('heroic_orders')).toEqual(['field_recovery', 'transcendent_orders']);
   });
 
   it('reduces soldier Command costs with ceiling rounding and a minimum floor', () => {

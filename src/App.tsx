@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useId, useRef, useState, type ChangeEvent, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
-import { allTroopOrder, bossDefinition, heroDefinitions, heroOrder, troopDefinitions, unitFamilyById, unitFamilyLabels } from './data/units';
+import { allTroopOrder, bossDefinition, heroDefinitions, heroOrder, troopDefinitions, unitFamilyById, unitFamilyLabels, unitGradeLabels, unitGradeStars } from './data/units';
 import { bossCodex, CODEX_TOTAL, codexEntryCount, heroCodex, troopCodex } from './data/codex';
 import { achievementById, achievementGroups, achievementProgress, achievements, featuredAchievement } from './data/achievements';
 import { canUpgradeCastleTech, castleBattleStats, castleTechChildren, castleTechCost, castleTechDefinitions, castleTechPrerequisiteStatus, castleTechRoots, fortressTierDefinitions, totalCastleResearch } from './data/castle';
@@ -8,10 +8,13 @@ import { gameFeatures, heroTrainingPackages, isGameFeatureUnlocked } from './dat
 import { OPENING_SCENE_DURATION_MS, openingScenes } from './data/opening';
 import { HERO_AWAKENING_LEVELS, HERO_MASTERY_MAX_LEVEL, heroAwakeningAuras, heroMasteryGrowth, heroSkillPower, soldierMasteryGrowth } from './data/mastery';
 import { challengeStages, enemyFactionLabels, getStage, stages } from './data/stages';
+import { GAME_VERSION_LABEL } from './data/version';
 import { localDateKey } from './game/daily';
 import { analyzeCampaignDifficulty, stageDifficultyPresentation } from './game/difficulty';
+import { decryptSave, encryptSave, isEncryptedSave, MAX_SAVE_FILE_BYTES } from './game/saveCrypto';
+import { activeSaveSlot, deleteSaveSlot, readSaveSlot, saveSlotSummaries, saveSlotSummary, setActiveSaveSlot, type SaveSlotId } from './game/saveSlots';
 import { musicEngine, type MusicScene } from './audio/music';
-import { attackPatternLabel, equipmentCost, formatTime, hasEquipmentCapstone, heroAwakeningRank, heroMasteryLevelFromXp, heroRespawnReductionMs, masteryLevelFromXp, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, upgradedStats } from './game/rules';
+import { attackPatternLabel, equipmentCost, formatTime, hasEquipmentCapstone, heroAwakeningRank, heroMasteryLevelFromXp, heroRespawnReductionMs, masteryLevelFromXp, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, upgradedStats, usesStatEquipmentCapstone } from './game/rules';
 import { useGameStore } from './store/useGameStore';
 import { CharacterSprite } from './components/CharacterSprite';
 import type { BattleResult, CastleTechId, EquipmentSlot, FortressTier, HeroId, Screen, UnitDefinition, UnitFamily, UnitId } from './types/game';
@@ -117,14 +120,14 @@ function GameModal({ eyebrow, title, children, actions, onClose, tone = 'default
   );
 }
 
-function downloadSaveFile(serialized: string): void {
+function downloadSaveFile(serialized: string, slotId: SaveSlotId): void {
   const blob = new Blob([serialized], { type: 'application/json;charset=utf-8' });
   const objectUrl = URL.createObjectURL(blob);
   const link = document.createElement('a');
   const now = new Date();
   const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   link.href = objectUrl;
-  link.download = `last-bastion-save-${date}.json`;
+  link.download = `last-bastion-slot-${slotId}-${date}.json`;
   document.body.append(link);
   link.click();
   link.remove();
@@ -145,109 +148,234 @@ function ShellHeader({ title, onBack }: { title: string; onBack: () => void }) {
 
 function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
   const resetProgress = useGameStore((state) => state.resetProgress);
-  const exportSave = useGameStore((state) => state.exportSave);
   const importSave = useGameStore((state) => state.importSave);
-  const unlockedStage = useGameStore((state) => state.unlockedStage);
-  const battles = useGameStore((state) => state.stats.battles);
-  const clearedStages = useGameStore((state) => state.clearedStages);
-  const gold = useGameStore((state) => state.gold);
-  const [activeModal, setActiveModal] = useState<'save-manager' | 'new-game' | 'import-confirm' | 'invalid-save' | null>(null);
+  const [, refreshSlots] = useState(0);
+  const [activeModal, setActiveModal] = useState<'delete-slot' | 'export-password' | 'import-password' | 'import-target' | 'import-confirm' | 'invalid-save' | null>(null);
+  const [selectedSlotId, setSelectedSlotId] = useState<SaveSlotId | null>(null);
   const [pendingImport, setPendingImport] = useState<{ name: string; serialized: string } | null>(null);
-  const [saveNotice, setSaveNotice] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [cryptoError, setCryptoError] = useState('');
+  const [cryptoBusy, setCryptoBusy] = useState(false);
+  const [notice, setNotice] = useState('');
   const importRef = useRef<HTMLInputElement>(null);
-  const hasStoredSave = typeof localStorage !== 'undefined' && localStorage.getItem('last-bastion-profile-v1') !== null;
-  const hasSave = hasStoredSave || unlockedStage > 1 || battles > 0 || clearedStages.length > 0 || gold !== 100;
+  const slots = saveSlotSummaries();
+  const currentSlot = activeSaveSlot();
 
-  const beginNewGame = () => {
-    resetProgress();
+  const closeModal = () => {
+    if (cryptoBusy) return;
     setActiveModal(null);
+    setSelectedSlotId(null);
+    setPassword('');
+    setPasswordConfirm('');
+    setCryptoError('');
+  };
+
+  const startNewGame = (slotId: SaveSlotId) => {
+    setActiveSaveSlot(slotId);
+    resetProgress();
+    refreshSlots((value) => value + 1);
     onNavigate('opening');
   };
 
-  const startNewGame = () => {
-    if (hasSave) setActiveModal('new-game');
-    else beginNewGame();
+  const continueGame = (slotId: SaveSlotId) => {
+    const serialized = readSaveSlot(slotId);
+    if (!serialized) return;
+    const previousSlot = activeSaveSlot();
+    setActiveSaveSlot(slotId);
+    if (importSave(serialized)) onNavigate('stages');
+    else {
+      setActiveSaveSlot(previousSlot);
+      setSelectedSlotId(slotId);
+      setActiveModal('invalid-save');
+    }
   };
 
-  const applyImport = (serialized: string) => {
-    const success = importSave(serialized);
-    setPendingImport(null);
-    if (success) {
+  const requestDelete = (slotId: SaveSlotId) => {
+    setSelectedSlotId(slotId);
+    setActiveModal('delete-slot');
+  };
+
+  const confirmDelete = () => {
+    if (selectedSlotId === null) return;
+    const deletingActiveSlot = activeSaveSlot() === selectedSlotId;
+    deleteSaveSlot(selectedSlotId);
+    if (deletingActiveSlot) resetProgress();
+    refreshSlots((value) => value + 1);
+    closeModal();
+  };
+
+  const requestExport = (slotId: SaveSlotId) => {
+    setSelectedSlotId(slotId);
+    setPassword('');
+    setPasswordConfirm('');
+    setCryptoError('');
+    setActiveModal('export-password');
+  };
+
+  const exportEncryptedSave = async () => {
+    if (selectedSlotId === null) return;
+    if (password.length < 8) {
+      setCryptoError('비밀번호는 8자 이상 입력해 주세요.');
+      return;
+    }
+    if (password !== passwordConfirm) {
+      setCryptoError('비밀번호 확인이 일치하지 않습니다.');
+      return;
+    }
+    const serialized = readSaveSlot(selectedSlotId);
+    if (!serialized) return;
+    setCryptoBusy(true);
+    setCryptoError('');
+    try {
+      downloadSaveFile(await encryptSave(serialized, password), selectedSlotId);
+      setNotice(`슬롯 ${selectedSlotId}을 암호화된 저장 파일로 내보냈습니다.`);
+      window.setTimeout(() => setNotice(''), 2_400);
       setActiveModal(null);
-      onNavigate('stages');
-    } else setActiveModal('invalid-save');
+      setSelectedSlotId(null);
+      setPassword('');
+      setPasswordConfirm('');
+    } catch {
+      setCryptoError('암호화 저장 파일을 만들지 못했습니다. 다시 시도해 주세요.');
+    } finally {
+      setCryptoBusy(false);
+    }
   };
 
   const loadFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
+    if (file.size > MAX_SAVE_FILE_BYTES) {
+      setActiveModal('invalid-save');
+      return;
+    }
     try {
       const serialized = await file.text();
-      if (hasSave) {
-        setPendingImport({ name: file.name, serialized });
-        setActiveModal('import-confirm');
-      } else applyImport(serialized);
+      setPendingImport({ name: file.name, serialized });
+      setPassword('');
+      setCryptoError('');
+      setActiveModal(isEncryptedSave(serialized) ? 'import-password' : 'import-target');
     } catch {
       setActiveModal('invalid-save');
     }
   };
 
-  const downloadSave = () => {
+  const decryptImport = async () => {
+    if (!pendingImport || !password) {
+      setCryptoError('저장 파일의 비밀번호를 입력해 주세요.');
+      return;
+    }
+    setCryptoBusy(true);
+    setCryptoError('');
     try {
-      downloadSaveFile(exportSave());
-      setSaveNotice('현재 진행도를 JSON 파일로 내보냈습니다.');
+      const serialized = await decryptSave(pendingImport.serialized, password);
+      setPendingImport({ ...pendingImport, serialized });
+      setPassword('');
+      setActiveModal('import-target');
     } catch {
-      setSaveNotice('저장 파일을 만들지 못했습니다. 브라우저의 다운로드 권한을 확인해 주세요.');
+      setCryptoError('비밀번호가 틀렸거나 파일의 체크섬·인증 정보가 손상되었습니다.');
+    } finally {
+      setCryptoBusy(false);
     }
   };
 
+  const chooseImportTarget = (slotId: SaveSlotId) => {
+    setSelectedSlotId(slotId);
+    setActiveModal(slots.find((slot) => slot.id === slotId)?.occupied ? 'import-confirm' : 'import-target');
+    if (!slots.find((slot) => slot.id === slotId)?.occupied) applyImport(slotId);
+  };
+
+  const applyImport = (slotId: SaveSlotId) => {
+    if (!pendingImport) return;
+    const previousSlot = activeSaveSlot();
+    setActiveSaveSlot(slotId);
+    if (importSave(pendingImport.serialized)) {
+      setPendingImport(null);
+      setActiveModal(null);
+      refreshSlots((value) => value + 1);
+      onNavigate('stages');
+    } else {
+      setActiveSaveSlot(previousSlot);
+      setActiveModal('invalid-save');
+    }
+  };
+
+  const importPreview = pendingImport ? saveSlotSummary(1, pendingImport.serialized) : null;
+
   return (
-    <main className="menu-screen">
+    <main className="menu-screen menu-screen-slots">
       <div className="menu-clouds" />
       <div className="menu-castle" aria-hidden="true">
         <span className="tower left" /><span className="keep" /><span className="tower right" />
       </div>
-      <nav className="menu-top">
-        <span className="version">PRE-ALPHA 0.1</span>
-      </nav>
+      <nav className="menu-top"><span className="version">{GAME_VERSION_LABEL}</span></nav>
       <section className="title-lockup">
         <span className="title-crest">♜</span>
         <p>THE LAST LINE STANDS</p>
-        <h1>LAST<br /><em>BASTION</em></h1>
-        <div className="title-rule"><span>✦</span></div>
+        <h1>LAST <em>BASTION</em></h1>
         <p className="korean-title">최후의 성채</p>
       </section>
-      <section className="title-menu-actions">
-        {hasSave ? <>
-          <button className="title-menu-primary" onClick={() => onNavigate('stages')}><span>계속하기</span><small>CONTINUE · {Math.min(unlockedStage, stages.length)}장</small></button>
-          <button onClick={startNewGame}><span>새 게임</span><small>NEW GAME</small></button>
-        </> : <>
-          <button className="title-menu-primary" onClick={startNewGame}><span>새 게임</span><small>NEW GAME</small></button>
-          <button disabled><span>불러오기</span><small>저장 기록 없음</small></button>
-        </>}
-        <button onClick={() => { setSaveNotice(''); setActiveModal('save-manager'); }}><span>저장 관리</span><small>IMPORT · EXPORT</small></button>
-        <button onClick={() => onNavigate('credits')}><span>크레딧</span><small>CREDITS</small></button>
+      <section className="save-slot-menu" aria-label="저장 슬롯 선택">
+        <header><span className="eyebrow">CAMPAIGN ARCHIVE</span><strong>원정 기록을 선택하세요</strong></header>
+        <div className="save-slot-grid">
+          {slots.map((slot) => slot.occupied ? (
+            <article className={`save-slot-card occupied ${currentSlot === slot.id ? 'active' : ''} ${slot.corrupted ? 'corrupted' : ''}`} key={slot.id}>
+              <header><span>SLOT {slot.id}</span>{currentSlot === slot.id && <i>최근 사용</i>}</header>
+              {slot.corrupted ? <><h2>손상된 기록</h2><p>저장 데이터를 읽을 수 없습니다.</p></> : <>
+                <h2>{Math.min(slot.unlockedStage, stages.length)}장 원정</h2>
+                <dl><div><dt>클리어</dt><dd>{slot.clearedStages}/{stages.length}</dd></div><div><dt>전투</dt><dd>{slot.battles.toLocaleString()}회</dd></div><div><dt>금화</dt><dd>● {slot.gold.toLocaleString()}</dd></div></dl>
+                <small>{slot.updatedAt ? new Date(slot.updatedAt).toLocaleString('ko-KR') : '기존 자동 저장에서 이전됨'} · {slot.gameVersion ? `v${slot.gameVersion}` : 'LEGACY'}</small>
+              </>}
+              <div className="save-slot-actions">
+                <button className="continue" disabled={slot.corrupted} onClick={() => continueGame(slot.id)}>이어하기</button>
+                <button disabled={slot.corrupted} onClick={() => requestExport(slot.id)}>내보내기</button>
+                <button className="delete" onClick={() => requestDelete(slot.id)}>삭제</button>
+              </div>
+            </article>
+          ) : (
+            <button className="save-slot-card empty" onClick={() => startNewGame(slot.id)} key={slot.id}>
+              <span>SLOT {slot.id}</span><i>＋</i><strong>새 게임</strong><small>비어 있는 원정 기록</small>
+            </button>
+          ))}
+        </div>
+        <div className="save-slot-footer">
+          <button onClick={() => importRef.current?.click()}><span>↓</span> 암호화 저장 가져오기</button>
+          <button onClick={() => onNavigate('credits')}>크레딧</button>
+        </div>
         <input ref={importRef} type="file" accept="application/json,.json" hidden onChange={loadFile} />
       </section>
-      <p className="menu-tip">“대륙이 마왕군에 완전히 무너지기 전, 최후의 성채에서 반격하라.”</p>
-      {activeModal === 'save-manager' && <GameModal eyebrow="SAVE ARCHIVE" title="저장 기록 관리" onClose={() => setActiveModal(null)} actions={<button className="modal-button secondary" onClick={() => setActiveModal(null)}>닫기</button>}>
-        <p>진행도는 이 브라우저에 자동 저장됩니다. JSON 파일로 보관하면 다른 브라우저나 기기에서도 같은 원정을 이어갈 수 있습니다.</p>
-        <div className="save-status-card"><span>{hasSave ? '자동 저장 발견' : '진행 기록 없음'}</span><strong>{hasSave ? `최고 ${Math.min(unlockedStage, stages.length)}장 · 전투 ${battles.toLocaleString()}회` : '새 게임을 시작하거나 저장 파일을 가져오세요.'}</strong></div>
-        <div className="save-transfer-actions">
-          <button onClick={() => importRef.current?.click()}><i>↓</i><span><b>저장 파일 가져오기</b><small>Last Bastion JSON 불러오기</small></span></button>
-          <button disabled={!hasSave} onClick={downloadSave}><i>↑</i><span><b>현재 진행 내보내기</b><small>{hasSave ? '휴대용 JSON으로 다운로드' : '진행 기록이 필요합니다'}</small></span></button>
-        </div>
-        {saveNotice && <p className="modal-status" role="status">{saveNotice}</p>}
+      <p className="menu-tip">“세 개의 원정 기록은 각각 독립적으로 자동 저장됩니다.”</p>
+      {notice && <div className="toast" role="status">{notice}</div>}
+
+      {activeModal === 'delete-slot' && selectedSlotId !== null && <GameModal eyebrow="DELETE CAMPAIGN" title={`슬롯 ${selectedSlotId}을 삭제할까요?`} tone="danger" onClose={closeModal} actions={<><button className="modal-button secondary" data-autofocus onClick={closeModal}>취소</button><button className="modal-button danger" onClick={confirmDelete}>원정 기록 삭제</button></>}>
+        <p>이 슬롯의 진행도는 브라우저에서 완전히 삭제됩니다. 필요하다면 먼저 암호화 저장 파일로 내보내세요.</p>
       </GameModal>}
-      {activeModal === 'new-game' && <GameModal eyebrow="NEW CAMPAIGN" title="새 원정을 시작할까요?" tone="danger" onClose={() => setActiveModal(null)} actions={<><button className="modal-button secondary" data-autofocus onClick={() => setActiveModal(null)}>취소</button><button className="modal-button danger" onClick={beginNewGame}>기록 초기화 후 시작</button></>}>
-        <p>현재 브라우저의 자동 저장 기록이 초기화됩니다. 보관하려면 먼저 저장 관리에서 JSON 파일을 내보내세요.</p>
+
+      {activeModal === 'export-password' && selectedSlotId !== null && <GameModal eyebrow="ENCRYPT SAVE" title={`슬롯 ${selectedSlotId} 암호화 내보내기`} onClose={closeModal} actions={<><button className="modal-button secondary" onClick={closeModal} disabled={cryptoBusy}>취소</button><button className="modal-button primary" onClick={() => void exportEncryptedSave()} disabled={cryptoBusy}>{cryptoBusy ? '암호화 중…' : '암호화하여 다운로드'}</button></>}>
+        <p>AES-256-GCM으로 저장 파일을 암호화합니다. 비밀번호는 저장되지 않으며 잊어버리면 복구할 수 없습니다.</p>
+        <div className="save-password-fields"><label>비밀번호<input data-autofocus type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={8} /></label><label>비밀번호 확인<input type="password" autoComplete="new-password" value={passwordConfirm} onChange={(event) => setPasswordConfirm(event.target.value)} minLength={8} /></label></div>
+        <div className="crypto-spec"><span>AES-GCM 256</span><span>PBKDF2 · SHA-256</span><span>210,000회</span><span>CHECKSUM</span></div>
+        {cryptoError && <p className="modal-error" role="alert">{cryptoError}</p>}
       </GameModal>}
-      {activeModal === 'import-confirm' && pendingImport && <GameModal eyebrow="IMPORT SAVE" title="저장 기록을 교체할까요?" tone="danger" onClose={() => { setPendingImport(null); setActiveModal('save-manager'); }} actions={<><button className="modal-button secondary" data-autofocus onClick={() => { setPendingImport(null); setActiveModal('save-manager'); }}>취소</button><button className="modal-button danger" onClick={() => applyImport(pendingImport.serialized)}>가져와서 계속하기</button></>}>
-        <p><strong>{pendingImport.name}</strong>의 진행도로 현재 자동 저장을 교체합니다. 필요하다면 기존 진행도를 먼저 내보내세요.</p>
+
+      {activeModal === 'import-password' && pendingImport && <GameModal eyebrow="DECRYPT SAVE" title="암호화 저장 불러오기" onClose={closeModal} actions={<><button className="modal-button secondary" onClick={closeModal} disabled={cryptoBusy}>취소</button><button className="modal-button primary" onClick={() => void decryptImport()} disabled={cryptoBusy}>{cryptoBusy ? '검증 중…' : '복호화하고 검증'}</button></>}>
+        <p><strong>{pendingImport.name}</strong>의 비밀번호를 입력하세요. 체크섬과 AES-GCM 인증을 모두 통과해야 불러올 수 있습니다.</p>
+        <div className="save-password-fields"><label>비밀번호<input data-autofocus type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} /></label></div>
+        {cryptoError && <p className="modal-error" role="alert">{cryptoError}</p>}
       </GameModal>}
-      {activeModal === 'invalid-save' && <GameModal eyebrow="IMPORT FAILED" title="저장 파일을 읽을 수 없습니다" onClose={() => setActiveModal('save-manager')} actions={<button className="modal-button primary" data-autofocus onClick={() => setActiveModal('save-manager')}>저장 관리로 돌아가기</button>}>
-        <p>올바른 Last Bastion 저장 JSON인지 확인해 주세요. 관련 없는 데이터와 손상된 파일은 안전을 위해 적용하지 않습니다.</p>
+
+      {activeModal === 'import-target' && pendingImport && <GameModal eyebrow="IMPORT CAMPAIGN" title="가져올 슬롯 선택" onClose={closeModal} actions={<button className="modal-button secondary" onClick={closeModal}>취소</button>}>
+        <p><strong>{pendingImport.name}</strong>{importPreview && !importPreview.corrupted ? ` · ${importPreview.unlockedStage}장 · 전투 ${importPreview.battles}회` : ''}</p>
+        <div className="import-slot-list">{slots.map((slot) => <button data-autofocus={slot.id === 1 ? true : undefined} className={slot.occupied ? 'occupied' : ''} onClick={() => chooseImportTarget(slot.id)} key={slot.id}><span>SLOT {slot.id}</span><strong>{slot.occupied ? slot.corrupted ? '손상된 기록 덮어쓰기' : `${slot.unlockedStage}장 기록 교체` : '빈 슬롯에 가져오기'}</strong></button>)}</div>
+      </GameModal>}
+
+      {activeModal === 'import-confirm' && pendingImport && selectedSlotId !== null && <GameModal eyebrow="OVERWRITE SLOT" title={`슬롯 ${selectedSlotId}을 교체할까요?`} tone="danger" onClose={() => setActiveModal('import-target')} actions={<><button className="modal-button secondary" data-autofocus onClick={() => setActiveModal('import-target')}>취소</button><button className="modal-button danger" onClick={() => applyImport(selectedSlotId)}>덮어쓰고 이어하기</button></>}>
+        <p>현재 슬롯의 원정 기록이 가져온 저장으로 교체됩니다. 기존 기록은 내보내지 않았다면 복구할 수 없습니다.</p>
+      </GameModal>}
+
+      {activeModal === 'invalid-save' && <GameModal eyebrow="IMPORT FAILED" title="저장 파일을 읽을 수 없습니다" onClose={closeModal} actions={<button className="modal-button primary" data-autofocus onClick={closeModal}>확인</button>}>
+        <p>파일 형식, 비밀번호, SHA-256 체크섬 또는 AES-GCM 인증 정보를 확인해 주세요. 기존 평문 저장은 가져오기 호환만 지원합니다.</p>
       </GameModal>}
     </main>
   );
@@ -357,7 +485,7 @@ function MapCommandCenter({ onNavigate }: { onNavigate: (screen: Screen) => void
       <header><span>EXPEDITION</span><strong>왕국 운영</strong></header>
       <button onClick={() => onNavigate('armory')}><i>♢</i><span>병영과 강화<small>ARMORY · {allTroopOrder.length}</small></span></button>
       <button onClick={() => onNavigate('heroes')}><i>{heroDefinitions[selectedHero].icon}</i><span>영웅의 전당<small>{heroDefinitions[selectedHero].name}</small></span></button>
-      <button onClick={() => onNavigate('fortress')}><i>♜</i><span>성채 기술<small>3 BRANCHES</small></span></button>
+      <button onClick={() => onNavigate('fortress')}><i>♜</i><span>성채 기술<small>5 BRANCHES</small></span></button>
       <button className={trainingUnlocked ? '' : 'feature-locked'} disabled={!trainingUnlocked} onClick={() => onNavigate('training')}><i>♛</i><span>영웅 훈련소<small>{trainingUnlocked ? 'GOLD → HERO XP' : `${gameFeatures['hero-training'].unlockStage}장 클리어 시 해금`}</small></span></button>
       <button onClick={() => onNavigate('achievements')}><i>✦</i><span>업적 기록<small>{claimable ? `${claimable} 보상 대기` : `${unlockedAchievements.length}/${achievements.length}`}</small></span></button>
       <button onClick={() => onNavigate('codex')}><i>▤</i><span>전쟁 사전<small>{codexEntries}/{CODEX_TOTAL}</small></span></button>
@@ -539,7 +667,7 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
                 onClick={(event) => selectMapStage(event, stage.id)}
                 aria-label={`${stage.id}장 ${stage.name}${nodeLocked ? ' 잠김' : ''}`}
               >
-                <span className="node-beacon">{nodeLocked ? '◆' : stage.boss ? '◉' : nodeCleared ? '✓' : stage.id}</span>
+                <span className="node-beacon fortress-beacon" aria-hidden="true"><i className="fortress-wall" /><b>{nodeCleared ? '✓' : stage.id}</b></span>
                 <strong>{stage.name}</strong>
                 <small>{stage.boss ? 'BOSS' : `0${stage.id}`}</small>
               </button>
@@ -580,6 +708,7 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
           <div className="stage-context"><span>적 세력 <b>{enemyFactionLabels[selected.enemyFaction]}</b></span><span>지형 <b>{selected.terrain.name}</b></span></div>
           {isChallenge && <div className="challenge-terrain-preview"><small>TERRAIN AMPLIFICATION</small><strong>적 HP ×{selected.terrain.enemyHpMultiplier} · 공격 ×{selected.terrain.enemyAttackMultiplier}</strong><span>{selected.terrain.description}</span></div>}
           <div className="mission-objective"><small>MISSION · 전선 거리 {selected.fortressDistance}</small><strong>{isChallenge ? `${selected.bossName ?? selected.name} 단독 격파` : selected.boss ? '성채 수비대와 마수를 돌파하고 적 성채 파괴' : '적 성채 파괴'}</strong></div>
+          {selected.enemyFortressAttack && <div className="elite-guard-preview"><small>FORTRESS FIRE</small><strong>적 성채 수비 사격</strong><span>사거리 {selected.enemyFortressAttack.range} · 공격 {selected.enemyFortressAttack.damage} · {(selected.enemyFortressAttack.intervalMs / 1000).toFixed(1)}초 간격</span></div>}
           {selected.eliteGuard && <div className="elite-guard-preview"><small>ELITE DEFENDER</small><strong>{selected.eliteGuard.name}</strong><span>적 성채 앞을 지키는 단 한 명의 정예 수비대</span></div>}
           <div className={`first-clear-reward ${cleared ? 'claimed' : ''}`}>
             <span>{selected.firstClearReward.icon}</span>
@@ -666,6 +795,7 @@ function Armory({ onBack }: { onBack: () => void }) {
           const mastery = masteryLevelFromXp(unitMasteryXp[id]);
           const stats = upgradedStats(unit, equipment, mastery.level);
           const equipmentCapstone = hasEquipmentCapstone(equipment);
+          const statEquipmentCapstone = usesStatEquipmentCapstone(unit);
           const closestCapstoneLevel = Math.max(...Object.values(equipment));
           return (
             <article className={`unit-card accent-${id} ${unlocked ? '' : 'unit-card-locked'} ${canRecruit && !unlocked && !tierLocked ? 'unit-card-recruitable' : ''}`} key={id}>
@@ -673,11 +803,12 @@ function Armory({ onBack }: { onBack: () => void }) {
               <div className="unit-card-copy">
                 <span className="eyebrow">{known ? `${unitFamilyLabels[unitFamilyById[id]]} · ${unit.tags.includes('flying') ? 'AIRBORNE' : unit.tags.includes('mounted') ? 'CAVALRY' : unit.tags.includes('ranged') ? 'RANGED' : unit.tags.includes('armored') ? 'VANGUARD' : 'INFANTRY'}` : 'UNKNOWN'}</span>
                 <h3>{known ? unit.name : '미확인 병종'}</h3>
+                {known && <div className={`unit-grade grade-${unit.grade}`} aria-label={`${unit.grade}성 ${unitGradeLabels[unit.grade]} 병종`}><b>{unitGradeStars(unit.grade)}</b><span>{unit.grade}성 · {unitGradeLabels[unit.grade]}</span></div>}
                 {unlocked ? <>
                   <div className="mastery-line"><b>숙련 LV.{mastery.level}</b><span>{mastery.requiredXp ? `${mastery.currentXp}/${mastery.requiredXp} XP` : 'MAX'}</span></div>
                   <div className="mastery-track"><i style={{ width: mastery.requiredXp ? `${mastery.currentXp / mastery.requiredXp * 100}%` : '100%' }} /></div>
                   <div className="mastery-benefit"><b>레벨당 고정 성장</b><span>HP +{soldierMasteryGrowth[id].hp} · 공격 +{soldierMasteryGrowth[id].attack}</span></div>
-                  <div className="unit-deployment-traits"><span>1회 배치 <b>{stats.squadSize}명{equipmentCapstone ? ' (+1)' : ''}</b></span><span>공격 방식 <b>{attackPatternLabel(unit)}</b></span>{stats.healingPower && <span>치유 <b>{stats.healingPower} · 사거리 {stats.healingRange}</b></span>}{unit.maxActivePerSide && <span>전장 제한 <b>진영당 {unit.maxActivePerSide}명</b></span>}</div>
+                  <div className="unit-deployment-traits"><span>1회 배치 <b>{stats.squadSize}명{equipmentCapstone && !statEquipmentCapstone ? ' (+1)' : ''}</b></span><span>공격 방식 <b>{attackPatternLabel(unit)}</b></span>{stats.healingPower && <span>치유 <b>{stats.healingPower} · 사거리 {stats.healingRange}</b></span>}{unit.maxActivePerSide && <span>전장 제한 <b>진영당 {unit.maxActivePerSide}명</b></span>}{unit.grade === 5 && <span>지휘 분류 <b>5성 초월 병종</b></span>}</div>
                   <dl>
                     <div><dt>생명력</dt><dd><GrowthStat current={stats.maxHp} base={unit.maxHp} /></dd></div>
                     <div><dt>공격 / 방어</dt><dd className="growth-pair"><GrowthStat current={stats.attackDamage} base={unit.attackDamage} /><i>/</i><GrowthStat current={stats.defense ?? 0} base={unit.defense ?? 0} /></dd></div>
@@ -686,7 +817,13 @@ function Armory({ onBack }: { onBack: () => void }) {
                   <button className={`formation-button ${equipped ? 'equipped' : ''}`} onClick={() => toggleFormation(id)}>{equipped ? '편성 제외' : '전투 편성'} <span>{equipped ? 'ACTIVE' : `${equippedUnits.length}/4`}</span></button>
                   <div className={`equipment-capstone ${equipmentCapstone ? 'unlocked' : ''}`}>
                     <span>{equipmentCapstone ? '✦' : '◇'}</span>
-                    <div><b>장비 완성 보너스</b><small>{equipmentCapstone ? '활성화 · 1회 배치 인원 +1' : `장비 하나를 5단계까지 강화 · ${closestCapstoneLevel}/5`}</small></div>
+                    <div><b>{statEquipmentCapstone ? '최상위 개체 완성 보너스' : '장비 완성 보너스'}</b><small>{equipmentCapstone
+                      ? statEquipmentCapstone
+                        ? `활성화 · 1명 유지 · HP +${unit.equipmentGrowth.hp} · 공격 +${unit.equipmentGrowth.attack} · 방어 +${unit.equipmentGrowth.defense} · 속도 +${unit.equipmentGrowth.moveSpeed}`
+                        : '활성화 · 1회 배치 인원 +1'
+                      : statEquipmentCapstone
+                        ? `장비 하나를 5단계까지 강화 · 완성 시 1명 유지 · ${closestCapstoneLevel}/5`
+                        : `장비 하나를 5단계까지 강화 · ${closestCapstoneLevel}/5`}</small></div>
                   </div>
                   <div className="equipment-list">
                   {equipmentSlots.map((slot) => {
@@ -840,9 +977,16 @@ function HeroTrainingGround({ onBack }: { onBack: () => void }) {
           const hero = heroDefinitions[id];
           const mastery = heroMasteryLevelFromXp(heroMasteryXp[id]);
           const maxed = mastery.level >= HERO_MASTERY_MAX_LEVEL;
+          const awakeningRank = heroAwakeningRank(mastery.level);
           return (
             <article className={`training-hero-card ${selectedHero === id ? 'selected' : ''}`} key={id}>
-              <div className="training-hero-portrait"><CharacterSprite id={id} /><span>{selectedHero === id ? '출전 영웅' : hero.title}</span></div>
+              <div className="training-hero-portrait" aria-label={`${hero.name} 초상`}>
+                <CharacterSprite id={id} className="training-character-art" />
+                <div className="training-portrait-status">
+                  <span>{selectedHero === id ? '출전 영웅' : hero.title}</span>
+                  <b>{awakeningRank > 0 ? `각성 ${['', 'I', 'II', 'III'][awakeningRank]}` : '각성 전'}</b>
+                </div>
+              </div>
               <div className="training-hero-copy">
                 <small>{hero.title}</small><h3>{hero.name}</h3>
                 <div className="training-level"><strong>숙련 {mastery.level}/{HERO_MASTERY_MAX_LEVEL}</strong><span>{maxed ? 'MAX' : `${mastery.currentXp}/${mastery.requiredXp} XP`}</span></div>
@@ -991,9 +1135,11 @@ export function FortressWorkshop({ onBack }: { onBack: () => void }) {
   const researchTotal = totalCastleResearch(levels);
   const nextTier = fortressTier < 3 ? fortressTierDefinitions[(fortressTier + 1) as 2 | 3] : undefined;
   const branches = [
-    { id: 'economy', name: '지휘·보급 체계', description: '병력 전개와 전투 이후의 골드·숙련 성장을 개선합니다.' },
+    { id: 'command', name: '지휘·보급 체계', description: '전장의 지휘력과 병력 전개 효율을 개선합니다.' },
+    { id: 'growth', name: '성장 지원 체계', description: '전투 골드와 병사·영웅의 실전 숙련 경험치를 늘립니다.' },
     { id: 'defense', name: '성벽 공학', description: '성채를 강화하고 접근한 적을 자동 공격합니다.' },
     { id: 'artillery', name: '왕실 포병대', description: '직접 사용하는 포격의 위력을 개선합니다.' },
+    { id: 'expedition', name: '원정 전술', description: '집결 깃발로 1~4성 병사·영웅·5성 초월 병종을 단계적으로 지휘합니다.' },
   ] as const;
 
   const buy = (id: CastleTechId) => {
@@ -1036,9 +1182,13 @@ export function FortressWorkshop({ onBack }: { onBack: () => void }) {
         <div><span>소환 대기</span><strong>-{Math.round((1 - stats.summonCooldownMultiplier) * 100)}%</strong></div>
         <div><span>소환 비용</span><strong>-{Math.round((1 - stats.summonCostMultiplier) * 100)}%</strong></div>
         <div><span>처치 지휘력</span><strong>{stats.commandPerKill}</strong></div>
+        <div><span>성채 재생</span><strong>+{stats.castleRegenPerSecond}/초</strong></div>
         <div><span>포격 피해</span><strong>{stats.bombardDamage}</strong></div>
         <div><span>전투 골드</span><strong>+{Math.round((stats.battleGoldMultiplier - 1) * 100)}%</strong></div>
         <div><span>전투 숙련 XP</span><strong>+{Math.round((stats.masteryXpMultiplier - 1) * 100)}%</strong></div>
+        <div><span>집결 지휘</span><strong>{stats.rallyTranscendentControl ? '5성 초월' : stats.rallyHeroControl ? '영웅' : stats.rallyUnlocked ? '1~4성 병사' : '미해금'}</strong></div>
+        <div><span>영웅 스킬 대기</span><strong>-{Math.round((1 - stats.heroSkillCooldownMultiplier) * 100)}%</strong></div>
+        <div><span>영웅 부활 대기</span><strong>-{Math.round((1 - stats.heroRespawnMultiplier) * 100)}%</strong></div>
       </section>
       <div className="tech-branches">
         {branches.map((branch) => (
@@ -1153,7 +1303,7 @@ function WarCodex({ onBack }: { onBack: () => void }) {
             const unit = troopDefinitions[id];
             const acquired = unlockedUnits.includes(id);
             const encountered = discoveredEnemies.includes(id);
-            return <article className="codex-card allied-entry" key={id}><span className="codex-icon"><CharacterSprite id={id} className="codex-character-art" /></span><div><small>{entry.role}</small><h4>{entry.title}</h4><div className="codex-tags">{acquired && <b>아군 확보</b>}{encountered && <b className="enemy-tag">적군 조우</b>}</div><p>{entry.description}</p><blockquote>{entry.lore}</blockquote><dl><div><dt>HP</dt><dd>{unit.maxHp}</dd></div><div><dt>ATK</dt><dd>{unit.attackDamage}</dd></div><div><dt>RANGE</dt><dd>{unit.attackRange}</dd></div></dl></div></article>;
+            return <article className="codex-card allied-entry" key={id}><span className="codex-icon"><CharacterSprite id={id} className="codex-character-art" /></span><div><small>{entry.role}</small><h4>{entry.title}</h4><div className="codex-tags"><b className={`grade-tag grade-${unit.grade}`} title={`${unit.grade}성 ${unitGradeLabels[unit.grade]}`}>{unitGradeStars(unit.grade)} · {unitGradeLabels[unit.grade]}</b>{acquired && <b>아군 확보</b>}{encountered && <b className="enemy-tag">적군 조우</b>}</div><p>{entry.description}</p><blockquote>{entry.lore}</blockquote><dl><div><dt>HP</dt><dd>{unit.maxHp}</dd></div><div><dt>ATK</dt><dd>{unit.attackDamage}</dd></div><div><dt>RANGE</dt><dd>{unit.attackRange}</dd></div></dl></div></article>;
           })}
         </div>
       </section>

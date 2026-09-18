@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { OPENING_SCENE_DURATION_MS } from './data/opening';
 import { achievementGroups, achievements } from './data/achievements';
+import { setActiveSaveSlot } from './game/saveSlots';
 import { useGameStore } from './store/useGameStore';
 
 describe('title and kingdom-map navigation', () => {
@@ -26,11 +27,15 @@ describe('title and kingdom-map navigation', () => {
   });
 
   it('keeps the title focused and exposes progression from the map hub', () => {
-    const titleButtons = [...host.querySelectorAll<HTMLButtonElement>('.title-menu-actions button')];
-    expect(titleButtons).toHaveLength(4);
-    expect(titleButtons.map((button) => button.querySelector('span')?.textContent)).toEqual(['새 게임', '불러오기', '저장 관리', '크레딧']);
+    const emptySlots = [...host.querySelectorAll<HTMLButtonElement>('.save-slot-card.empty')];
+    expect(emptySlots).toHaveLength(3);
+    expect(emptySlots.map((button) => button.textContent)).toEqual([
+      'SLOT 1＋새 게임비어 있는 원정 기록',
+      'SLOT 2＋새 게임비어 있는 원정 기록',
+      'SLOT 3＋새 게임비어 있는 원정 기록',
+    ]);
 
-    act(() => titleButtons[0].click());
+    act(() => emptySlots[0].click());
 
     expect(host.querySelector('.opening-story h1')?.textContent).toBe('대륙 최후의 밤');
     act(() => host.querySelector<HTMLButtonElement>('.opening-skip')!.click());
@@ -73,55 +78,50 @@ describe('title and kingdom-map navigation', () => {
     expect(host.querySelector('.shell-header h1')?.textContent).toBe('영웅 훈련소');
   });
 
-  it('promotes Continue to the first title action when progress exists', () => {
-    act(() => useGameStore.setState({ unlockedStage: 4, clearedStages: [1, 2, 3] }));
+  it('shows Continue, Export, and Delete on an occupied slot', () => {
+    act(() => {
+      setActiveSaveSlot(1);
+      useGameStore.setState({ unlockedStage: 4, clearedStages: [1, 2, 3] });
+      root.render(<App />);
+    });
 
-    const titleButtons = [...host.querySelectorAll<HTMLButtonElement>('.title-menu-actions button')];
-    expect(titleButtons.map((button) => button.querySelector('span')?.textContent)).toEqual(['계속하기', '새 게임', '저장 관리', '크레딧']);
-    expect(titleButtons[0].classList.contains('title-menu-primary')).toBe(true);
-    expect(titleButtons[0].textContent).toContain('CONTINUE · 4장');
+    const occupiedSlot = host.querySelector<HTMLElement>('.save-slot-card.occupied')!;
+    expect(occupiedSlot.textContent).toContain('4장 원정');
+    expect(occupiedSlot.textContent).toContain('v0.2.0');
+    expect([...occupiedSlot.querySelectorAll('button')].map((button) => button.textContent)).toEqual(['이어하기', '내보내기', '삭제']);
 
-    act(() => titleButtons[0].click());
+    act(() => occupiedSlot.querySelector<HTMLButtonElement>('button.continue')!.click());
     expect(host.querySelector('.shell-header h1')?.textContent).toBe('왕국 지도');
     expect(useGameStore.getState().unlockedStage).toBe(4);
   });
 
-  it('manages portable saves and confirms destructive actions with in-game dialogs', () => {
-    let titleButtons = [...host.querySelectorAll<HTMLButtonElement>('.title-menu-actions button')];
-    act(() => titleButtons[2].click());
+  it('uses password and destructive-confirmation modals for slot management', () => {
+    act(() => {
+      setActiveSaveSlot(1);
+      useGameStore.setState({ unlockedStage: 4, clearedStages: [1, 2, 3] });
+      root.render(<App />);
+    });
+    const occupiedSlot = host.querySelector<HTMLElement>('.save-slot-card.occupied')!;
+    act(() => [...occupiedSlot.querySelectorAll<HTMLButtonElement>('button')].find((button) => button.textContent === '내보내기')!.click());
 
-    expect(host.querySelector('[role="dialog"] h2')?.textContent).toBe('저장 기록 관리');
-    const transferButtons = [...host.querySelectorAll<HTMLButtonElement>('.save-transfer-actions button')];
-    expect(transferButtons.map((button) => button.textContent)).toEqual([
-      '↓저장 파일 가져오기Last Bastion JSON 불러오기',
-      '↑현재 진행 내보내기진행 기록이 필요합니다',
-    ]);
-    expect(transferButtons[1].disabled).toBe(true);
+    expect(host.querySelector('[role="dialog"] h2')?.textContent).toBe('슬롯 1 암호화 내보내기');
+    expect(host.querySelector('.crypto-spec')?.textContent).toContain('AES-GCM 256');
+    expect(host.querySelector('.crypto-spec')?.textContent).toContain('PBKDF2 · SHA-256');
+    expect(document.activeElement).toBe(host.querySelector<HTMLInputElement>('.save-password-fields input'));
     act(() => host.querySelector<HTMLButtonElement>('.game-modal-close')!.click());
 
-    act(() => useGameStore.setState({ unlockedStage: 4, clearedStages: [1, 2, 3] }));
-    titleButtons = [...host.querySelectorAll<HTMLButtonElement>('.title-menu-actions button')];
-    act(() => titleButtons[2].click());
-    expect([...host.querySelectorAll<HTMLButtonElement>('.save-transfer-actions button')][1].disabled).toBe(false);
-    act(() => host.querySelector<HTMLButtonElement>('.game-modal-close')!.click());
-
-    act(() => titleButtons[1].click());
-
-    expect(host.querySelector('[role="dialog"] h2')?.textContent).toBe('새 원정을 시작할까요?');
-    expect(host.querySelector('.game-modal')?.textContent).toContain('먼저 저장 관리에서 JSON 파일을 내보내세요');
+    act(() => [...occupiedSlot.querySelectorAll<HTMLButtonElement>('button')].find((button) => button.textContent === '삭제')!.click());
+    expect(host.querySelector('[role="dialog"] h2')?.textContent).toBe('슬롯 1을 삭제할까요?');
     expect(document.activeElement?.textContent).toBe('취소');
-    expect(useGameStore.getState().unlockedStage).toBe(4);
-
-    act(() => [...host.querySelectorAll<HTMLButtonElement>('.game-modal-actions button')].find((button) => button.textContent === '기록 초기화 후 시작')!.click());
-    expect(useGameStore.getState().unlockedStage).toBe(1);
-    expect(host.querySelector('.opening-story h1')?.textContent).toBe('대륙 최후의 밤');
+    act(() => [...host.querySelectorAll<HTMLButtonElement>('.game-modal-actions button')].find((button) => button.textContent === '원정 기록 삭제')!.click());
+    expect(host.querySelectorAll('.save-slot-card.empty')).toHaveLength(3);
   });
 
   it('autoplays the four-part prologue and enters the map without an advance action', () => {
     vi.useFakeTimers();
     try {
-      const titleButtons = [...host.querySelectorAll<HTMLButtonElement>('.title-menu-actions button')];
-      act(() => titleButtons[0].click());
+      const firstSlot = host.querySelector<HTMLButtonElement>('.save-slot-card.empty')!;
+      act(() => firstSlot.click());
       expect(host.querySelector('.opening-story h1')?.textContent).toBe('대륙 최후의 밤');
       expect(host.querySelector('.opening-next')).toBeNull();
 
@@ -137,8 +137,7 @@ describe('title and kingdom-map navigation', () => {
   });
 
   it('defaults achievements to milestone stacks and can expand every step', () => {
-    const titleButtons = [...host.querySelectorAll<HTMLButtonElement>('.title-menu-actions button')];
-    act(() => titleButtons[0].click());
+    act(() => host.querySelector<HTMLButtonElement>('.save-slot-card.empty')!.click());
     act(() => host.querySelector<HTMLButtonElement>('.opening-skip')!.click());
     const achievementButton = [...host.querySelectorAll<HTMLButtonElement>('.map-command-center button')]
       .find((button) => button.textContent?.includes('업적 기록'))!;

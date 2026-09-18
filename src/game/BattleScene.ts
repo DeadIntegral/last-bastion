@@ -1,17 +1,19 @@
 import Phaser from 'phaser';
 import { musicEngine } from '../audio/music';
 import { CHARACTER_ART_FRAME_HEIGHT, CHARACTER_ART_FRAME_WIDTH, characterArtFrameIndex, characterArtFrames, characterArtSheet, characterArtSheets, type CharacterArtId } from '../data/characterArt';
-import { battleMobilizationTuning, castleBattleStats, soldierCommandCost } from '../data/castle';
+import { battleMobilizationTuning, castleBattleStats, rallyCommandTuning, soldierCommandCost } from '../data/castle';
+import { fortressArtDefinitions, fortressArtLayout } from '../data/fortressArt';
 import { heroAwakeningAuras, heroSkillPower } from '../data/mastery';
 import { allTroopOrder, bossCombatTuning, bossDefinition, heroDefinitions, troopDefinitions } from '../data/units';
 import type { BattleHudState, BattleSpeed, CastleBattleStats, CastleTechId, CodexEnemyId, EnemyId, EquipmentLevels, HeroDefinition, HeroId, Side, StageDefinition, UnitDefinition, UnitId } from '../types/game';
 import { BattleEvent, battleEvents } from './EventBus';
-import { attackMotionDurationMs, attackMotionStyle, createAttackMotionPose, sampleAttackMotion, type AttackMotionPose, type AttackMotionStyle } from './combatMotion';
+import { attackMotionDurationMs, attackMotionStyle, createAttackMotionPose, projectileVisualStyle, sampleAttackMotion, type AttackMotionPose, type AttackMotionStyle, type ProjectileVisualStyle } from './combatMotion';
 import {
   calculateDamage,
   applyEnemyTerrain,
   canActivateMobilization,
   canAttackTarget,
+  canReceiveRallyOrder,
   enemyFortressCanReinforce,
   enemyObjectiveDefeated,
   fortressRearSpawnX,
@@ -76,7 +78,15 @@ interface PooledStrikeEffect {
 }
 
 interface PooledProjectileEffect {
-  object: Phaser.GameObjects.Arc;
+  object: Phaser.GameObjects.Container;
+  arrowShaft: Phaser.GameObjects.Rectangle;
+  arrowHead: Phaser.GameObjects.Triangle;
+  magicCore: Phaser.GameObjects.Star;
+  magicRing: Phaser.GameObjects.Arc;
+  bombBody: Phaser.GameObjects.Arc;
+  bombFuse: Phaser.GameObjects.Rectangle;
+  siegeShell: Phaser.GameObjects.Rectangle;
+  style: ProjectileVisualStyle;
   elapsedMs: number;
   durationMs: number;
   startX: number;
@@ -123,12 +133,19 @@ export class BattleScene extends Phaser.Scene {
   private heroSkillCooldown = 0;
   private castleSkillCooldown = 0;
   private mobilizationUses = 0;
+  private rallyCooldown = 0;
+  private rallyTargeting = false;
+  private rallyTargetX?: number;
+  private rallyFlag?: Phaser.GameObjects.Container;
   private heroRespawn = 0;
   private hero?: CombatUnit;
   private boss?: CombatUnit;
   private bossAwake = false;
   private bossPhase = 1;
   private bossStompTimer: number = bossCombatTuning.initialStompDelayMs;
+  private bossStompWarning?: Phaser.GameObjects.Arc;
+  private bossStompWarningTween?: Phaser.Tweens.Tween;
+  private bossStompEvent?: Phaser.Time.TimerEvent;
   private spawnOrders: SpawnOrder[] = [];
   private spawnOrderIndex = 0;
   private reinforcementIndex = 0;
@@ -139,6 +156,7 @@ export class BattleScene extends Phaser.Scene {
   private battleSpeed: BattleSpeed;
   private hudTimer = 0;
   private towerAttackTimer = 0;
+  private enemyFortressAttackTimer = 0;
   private unitsLost = 0;
   private heroDeaths = 0;
   private heroSkillUses = 0;
@@ -168,6 +186,7 @@ export class BattleScene extends Phaser.Scene {
     this.unitMasteryXp = unitMasteryXp;
     this.battleSpeed = battleSpeed;
     this.heroId = heroId;
+    this.castleStats = castleBattleStats(castleTechLevels);
     const baseHero = heroDefinitions[heroId];
     this.heroMasteryLevel = heroMasteryLevelFromXp(heroMasteryXp).level;
     const trainedHero = upgradedStats(baseHero, heroEquipmentLevel, this.heroMasteryLevel);
@@ -177,10 +196,9 @@ export class BattleScene extends Phaser.Scene {
       attackDamage: trainedHero.attackDamage,
       defense: trainedHero.defense,
       moveSpeed: trainedHero.moveSpeed,
-      respawnMs: scaledHeroRespawnMs(baseHero, this.heroMasteryLevel),
-      skillCooldownMs: scaledHeroSkillCooldownMs(baseHero, this.heroMasteryLevel),
+      respawnMs: Math.round(scaledHeroRespawnMs(baseHero, this.heroMasteryLevel) * this.castleStats.heroRespawnMultiplier),
+      skillCooldownMs: Math.round(scaledHeroSkillCooldownMs(baseHero, this.heroMasteryLevel) * this.castleStats.heroSkillCooldownMultiplier),
     };
-    this.castleStats = castleBattleStats(castleTechLevels);
   }
 
   preload(): void {
@@ -190,6 +208,9 @@ export class BattleScene extends Phaser.Scene {
         frameWidth: CHARACTER_ART_FRAME_WIDTH,
         frameHeight: CHARACTER_ART_FRAME_HEIGHT,
       });
+    }
+    for (const art of Object.values(fortressArtDefinitions)) {
+      if (!this.textures.exists(art.textureKey)) this.load.image(art.textureKey, art.url);
     }
   }
 
@@ -202,6 +223,7 @@ export class BattleScene extends Phaser.Scene {
     this.playerCastleHp = this.playerCastleMaxHp;
     this.drawWorld();
     this.createEffectPools();
+    this.createRallyFlag();
     this.time.timeScale = this.battleSpeed;
     this.tweens.timeScale = this.battleSpeed;
 
@@ -240,14 +262,19 @@ export class BattleScene extends Phaser.Scene {
     battleEvents.off(BattleEvent.SKILL);
     battleEvents.off(BattleEvent.CASTLE_SKILL);
     battleEvents.off(BattleEvent.MOBILIZE);
+    battleEvents.off(BattleEvent.RALLY_MODE);
+    battleEvents.off(BattleEvent.RALLY_CLEAR);
     battleEvents.off(BattleEvent.PAUSE);
     battleEvents.off(BattleEvent.SPEED);
     battleEvents.on(BattleEvent.SPAWN, this.handleSpawn, this);
     battleEvents.on(BattleEvent.SKILL, this.activateHeroSkill, this);
     battleEvents.on(BattleEvent.CASTLE_SKILL, this.activateCastleSkill, this);
     battleEvents.on(BattleEvent.MOBILIZE, this.activateMobilization, this);
+    battleEvents.on(BattleEvent.RALLY_MODE, this.toggleRallyTargeting, this);
+    battleEvents.on(BattleEvent.RALLY_CLEAR, this.clearRallyOrder, this);
     battleEvents.on(BattleEvent.PAUSE, this.togglePause, this);
     battleEvents.on(BattleEvent.SPEED, this.setBattleSpeed, this);
+    this.input.on('pointerdown', this.placeRallyFlag, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanup, this);
     this.events.once(Phaser.Scenes.Events.DESTROY, this.cleanup, this);
     this.emitHud();
@@ -270,6 +297,7 @@ export class BattleScene extends Phaser.Scene {
     }
     this.heroSkillCooldown = Math.max(0, this.heroSkillCooldown - safeDelta);
     this.castleSkillCooldown = Math.max(0, this.castleSkillCooldown - safeDelta);
+    this.rallyCooldown = Math.max(0, this.rallyCooldown - safeDelta);
 
     this.processEnemySpawns();
     this.processEnemyReinforcements();
@@ -285,6 +313,7 @@ export class BattleScene extends Phaser.Scene {
 
     if (this.bossAwake && this.boss?.alive) this.updateBoss(safeDelta);
     this.updateWatchtower(safeDelta);
+    this.updateEnemyFortressAttack(safeDelta);
     this.flushUnitRemovals();
     this.updateBars();
     this.hudTimer -= safeDelta;
@@ -332,21 +361,36 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private drawCastle(x: number, player: boolean): void {
-    const direction = player ? 1 : -1;
-    const main = this.add.rectangle(x, 481, 108, 180, player ? 0x314f68 : 0x653943).setStrokeStyle(3, player ? 0x6fb6d9 : 0xc06565);
-    this.add.rectangle(x, 393, 126, 27, player ? 0x253e55 : 0x542d39);
-    for (let i = -2; i <= 2; i += 1) {
-      this.add.rectangle(x + i * 25, 372, 16, 28, player ? 0x3d6580 : 0x79424b);
-    }
-    this.add.rectangle(x + direction * 34, 493, 30, 90, 0x17202a);
-    this.add.circle(x + direction * 34, 445, 15, 0x17202a);
-    this.add.rectangle(x - direction * 34, 434, 19, 35, 0x9ed4e7, 0.45);
-    main.setDepth(1);
+    const art = fortressArtDefinitions[player ? 'player' : 'enemy'];
+    const visualX = x + (player ? fortressArtLayout.worldEdgeInset : -fortressArtLayout.worldEdgeInset);
+    const baselineY = GROUND_Y + fortressArtLayout.baselineOffset;
+    this.add.image(visualX, baselineY, art.textureKey)
+      .setOrigin(0.5, 1)
+      .setDisplaySize(fortressArtLayout.width, fortressArtLayout.height)
+      .setDepth(1);
 
-    this.add.rectangle(x, 356, 130, 9, 0x111720).setDepth(8);
-    const bar = this.add.rectangle(x - 65, 356, 130, 9, player ? 0x67c8e8 : 0xe15d62).setOrigin(0, 0.5).setDepth(9);
+    const barY = baselineY - fortressArtLayout.height - fortressArtLayout.healthBarGap;
+    const barX = visualX - fortressArtLayout.healthBarWidth / 2;
+    this.add.rectangle(visualX, barY, fortressArtLayout.healthBarWidth, fortressArtLayout.healthBarHeight, 0x111720).setDepth(8);
+    const bar = this.add.rectangle(barX, barY, fortressArtLayout.healthBarWidth, fortressArtLayout.healthBarHeight, player ? 0x67c8e8 : 0xe15d62).setOrigin(0, 0.5).setDepth(9);
     if (player) this.playerCastleBar = bar;
     else this.enemyBar = bar;
+  }
+
+  private createRallyFlag(): void {
+    if (!this.castleStats.rallyUnlocked) return;
+    const glow = this.add.circle(0, 24, 30, 0x77d9e8, 0.08).setStrokeStyle(2, 0x8de9f5, 0.4);
+    const pole = this.add.rectangle(0, -2, 4, 62, 0xd7c28a).setOrigin(0.5, 1);
+    const finial = this.add.circle(0, -66, 5, 0xf3dc91).setStrokeStyle(2, 0xffffff, 0.45);
+    const pennant = this.add.triangle(17, -50, 0, 0, 36, 8, 0, 20, 0x4aa8bf, 0.96)
+      .setStrokeStyle(2, 0xc7f5ff, 0.75);
+    const label = this.add.text(0, 34, '집결', {
+      fontFamily: 'Pretendard Variable, system-ui, sans-serif', fontSize: '12px', color: '#d9fbff',
+      backgroundColor: '#10232dcc', padding: { x: 7, y: 3 },
+    }).setOrigin(0.5, 0);
+    this.rallyFlag = this.add.container(0, GROUND_Y - 7, [glow, pole, finial, pennant, label])
+      .setDepth(680)
+      .setVisible(false);
   }
 
   private createUnit(definition: UnitDefinition, side: Side, x: number, y: number, hero = false, boss = false, eliteName?: string): CombatUnit {
@@ -546,6 +590,14 @@ export class BattleScene extends Phaser.Scene {
       }
     }
 
+    const rallyDestination = this.rallyDestinationFor(unit);
+    if (rallyDestination !== undefined) {
+      if (Math.abs(rallyDestination - unit.container.x) > rallyCommandTuning.arrivalRadius) {
+        this.moveUnitToward(unit, rallyDestination, delta, this.castleStats.rallyMoveSpeedMultiplier);
+      }
+      return;
+    }
+
     const destination = unit.side === 'player' ? this.enemyCastleX : PLAYER_CASTLE_X;
     const distanceToCastle = Math.abs(destination - unit.container.x);
     if (!this.stageDefinition.challenge && unit.side === 'player' && distanceToCastle <= unit.definition.attackRange + aura.rangeBonus + 65) {
@@ -569,9 +621,31 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
 
-    const direction = unit.side === 'player' ? 1 : -1;
+    this.moveUnitToward(unit, destination, delta);
+  }
+
+  private rallyDestinationFor(unit: CombatUnit): number | undefined {
+    if (this.rallyTargetX === undefined || unit.side !== 'player') return undefined;
+    if (!canReceiveRallyOrder(unit.definition, unit.isHero, {
+      soldiers: this.castleStats.rallyUnlocked,
+      heroes: this.castleStats.rallyHeroControl,
+      transcendent: this.castleStats.rallyTranscendentControl,
+    })) return undefined;
+    const formationSlot = (unit.id % 7) - 3;
+    return Phaser.Math.Clamp(
+      this.rallyTargetX + formationSlot * rallyCommandTuning.formationSpacing,
+      PLAYER_CASTLE_X + 45,
+      this.enemyCastleX - 55,
+    );
+  }
+
+  private moveUnitToward(unit: CombatUnit, destination: number, delta: number, rallySpeedMultiplier = 1): void {
+    const deltaX = destination - unit.container.x;
+    if (Math.abs(deltaX) <= 1) return;
+    const direction = Math.sign(deltaX);
     const speedModifier = unit.isBoss && this.bossPhase === 2 ? bossCombatTuning.phaseTwoMoveSpeedMultiplier : 1;
-    unit.container.x += direction * (unit.definition.moveSpeed + aura.moveSpeedBonus) * speedModifier * delta / 1000;
+    const aura = this.heroAuraFor(unit);
+    unit.container.x += direction * (unit.definition.moveSpeed + aura.moveSpeedBonus) * speedModifier * rallySpeedMultiplier * delta / 1000;
     const flying = unit.definition.tags.includes('flying');
     unit.container.y = GROUND_Y - (flying ? 112 : 0) + Math.sin(this.elapsed * (flying ? 0.004 : 0.008) + unit.id) * (flying ? 7 : 2);
     const nextDepth = flying ? 650 : Math.round(unit.container.y);
@@ -740,6 +814,7 @@ export class BattleScene extends Phaser.Scene {
       this.heroDeaths += 1;
     }
     if (unit.isBoss) {
+      this.clearBossStompTelegraph();
       if (this.stageDefinition.challenge) {
         this.enemyHp = 0;
       }
@@ -913,10 +988,14 @@ export class BattleScene extends Phaser.Scene {
     let hasTarget = false;
     for (const unit of this.units) {
       if (!unit.alive || unit.side !== 'enemy' || unit.definition.tags.includes('flying')) continue;
+      if (unit.container.x - PLAYER_CASTLE_X > this.castleStats.bombardRange) continue;
       hasTarget = true;
       centerX = Math.min(centerX, unit.container.x);
     }
-    if (!hasTarget && this.castleStats.bombardCastleDamage <= 0) return;
+    const castleInRange = !this.stageDefinition.challenge
+      && this.castleStats.bombardCastleDamage > 0
+      && this.enemyCastleX - PLAYER_CASTLE_X <= this.castleStats.bombardRange;
+    if (!hasTarget && !castleInRange) return;
     this.castleSkillCooldown = this.castleStats.bombardCooldownMs;
     this.castleSkillUses += 1;
     const shell = this.add.circle(PLAYER_CASTLE_X + 20, 390, 9, 0xf0d187).setDepth(800);
@@ -929,7 +1008,7 @@ export class BattleScene extends Phaser.Scene {
         const blast = this.add.circle(centerX, GROUND_Y, 25, 0xf0b34d, 0.65).setDepth(650);
         this.tweens.add({ targets: blast, radius: this.castleStats.bombardRadius, alpha: 0, duration: 380, onComplete: () => blast.destroy() });
         for (const target of this.units) {
-          if (target.alive && target.side === 'enemy' && Math.abs(target.container.x - centerX) <= this.castleStats.bombardRadius) {
+          if (target.alive && target.side === 'enemy' && !target.definition.tags.includes('flying') && Math.abs(target.container.x - centerX) <= this.castleStats.bombardRadius) {
             this.damageUnit(target, this.castleStats.bombardDamage + (target.isBoss ? this.castleStats.bombardBossBonus : 0));
           }
         }
@@ -946,7 +1025,12 @@ export class BattleScene extends Phaser.Scene {
     if (!canActivateMobilization(this.command, this.castleStats.maxCommand, this.mobilizationUses, battleMobilizationTuning.maxUses)) return;
     this.command = 0;
     this.mobilizationUses += 1;
-    const mobilizedStats = mobilizedCommandStats(this.castleStats.maxCommand, this.castleStats.commandRegen);
+    const mobilizedStats = mobilizedCommandStats(
+      this.castleStats.maxCommand,
+      this.castleStats.commandRegen,
+      this.castleStats.mobilizationMaxCommandBonus,
+      this.castleStats.mobilizationCommandRegenBonus,
+    );
     this.castleStats = {
       ...this.castleStats,
       ...mobilizedStats,
@@ -958,6 +1042,31 @@ export class BattleScene extends Phaser.Scene {
       stroke: '#11232e', strokeThickness: 5,
     }).setOrigin(0.5).setDepth(900);
     this.tweens.add({ targets: banner, y: banner.y - 32, alpha: 0, duration: 900, onComplete: () => banner.destroy() });
+    this.emitHud();
+  }
+
+  private toggleRallyTargeting(): void {
+    if (this.ended || this.isPaused || !this.castleStats.rallyUnlocked || this.rallyCooldown > 0) return;
+    this.rallyTargeting = !this.rallyTargeting;
+    this.emitHud();
+  }
+
+  private placeRallyFlag(pointer: Phaser.Input.Pointer): void {
+    if (!this.rallyTargeting || this.ended || this.isPaused || !this.rallyFlag) return;
+    const targetX = Phaser.Math.Clamp(pointer.worldX, PLAYER_CASTLE_X + 65, this.enemyCastleX - 80);
+    this.rallyTargetX = targetX;
+    this.rallyTargeting = false;
+    this.rallyCooldown = this.castleStats.rallyCooldownMs;
+    this.rallyFlag.setPosition(targetX, GROUND_Y - 7).setVisible(true);
+    musicEngine.playEffect('skill');
+    this.emitHud();
+  }
+
+  private clearRallyOrder(): void {
+    if (!this.castleStats.rallyUnlocked) return;
+    this.rallyTargetX = undefined;
+    this.rallyTargeting = false;
+    this.rallyFlag?.setVisible(false);
     this.emitHud();
   }
 
@@ -994,11 +1103,14 @@ export class BattleScene extends Phaser.Scene {
     const cadence = this.stageDefinition.bossModifiers?.stompCadenceMultiplier ?? 1;
     this.bossStompTimer = (this.bossPhase === 2 ? bossCombatTuning.phaseTwoStompIntervalMs : bossCombatTuning.phaseOneStompIntervalMs) * cadence;
     const x = this.boss.container.x;
+    this.clearBossStompTelegraph();
     const warning = this.add.circle(x, GROUND_Y + 12, bossCombatTuning.stompRadius, 0xf15d43, 0.08).setStrokeStyle(3, 0xff795d, 0.65).setDepth(2);
-    this.tweens.add({ targets: warning, alpha: 0.28, duration: 320, yoyo: true, repeat: 1 });
-    this.time.delayedCall(850, () => {
-      if (!this.boss?.alive || this.ended || this.isPaused) return;
-      warning.destroy();
+    this.bossStompWarning = warning;
+    this.bossStompWarningTween = this.tweens.add({ targets: warning, alpha: 0.28, duration: 320, yoyo: true, repeat: 1 });
+    this.bossStompEvent = this.time.delayedCall(850, () => {
+      const shouldResolve = Boolean(this.boss?.alive) && !this.ended && !this.isPaused;
+      this.clearBossStompTelegraph(false);
+      if (!shouldResolve) return;
       musicEngine.playEffect('heavy');
       this.cameras.main.shake(260, 0.009);
       const stompDamage = Math.round(this.boss!.definition.attackDamage * (
@@ -1011,6 +1123,15 @@ export class BattleScene extends Phaser.Scene {
         }
       }
     });
+  }
+
+  private clearBossStompTelegraph(cancelEvent = true): void {
+    if (cancelEvent) this.bossStompEvent?.remove(false);
+    this.bossStompEvent = undefined;
+    this.bossStompWarningTween?.stop();
+    this.bossStompWarningTween = undefined;
+    this.bossStompWarning?.destroy();
+    this.bossStompWarning = undefined;
   }
 
   private updateWatchtower(delta: number): void {
@@ -1038,16 +1159,60 @@ export class BattleScene extends Phaser.Scene {
     });
   }
 
+  private updateEnemyFortressAttack(delta: number): void {
+    const attack = this.stageDefinition.enemyFortressAttack;
+    if (!attack || this.enemyHp <= 0) return;
+    this.enemyFortressAttackTimer -= delta;
+    if (this.enemyFortressAttackTimer > 0) return;
+    let target: CombatUnit | undefined;
+    for (const unit of this.units) {
+      if (!unit.alive || unit.side !== 'player' || this.enemyCastleX - unit.container.x > attack.range) continue;
+      if (!target || unit.container.x > target.container.x) target = unit;
+    }
+    if (!target) return;
+    this.enemyFortressAttackTimer = attack.intervalMs;
+    this.launchPooledProjectile(this.enemyCastleX - 25, 420, target, 0xe9685d, 220, 'siege');
+    musicEngine.playEffect('ranged');
+    this.showStrike(target.container.x, target.container.y, 0xe9685d);
+    this.damageUnit(target, Math.max(1, attack.damage - (target.definition.defense ?? 0)));
+  }
+
   private launchProjectile(attacker: CombatUnit, target: CombatUnit): void {
+    this.launchPooledProjectile(
+      attacker.container.x,
+      attacker.container.y - 5,
+      target,
+      attacker.definition.accent,
+      150,
+      projectileVisualStyle(attacker.definition),
+    );
+  }
+
+  private launchPooledProjectile(startX: number, startY: number, target: CombatUnit, color: number, durationMs: number, style: ProjectileVisualStyle): void {
     const effect = this.projectileEffects.find((candidate) => !candidate.object.active);
     if (!effect) return;
     effect.elapsedMs = 0;
-    effect.durationMs = 150;
-    effect.startX = attacker.container.x;
-    effect.startY = attacker.container.y - 5;
+    effect.durationMs = durationMs;
+    effect.startX = startX;
+    effect.startY = startY;
     effect.endX = target.container.x;
     effect.endY = target.container.y - 4;
-    effect.object.setPosition(effect.startX, effect.startY).setFillStyle(attacker.definition.accent, 1).setVisible(true).setActive(true);
+    effect.style = style;
+    const angle = Math.atan2(effect.endY - effect.startY, effect.endX - effect.startX);
+    effect.arrowShaft.setVisible(style === 'arrow').setFillStyle(0x9a6b36, 1);
+    effect.arrowHead.setVisible(style === 'arrow').setFillStyle(color, 1);
+    effect.magicCore.setVisible(style === 'magic').setFillStyle(color, 0.95);
+    effect.magicRing.setVisible(style === 'magic').setStrokeStyle(2, color, 0.82);
+    effect.bombBody.setVisible(style === 'bomb').setFillStyle(0x25242a, 1).setStrokeStyle(2, color, 0.9);
+    effect.bombFuse.setVisible(style === 'bomb').setFillStyle(0xf2bd59, 1);
+    effect.siegeShell.setVisible(style === 'siege').setFillStyle(color, 1);
+    effect.object
+      .setPosition(effect.startX, effect.startY)
+      .setRotation(angle)
+      .setScale(1)
+      .setAlpha(1)
+      .setVisible(true)
+      .setActive(true);
   }
 
   private showStrike(x: number, y: number, color: number): void {
@@ -1072,8 +1237,41 @@ export class BattleScene extends Phaser.Scene {
       this.strikeEffects.push({ object, elapsedMs: 0, durationMs: 170 });
     }
     for (let index = 0; index < 24; index += 1) {
-      const object = this.add.circle(0, 0, 4, 0xffffff).setDepth(600).setVisible(false).setActive(false);
-      this.projectileEffects.push({ object, elapsedMs: 0, durationMs: 150, startX: 0, startY: 0, endX: 0, endY: 0 });
+      const arrowShaft = this.add.rectangle(0, 0, 18, 2, 0x9a6b36).setOrigin(0.5);
+      const arrowHead = this.add.triangle(11, 0, 0, -4, 0, 4, 7, 0, 0xffffff);
+      const magicCore = this.add.star(0, 0, 6, 3, 8, 0xffffff, 0.95);
+      const magicRing = this.add.circle(0, 0, 11, 0xffffff, 0).setStrokeStyle(2, 0xffffff, 0.82);
+      const bombBody = this.add.circle(0, 0, 7, 0x25242a).setStrokeStyle(2, 0xffffff, 0.9);
+      const bombFuse = this.add.rectangle(4, -8, 2, 7, 0xf2bd59).setRotation(-0.6);
+      const siegeShell = this.add.rectangle(0, 0, 15, 6, 0xffffff).setOrigin(0.5).setStrokeStyle(1, 0x3d2730, 0.9);
+      const object = this.add.container(0, 0, [arrowShaft, arrowHead, magicRing, magicCore, bombBody, bombFuse, siegeShell])
+        .setDepth(600)
+        .setVisible(false)
+        .setActive(false);
+      arrowShaft.setVisible(false);
+      arrowHead.setVisible(false);
+      magicCore.setVisible(false);
+      magicRing.setVisible(false);
+      bombBody.setVisible(false);
+      bombFuse.setVisible(false);
+      siegeShell.setVisible(false);
+      this.projectileEffects.push({
+        object,
+        arrowShaft,
+        arrowHead,
+        magicCore,
+        magicRing,
+        bombBody,
+        bombFuse,
+        siegeShell,
+        style: 'magic',
+        elapsedMs: 0,
+        durationMs: 150,
+        startX: 0,
+        startY: 0,
+        endX: 0,
+        endY: 0,
+      });
     }
     for (let index = 0; index < 8; index += 1) {
       const object = this.add.circle(0, 0, 12, 0xffffff, 0.38).setDepth(500).setVisible(false).setActive(false);
@@ -1093,10 +1291,16 @@ export class BattleScene extends Phaser.Scene {
       if (!effect.object.active) continue;
       effect.elapsedMs = Math.min(effect.durationMs, effect.elapsedMs + delta);
       const progress = effect.elapsedMs / effect.durationMs;
+      const flightArc = effect.style === 'bomb' ? 18 : effect.style === 'magic' ? 7 : 0;
       effect.object.setPosition(
         Phaser.Math.Linear(effect.startX, effect.endX, progress),
-        Phaser.Math.Linear(effect.startY, effect.endY, progress),
+        Phaser.Math.Linear(effect.startY, effect.endY, progress) - Math.sin(progress * Math.PI) * flightArc,
       );
+      if (effect.style === 'magic') {
+        effect.object.setRotation(effect.object.rotation + delta * 0.012).setScale(0.9 + Math.sin(progress * Math.PI) * 0.3);
+      } else if (effect.style === 'bomb') {
+        effect.object.setRotation(effect.object.rotation + delta * 0.01);
+      }
       if (progress >= 1) effect.object.setVisible(false).setActive(false);
     }
     for (const effect of this.flashEffects) {
@@ -1137,6 +1341,11 @@ export class BattleScene extends Phaser.Scene {
 
   private togglePause(): void {
     if (this.ended) return;
+    if (this.rallyTargeting) {
+      this.rallyTargeting = false;
+      this.emitHud();
+      return;
+    }
     this.isPaused = !this.isPaused;
     this.emitHud();
   }
@@ -1165,6 +1374,13 @@ export class BattleScene extends Phaser.Scene {
       castleSkillMaxCooldownMs: this.castleStats.bombardCooldownMs,
       mobilizationUses: this.mobilizationUses,
       mobilizationMaxUses: battleMobilizationTuning.maxUses,
+      rallyUnlocked: this.castleStats.rallyUnlocked,
+      rallyHeroControl: this.castleStats.rallyHeroControl,
+      rallyTranscendentControl: this.castleStats.rallyTranscendentControl,
+      rallyTargeting: this.rallyTargeting,
+      rallyTargetActive: this.rallyTargetX !== undefined,
+      rallyCooldownMs: this.rallyCooldown,
+      rallyCooldownMaxMs: this.castleStats.rallyCooldownMs,
       spawnCooldowns: { ...this.spawnCooldowns },
       unitCosts: Object.fromEntries(this.equippedUnits.map((id) => [id, soldierCommandCost(troopDefinitions[id].cost, this.castleStats.summonCostMultiplier)])),
       activeUnitCounts: Object.fromEntries(this.equippedUnits.map((id) => [id, this.activeUnitCount('player', id)])),
@@ -1181,6 +1397,7 @@ export class BattleScene extends Phaser.Scene {
   private finish(victory: boolean): void {
     if (this.ended) return;
     this.ended = true;
+    this.clearBossStompTelegraph();
     this.cameras.main.fadeOut(700, victory ? 230 : 70, victory ? 210 : 30, victory ? 155 : 35);
     this.time.delayedCall(650, () => {
       battleEvents.emit(BattleEvent.RESULT, {
@@ -1195,12 +1412,16 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private cleanup(): void {
+    this.clearBossStompTelegraph();
     battleEvents.off(BattleEvent.SPAWN, this.handleSpawn, this);
     battleEvents.off(BattleEvent.SKILL, this.activateHeroSkill, this);
     battleEvents.off(BattleEvent.CASTLE_SKILL, this.activateCastleSkill, this);
     battleEvents.off(BattleEvent.MOBILIZE, this.activateMobilization, this);
+    battleEvents.off(BattleEvent.RALLY_MODE, this.toggleRallyTargeting, this);
+    battleEvents.off(BattleEvent.RALLY_CLEAR, this.clearRallyOrder, this);
     battleEvents.off(BattleEvent.PAUSE, this.togglePause, this);
     battleEvents.off(BattleEvent.SPEED, this.setBattleSpeed, this);
+    this.input.off('pointerdown', this.placeRallyFlag, this);
     this.pendingUnitRemovalIds.clear();
     this.attackTargetBuffer.length = 0;
     this.strikeEffects.length = 0;

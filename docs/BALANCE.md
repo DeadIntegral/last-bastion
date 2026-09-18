@@ -1,6 +1,6 @@
 # Last Bastion — Balance Reference
 
-Last updated: 2026-09-16
+Last updated: 2026-09-17
 
 This is the canonical reference for implemented economy, progression, combat, and campaign numbers. Change this file in the same commit as any balance value. Product behavior and architecture remain canonical in `docs/GAME_SPEC.md`.
 
@@ -19,7 +19,7 @@ This is the canonical reference for implemented economy, progression, combat, an
 
 Hero Training Ground unlocks from the stage-9 first clear. It supplements rather than replaces battle-earned hero mastery XP and refuses purchases at the level-30 cap.
 
-Fortress economy research applies only to combat progression: each `전리품 회계` rank multiplies repeat and first-clear battle Gold by 1.05, and each `왕립 야전 교범` rank multiplies soldier and hero battle mastery XP by 1.05. Both cap at ×1.25 at rank 5 and round to the nearest whole value. Achievement Gold, daily rewards, recruitment costs, and paid Hero Training packages are not multiplied.
+Fortress growth research has two independent tier-2 roots in one branch: each `전리품 회계` rank multiplies repeat and first-clear battle Gold by 1.05, and each `왕립 야전 교범` rank multiplies soldier and hero battle mastery XP by 1.05. Both cap at ×1.25 at rank 5 and round to the nearest whole value. Neither root requires investment in the command/supply tree or the other growth root. Achievement Gold, daily rewards, recruitment costs, and paid Hero Training packages are not multiplied.
 
 | Training package | Gold cost | Hero XP | Gold per XP |
 |---|---:|---:|---:|
@@ -42,6 +42,20 @@ Player and enemy troops use the same 50 base definitions. Player equipment/maste
 | Spirit | 6 | Storm, Fire, Frost, Earth, Radiance, Shadow |
 | Demon | 10 | Hellhound, Imp, Succubus, Guard, Mage, Gargoyle, Cerberus, Ifrit, Reaper, Abyss Knight |
 
+### Intrinsic troop grades
+
+Grade is fixed canonical metadata, not an additional upgrade track. It applies equally to the player and computer form of a troop and contributes no runtime multiplier: all actual combat values come from the authored base definition, equipment, mastery where permitted, terrain, and explicit encounter modifiers. The labels communicate combat stature, rarity, and acquisition expectation. Authored 4-star and 5-star definitions nevertheless preserve a stature floor of at least 1,000 base HP; this is a data invariant, not a hidden grade multiplier.
+
+| Grade | Label | Troops |
+|---:|---|---|
+| ★☆☆☆☆ | General | Militia, Guardian, Archer, Lancer, Raider, Crossbow, Swordsman, Pikeman, Scout, Goblin Archer, Goblin Bomber, Slime, Imp |
+| ★★☆☆☆ | Trained | Bulwark, Royal Cavalry, Priest, Kingdom Mage, Assassin, Orc Berserker, Orc Shaman, Wolf Rider, Harpy, Fire Spirit, Frost Spirit, Direwolf, Giant Eagle, Succubus, Gargoyle |
+| ★★★☆☆ | Elite | Ogre Crusher, Storm Spirit, Hellhound, Archmage, Troll, Ogre Mage, Minotaur, Wyvern, Basilisk, Earth Spirit, Radiance Spirit, Shadow Spirit, Demon Guard, Demon Mage |
+| ★★★★☆ | Legendary | Griffin Rider, Ancient Treant, Rune Golem, Swamp Hydra, Cerberus, Reaper, Abyss Knight |
+| ★★★★★ | Transcendent | Ifrit |
+
+Only 5-star troops count as transcendent for `초월의 군기`. In particular, Griffin Rider is 4-star and Minotaur is 3-star. Changing a grade does not rebalance a stat automatically; any intended numerical change must still be made and audited separately.
+
 | Troop | Command | Squad | HP each | ATK | Range | Attack interval | Move | Cooldown | Recruit | Pattern |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
 | 민병대 | 45 | 3 | 105 | 17 | 34 | 820 ms | 54 | 2.0 s | starting | single |
@@ -52,21 +66,21 @@ Player and enemy troops use the same 50 base definitions. Player equipment/maste
 | 오크 철갑병 | 90 | 1 | 390 | 22 | 42 | 1250 ms | 28 | 3.4 s | 350 | cleave, ×0.70 secondary |
 | 왕립 기마병 | 120 | 1 | 250 | 40 | 40 | 1050 ms | 82 | 3.9 s | 700 | pierce 2, ×0.80 follow-through |
 | 석궁병 | 85 | 1 | 115 | 36 | 160 | 1450 ms | 36 | 3.0 s | 400 | pierce 2, ×0.75 follow-through |
-| 오우거 파쇄자 | 140 | 1 | 440 | 45 | 52 | 1500 ms | 25 | 4.3 s | challenge 101 | cleave, ×0.80 secondary |
-| 그리폰 기수 | 195 | 1 | 520 | 82 | 58 | 1050 ms | 78 | 6.5 s | 1,500 | cleave, ×0.85 secondary |
-| 폭풍 정령 | 125 | 1 | 130 | 31 | 185 | 1150 ms | 58 | 4.5 s | challenge 102 | pierce 2, ×0.70 follow-through |
-| 마염견 | 135 | 1 | 235 | 42 | 46 | 900 ms | 76 | 4.8 s | challenge 103 | cleave, ×0.65 secondary |
+| 오우거 파쇄자 | 170 | 1 | 900 | 65 | 52 | 1500 ms | 25 | 4.3 s | challenge 101 | cleave, ×0.80 secondary |
+| 그리폰 기수 | 200 | 1 | 1,600 | 150 | 58 | 1050 ms | 78 | 6.5 s | 1,500 | cleave, ×0.85 secondary |
+| 폭풍 정령 | 155 | 1 | 600 | 55 | 185 | 1150 ms | 58 | 4.5 s | challenge 102 | pierce 2, ×0.70 follow-through |
+| 마염견 | 170 | 1 | 850 | 70 | 46 | 900 ms | 76 | 4.8 s | challenge 103 | cleave, ×0.65 secondary |
 | 왕국 마법사 | 115 | 1 | 110 | 36 | 195 | 1300 ms | 37 | 3.5 s | encounter | pierce 2, ×0.65 follow-through |
-| 대마법사 | 190 | 1 | 200 | 78 | 245 | 1600 ms | 31 | 5.5 s | encounter | pierce 3, ×0.70 follow-through |
-| 이프리트 | 200 | 1 | 430 | 72 | 215 | 1650 ms | 42 | 6.6 s | challenge 104 | pierce 3, ×0.75 follow-through |
+| 대마법사 | 190 | 1 | 700 | 110 | 245 | 1600 ms | 31 | 5.5 s | encounter | pierce 3, ×0.70 follow-through |
+| 이프리트 | 200 | 1 | 2,200 | 140 | 215 | 1650 ms | 42 | 6.6 s | challenge 104 | pierce 3, ×0.75 follow-through |
 
 - A new profile owns and equips only the militia.
 - Battle formations contain one to four acquired troop types.
 - Command and cooldown are paid once per card activation. One Militia/Raider activation creates three bodies and one Guardian/Archer activation creates two; a wave's `count` likewise counts activations before squad expansion. Mastery summon counts track the activation rather than multiplying XP per body.
 - Encounter alone does not bypass fortress recruitment permits: expansion troops below 110 Command default to tier 2 and troops at or above 110 default to tier 3. Royal Cavalry is revealed and recruitable at tier 2 without an encounter; Griffin Rider follows the same rule at tier 3. Ogre Crusher, Storm Spirit, Hellhound, and Ifrit are challenge-only recruits. Already-owned troops remain owned when an older save migrates.
 - Lancer and Huntress attacks deal ×1.75 damage to `large` targets.
-- Royal Cavalry has 3 base defense and its first attack after each spawn deals ×1.6 damage. Griffin Rider has 6 base defense, is tagged `flying` and `large`, and moves 112 virtual pixels above the lane. It is intentionally stronger than the Wyvern in HP and stronger than Ifrit in per-hit melee damage, but consumes 195 Command, waits 6.5 seconds between deployments, and must enter melee range.
-- Only attackers tagged `ranged` and the fortress watchtower can select a flying target. Fortress bombardment and beast stomp skip flying targets; flying units can attack ground targets normally.
+- Royal Cavalry has 3 base defense and its first attack after each spawn deals ×1.6 damage. Griffin Rider has 8 base defense, is tagged `flying` and `large`, and moves 112 virtual pixels above the lane. It retains higher per-hit melee damage than Ifrit, but consumes the full 200 base Command, waits 6.5 seconds between deployments, must enter melee range, and permits only two living bodies per side.
+- Only combatants tagged `ranged` and the player watchtower can select a flying target. Late enemy-fortress fire is an explicit domain-independent exception and can shoot both ground and flying attackers. Fortress bombardment and beast stomp skip flying targets; flying units can attack ground targets normally.
 - Defense is subtracted from incoming damage after bonuses; final damage has a minimum of 1.
 - Pierce starts with the selected primary target, then selects the nearest valid targets farther along the attack direction inside its follow-through distance. Cleave selects all valid targets inside the attacker's normal melee range. Every secondary target receives the listed multiplier.
 - Archer versus Crossbow is an explicit tradeoff rather than a faction advantage. An Archer deployment has two bodies, 215 range, and higher combined single-target pressure. A Crossbow deployment has one tougher body, 160 range, a slower 1.45-second attack, and a stronger 36-damage bolt; its total volley exceeds the Archer deployment only when a second target lines up for the capped two-target pierce. High per-shot damage also loses less of its proportion to flat defense, while the Archer remains safer and stronger against one target.
@@ -78,19 +92,25 @@ The expensive roster was rebalanced against Command cost rather than rarity alon
 
 | Troop | Command | HP | DEF | ATK | Interval |
 |---|---:|---:|---:|---:|---:|
-| 대마법사 | 190 | 200 | 3 | 78 | 1.60 s |
-| 트롤 | 155 | 620 | 4 | 48 | 1.40 s |
-| 오우거 마도사 | 175 | 450 | 3 | 68 | 1.50 s |
-| 바실리스크 | 165 | 420 | 6 | 58 | 1.25 s |
-| 룬 골렘 | 195 | 820 | 9 | 60 | 1.65 s |
-| 늪지 히드라 | 200 | 720 | 4 | 60 | 1.45 s |
-| 이프리트 | 200 | 430 | 4 | 72 | 1.65 s |
-| 영혼 수확자 | 195 | 280 | 3 | 78 | 1.35 s |
-| 심연 기사 | 200 | 640 | 9 | 60 | 1.25 s |
+| 대마법사 | 190 | 700 | 4 | 110 | 1.60 s |
+| 트롤 | 170 | 1,200 | 6 | 75 | 1.40 s |
+| 오우거 마도사 | 185 | 900 | 4 | 100 | 1.50 s |
+| 미노타우로스 | 190 | 1,350 | 6 | 95 | 1.40 s |
+| 와이번 | 190 | 1,050 | 4 | 88 | 1.10 s |
+| 바실리스크 | 180 | 1,200 | 8 | 90 | 1.25 s |
+| 대지 정령 | 165 | 1,150 | 9 | 60 | 1.35 s |
+| 고대 트렌트 | 190 | 1,900 | 8 | 90 | 1.60 s |
+| 룬 골렘 | 200 | 2,300 | 12 | 110 | 1.65 s |
+| 늪지 히드라 | 200 | 2,100 | 7 | 115 | 1.45 s |
+| 악마 근위병 | 175 | 1,300 | 10 | 75 | 1.20 s |
+| 케르베로스 | 200 | 1,600 | 6 | 110 | 0.95 s |
+| 이프리트 | 200 | 2,200 | 8 | 140 | 1.65 s |
+| 영혼 수확자 | 200 | 1,200 | 6 | 125 | 1.35 s |
+| 심연 기사 | 200 | 1,900 | 12 | 115 | 1.25 s |
 
 ### Simultaneous legendary deployment limits
 
-`maxActivePerSide` limits living bodies of one troop ID independently for each faction. It applies to player summons, scripted enemy waves, and reinforcements. A rank-5 equipment capstone fills only the remaining capacity: for example, a two-body deployment into a limit of two creates one body if one is already alive, while still consuming the card activation. Ordinary troops have no such limit.
+`maxActivePerSide` limits living bodies of one troop ID independently for each faction. It applies to player summons, scripted enemy waves, and reinforcements. A body-granting rank-5 equipment capstone fills only the remaining capacity: for example, a two-body deployment into a limit of two creates one body if one is already alive, while still consuming the card activation. Stat-capstone creatures never add a body. Ordinary troops have no such limit.
 
 | Limit | Troops |
 |---:|---|
@@ -111,7 +131,7 @@ Each troop and hero has three independent equipment slots with five levels each.
 
 Equipment no longer applies a shared percentage. Each canonical combatant definition owns these absolute gains per equipment level:
 
-Expansion troops created through `makeTroop` derive readable fixed growth once at data construction: weapon `max(2, round(base ATK × 0.10))`, armor HP `max(12, round(base HP × 0.10))`, armor defense `+1.5` when the base has defense or `+1` otherwise, and boots `max(1, base move × 0.03 rounded to one decimal)`. Their equipment price base is 75 below 100 Command, 100 from 100–149, and 125 from 150 upward. These become ordinary fixed values on the resulting definition; combat never reapplies the formula.
+Expansion troops created through `makeTroop` derive readable fixed growth once at data construction: weapon `max(2, round(base ATK × 0.10))`, armor HP `max(12, round(base HP × 0.10))`, armor defense `+1.5` when the base has defense or `+1` otherwise, and boots `max(1, base move × 0.03 rounded to one decimal)`. Equipment price bases instead follow canonical troop grade: 1-star 75, 2-star 100, 3-star 200, 4-star 300, and 5-star 400, with authored 50-cost exceptions for Militia and Raider. These become ordinary fixed values on the resulting definition; combat never reapplies the growth formula.
 
 | Combatant | Weapon ATK | Armor HP | Armor DEF | Boots move |
 |---|---:|---:|---:|---:|
@@ -123,10 +143,10 @@ Expansion troops created through `makeTroop` derive readable fixed growth once a
 | 철갑병 | +3 | +38 | +2.2 | +1.2 |
 | 왕립 기마병 | +5 | +30 | +1.4 | +2.4 |
 | 석궁병 | +4 | +13 | +1.0 | +1.4 |
-| 파쇄자 | +5 | +42 | +1.8 | +1.0 |
-| 그리폰 기수 | +8 | +55 | +2.0 | +2.2 |
-| 폭풍 정령 | +4 | +18 | +0.8 | +2.0 |
-| 마염견 | +5 | +28 | +1.2 | +2.2 |
+| 파쇄자 | +7 | +90 | +2.0 | +1.0 |
+| 그리폰 기수 | +15 | +160 | +2.0 | +2.2 |
+| 폭풍 정령 | +6 | +60 | +1.2 | +2.0 |
+| 마염견 | +7 | +85 | +1.5 | +2.2 |
 | 에드릭 | +3 | +42 | +2.0 | +1.2 |
 | 셀레네 | +5 | +24 | +1.0 | +1.4 |
 | 리아 | +5 | +28 | +1.2 | +1.8 |
@@ -134,11 +154,13 @@ Expansion troops created through `makeTroop` derive readable fixed growth once a
 
 - Equipment cost: `equipmentCostBase × (currentLevel + 1)` for all three slots.
 - Militia and Raider use base 50: 50 / 100 / 150 / 200 / 250 gold.
-- Guardian, Archer, Lancer, Bulwark, and Crossbow use base 75: 75 / 150 / 225 / 300 / 375 gold.
-- Royal Cavalry, Ogre Crusher, Storm Spirit, and Edric use base 100: 100 / 200 / 300 / 400 / 500 gold.
-- Griffin Rider, Hellhound, Selene, Ria, and Mirena use base 125: 125 / 250 / 375 / 500 / 625 gold.
-- Bran uses base 150: 150 / 300 / 450 / 600 / 750 gold.
-- Soldier equipment capstone: when any one of Weapon, Armor, or Boots reaches rank 5, that troop's deployment size permanently increases by 1. Completing additional slots does not add more bodies. The rule applies symmetrically to stage-equipped regular enemies, while heroes, bosses, and explicitly single-body elite guards remain at one body. Enemy reinforcement `maxAlive` remains an exact living-body cap rather than a deployment count.
+- Other 1-star troops use base 75: 75 / 150 / 225 / 300 / 375 gold.
+- Every 2-star troop uses base 100: 100 / 200 / 300 / 400 / 500 gold.
+- Every 3-star troop uses base 200: 200 / 400 / 600 / 800 / 1,000 gold; one complete branch costs 3,000.
+- Every 4-star troop uses base 300: 300 / 600 / 900 / 1,200 / 1,500 gold; one complete branch costs 4,500.
+- The 5-star Ifrit uses base 400: 400 / 800 / 1,200 / 1,600 / 2,000 gold; one complete branch costs 6,000.
+- Heroes retain authored bases: Edric 100, Selene/Ria/Mirena 125, and Bran 150.
+- Soldier equipment capstone: when any one of Weapon, Armor, or Boots reaches rank 5, ordinary, 3-star, and non-large 4-star troops permanently gain +1 deployment body. Every 5-star troop and 4-star `large` troop instead stays at its canonical squad size and gains one additional fixed rank of Weapon attack/healing, Armor HP/defense, and Boots movement simultaneously. The current stat-capstone roster is Griffin Rider, Ancient Treant, Rune Golem, Swamp Hydra, Cerberus, and Ifrit. Completing additional slots does not stack either bonus. The rule applies symmetrically to stage-equipped regular enemies; heroes and bosses receive neither bonus, named elite spawning remains single-body, and reinforcement `maxAlive` remains an exact living-body cap rather than a deployment count.
 - Soldier mastery maximum: level 50. Hero mastery maximum: level 30.
 - XP for next mastery level: `round(45 × level^1.32)`.
 - Mastery uses character-specific flat gains. At level `L`, add `(L - 1) × listed gain` to canonical HP and ATK before adding equipment.
@@ -156,10 +178,10 @@ Expansion troops created through `makeTroop` derive readable fixed growth once a
 | 철갑병 | +16 | +2 |
 | 왕립 기마병 | +10 | +2 |
 | 석궁병 | +5 | +2 |
-| 파쇄자 | +18 | +3 |
-| 그리폰 기수 | +7 | +2 |
-| 폭풍 정령 | +6 | +2 |
-| 마염견 | +9 | +2 |
+| 파쇄자 | +35 | +4 |
+| 그리폰 기수 | +55 | +6 |
+| 폭풍 정령 | +24 | +3 |
+| 마염견 | +32 | +4 |
 
 ## 4. Heroes
 
@@ -213,13 +235,13 @@ Each awakening rank also enables one level of a nearby-soldier aura: Edric gives
 - The rule is faction-symmetric. When the enemy fortress reaches zero HP, its remaining rear defenders immediately become valid targets. Challenge bosses receive no enemy-fortress shield because challenges contain no enemy fortress. Campaign bosses and named elite guards retain their forward authored spawn points.
 - This increases the tactical value of fortress durability and provides a recovery window after an army is pushed back. It changes engagement geometry but no unit stat, reward, cost, or authored campaign-pressure input.
 
-Fortress research has five ranks per node. Rank cost is `baseCost × (currentRank + 1)`, so every node has a readable five-step arithmetic sequence. Eighteen nodes provide 90 total purchasable research ranks.
+Fortress research has five ranks per node. Rank cost is `baseCost × (currentRank + 1)`, so every node has a readable five-step arithmetic sequence. Twenty-three nodes across five implemented branches—Command, Growth, Defense, Artillery, and Expedition—provide 115 total purchasable research ranks.
 
 | Fortress tier | Promotion requirement | Promotion cost | New permits |
 |---:|---:|---:|---|
-| 1 · 변경 요새 | starting | 0 | nine foundation nodes; kingdom regular troops |
-| 2 · 왕립 성채 | 8 total research ranks | 1,000 | six tier-2 nodes; Raider, Bulwark, and Royal Cavalry recruitment |
-| 3 · 최후의 보루 | 24 total research ranks | 2,500 | three tier-3 nodes; Crossbow and Griffin Rider recruitment |
+| 1 · 변경 요새 | starting | 0 | ten foundation nodes; kingdom regular troops |
+| 2 · 왕립 성채 | 8 total research ranks | 1,000 | eight tier-2 nodes; Raider, Bulwark, and Royal Cavalry recruitment |
+| 3 · 최후의 보루 | 24 total research ranks | 2,500 | five tier-3 nodes; Crossbow and Griffin Rider recruitment |
 
 - Promotion requirements count ranks purchased across all branches.
 - A tier-gated node may also require a preceding node. Both conditions must be satisfied; the technology card shows both the required prerequisite rank and the player's current rank.
@@ -228,29 +250,41 @@ Fortress research has five ranks per node. Rank cost is `baseCost × (currentRan
 
 | Branch | Tier | Node | Base cost | Effect per rank | Prerequisite |
 |---|---:|---|---:|---|---|
-| Economy | 1 | 전쟁 금고 | 100 | starting Command +25 | — |
-| Economy | 1 | 보급로 | 150 | regeneration +2.5/s | 전쟁 금고 1 |
-| Economy | 1 | 지휘 저장고 | 200 | maximum Command +40 | 보급로 1 |
-| Economy | 2 | 상비군 훈련소 | 250 | summon cooldown -5% | 지휘 저장고 2 |
-| Economy | 2 | 군수 표준화 | 300 | soldier Command cost -3% | 지휘 저장고 3 |
-| Economy | 2 | 전리품 회계 | 350 | battle and first-clear Gold +5% | 군수 표준화 2 |
-| Economy | 2 | 왕립 야전 교범 | 400 | battle-earned mastery XP +5% | 전리품 회계 2 |
-| Economy | 3 | 승전 공납제 | 400 | Command per normal kill +2 | 상비군 훈련소 3 |
+| Command | 1 | 전쟁 금고 | 100 | starting Command +25 | — |
+| Command | 1 | 보급로 | 150 | regeneration +2.5/s | 전쟁 금고 1 |
+| Command | 1 | 지휘 저장고 | 200 | maximum Command +40 | 보급로 1 |
+| Command | 2 | 상비군 훈련소 | 250 | summon cooldown -5% | 지휘 저장고 2 |
+| Command | 2 | 군수 표준화 | 300 | soldier Command cost -3% | 지휘 저장고 3 |
+| Growth | 2 | 전리품 회계 | 350 | battle and first-clear Gold +5% | — |
+| Growth | 2 | 왕립 야전 교범 | 400 | battle-earned mastery XP +5% | — |
+| Command | 3 | 승전 공납제 | 400 | Command per normal kill +1 | 상비군 훈련소 3 |
 | Defense | 1 | 강화 성벽 | 100 | fortress HP +250 | — |
 | Defense | 1 | 석재 장갑 | 150 | flat damage reduction +3 | 강화 성벽 1 |
 | Defense | 1 | 수호 망루 | 200 | tower damage +22; interval improves by 250 ms | 강화 성벽 1 |
 | Defense | 2 | 고층 흉벽 | 250 | tower range +45 | 수호 망루 2 |
-| Defense | 3 | 재생 석재 | 400 | fortress regeneration +1.5 HP/s | 고층 흉벽 3 |
+| Defense | 3 | 재생 석재 | 400 | fortress regeneration +4 HP/s | 고층 흉벽 3 |
 | Artillery | 1 | 흑색 화약 | 100 | bombardment damage +45 | — |
 | Artillery | 1 | 신속 장전 | 150 | cooldown -3 s | 흑색 화약 1 |
 | Artillery | 1 | 광역 탄두 | 200 | radius +20 | 흑색 화약 2 |
 | Artillery | 2 | 마수 관통탄 | 300 | bombardment boss damage +70 | 광역 탄두 2 |
-| Artillery | 3 | 공성 계산학 | 450 | direct enemy-fortress bombardment damage +60 | 마수 관통탄 3 |
+| Artillery | 3 | 공성 계산학 | 450 | direct enemy-fortress bombardment damage +60; bombardment range +80 | 마수 관통탄 3 |
+| Expedition | 1 | 집결 신호 | 150 | ordinary-soldier rally control; redeploy cooldown -2 s | — |
+| Expedition | 2 | 영웅 기치 | 300 | hero rally control; hero active cooldown -3% | 집결 신호 3 |
+| Expedition | 2 | 동원 전술 훈련 | 300 | each mobilization maximum +5 and regeneration +0.3/s | 집결 신호 2 |
+| Expedition | 3 | 야전 구난대 | 400 | hero respawn time -3% | 영웅 기치 3 |
+| Expedition | 3 | 초월의 군기 | 450 | 5-star transcendent rally control; rally movement +5% | 영웅 기치 5 |
 
 - Summon cooldown reduction is capped at 25% through the five available ranks.
+- `승전 공납제` raises the base 6 Command per normal kill to 7/8/9/10/11 across ranks 1–5. Its former +2 per rank reached 16 at rank 5 and over-rewarded large low-tier formations.
+- `재생 석재` restores 4/8/12/16/20 fortress HP per second across ranks 1–5, clamped to the current maximum HP. The effect is continuous, elapsed-time based, and shown in the fortress summary.
 - Soldier Command-cost reduction is capped at 15% through the five `군수 표준화` ranks. Effective cost is `max(10, ceil(base Command × (1 - 0.03 × rank)))`; the battle card, affordability check, and actual deduction all use this same value.
 - Watchtower interval is floored at 900 ms, and bombardment cooldown is floored at 16 seconds.
-- Direct fortress bombardment may be fired at an undefended enemy fortress once `공성 계산학` has at least one rank.
+- Bombardment has a 1,000-unit base targeting range measured from the player fortress. `공성 계산학` adds 80 per rank, reaching 1,400 at rank 5; out-of-range ground enemies and fortresses cannot be selected, and an invalid activation spends neither cooldown nor use count.
+- Direct fortress bombardment requires at least one `공성 계산학` rank and the enemy fortress to be inside the resulting bombardment range.
+- Rally placement starts at a 20-second base redeploy cooldown. `집결 신호` rank 1 is required to use the flag and resolves the cooldown to 18 seconds; ranks 2–5 reduce it to 16/14/12/10 seconds. Clearing an order does not erase the remaining cooldown. Eligible units attack targets already in range, otherwise move to a deterministic slot within 27 units of the clicked center and hold within an 18-unit arrival radius.
+- `영웅 기치` rank 1 admits the selected hero and reduces the mastery-adjusted active cooldown by 3% per rank, capped at 15%. `야전 구난대` applies the same 3%-per-rank, 15%-maximum multiplier to mastery-adjusted hero respawn time.
+- `초월의 군기` rank 1 admits canonical 5-star transcendent troops and increases every eligible unit's movement toward the flag by 5% per rank, capped at +25%. The current 5-star roster is Ifrit. Grades 1–4 use ordinary-soldier permission, regardless of size, rarity, active-unit cap, or Command cost.
+- `동원 전술 훈련` adds +5 maximum Command and +0.3 Command/s per rank to each activation. Rank 5 therefore changes every activation from +25/+1.5 per second to +50/+3.0 per second while retaining the three-use cap and full-current-gauge cost.
 
 At maximum `군수 표준화`, every one of the 50 deployment costs uses `max(10, ceil(base Command × 0.85))`; cards, affordability checks, and deductions share that calculation.
 
@@ -265,11 +299,11 @@ At maximum `군수 표준화`, every one of the 50 deployment costs uses `max(10
 | 5 | 2,300 | 500 | 4/4/3 | 500 gold |
 | 6 | 3,200 | 600 | 5/5/4 | Ria + 800 gold |
 | 7 | 3,600 | 700 | 5/5/5 | 700 gold |
-| 8 | 3,300 | 800 | 5/5/5 | 800 gold |
-| 9 | 3,900 | 900 | 5/5/5 | 900 gold + Hero Training Ground |
-| 10 | 4,600 | 1,000 | 5/5/5 | 1,000 gold |
+| 8 | 5,000 | 800 | 5/5/5 | 800 gold |
+| 9 | 6,000 | 900 | 5/5/5 | 900 gold + Hero Training Ground |
+| 10 | 8,500 | 1,000 | 5/5/5 | 1,000 gold |
 | 11 | 5,400 | 1,100 | 5/5/5 | 1,100 gold |
-| 12 | 6,500 | 1,200 | 5/5/5 | Mirena + 1,200 gold |
+| 12 | 7,500 | 1,200 | 5/5/5 | Mirena + 1,200 gold |
 
 - Defeat grants 20% of the listed battle gold, rounded down.
 - First-clear rewards are granted once per save.
@@ -296,11 +330,21 @@ At maximum `군수 표준화`, every one of the 50 deployment costs uses `max(10
 | 25 | 폭풍 해안 | 44,500 | army + elite |
 | 26 | 천둥 협곡 | 45,750 | army + elite |
 | 27 | 구름 요새 | 48,250 | army + elite |
-| 28 | 왕좌 회랑 | 50,750 | army + elite |
+| 28 | 왕좌 회랑 | 51,000 | army + elite |
 | 29 | 최후의 장벽 | 53,250 | army + elite |
 | 30 | 마왕성의 심연수 | 51,500 | boss siege |
 
 Fortress distance is `min(1,390, 1,050 + (stage - 1) × 25)` virtual units. With the player fortress fixed at X 105, the enemy fortress moves from X 1,155 toward the capped X 1,495 position. Stage 14 resolves to 1,375, stage 15 reaches 1,390, and stages 16–30 stay at that maximum. Distance is therefore an early-to-mid-campaign expansion axis rather than an artificial per-stage late-game escalator.
+
+### Enemy fortress fire
+
+Stages 13–30 add a basic enemy-fortress shot as a separate, visible difficulty axis. It targets the foremost living player combatant inside range, can hit ground and flying troops, subtracts the target's defense, and stops immediately when the fortress is destroyed. Stages 1–12 and fortress-less challenges have no enemy-fortress attack.
+
+| Campaign region | Stages | Damage | Range | Interval |
+|---|---:|---:|---:|---:|
+| Ash highland | 13–18 | 36 | 260 | 2.8 s |
+| Spirit tundra | 19–24 | 52 | 290 | 2.4 s |
+| Demon rift | 25–30 | 72 | 320 | 2.1 s |
 
 ### Advanced troop introduction pacing
 
@@ -336,7 +380,7 @@ Fortress distance is `min(1,390, 1,050 + (stage - 1) × 25)` virtual units. With
 | 심연의 마염수 | stage 30 | 1,800 | 마염견 | ×10 / ×2.5 / ×1.2 | ×12 / ×1.05 / ×0.56 | 마염견 |
 | 태양 감옥의 이프리트 | stage 30 | 2,400 | 이프리트 | ×10 / ×2.5 / ×1.1 | ×7.5 / ×1 / ×0.52 | 이프리트 |
 
-Challenges contain no enemy fortress, waves, reinforcements, or elite. The enemy is derived from the same base troop later granted to the player, then receives rank-5 stage equipment, the visible terrain multipliers, and its named-boss modifier. Moving most durability into the common visible HP ×10 terrain rule makes the encounter premise legible while the remaining named modifier preserves progression; combined effective HP multipliers are ×15, ×80, ×120, and ×75 before equipment. These are about 11–29% higher than the previous combined challenge values. First-clear acquisition is persistent and does not advance the campaign; the acquired troop never receives terrain or named-boss multipliers. Listed battle gold is repeatable and defeat still grants 20%.
+Challenges contain no enemy fortress, fortress fire, waves, reinforcements, or elite. The enemy is derived from the same base troop later granted to the player, then receives rank-5 stage equipment, the visible terrain multipliers, and its named-boss modifier. The common HP ×10 terrain rule remains legible while the named modifier preserves progression; combined effective HP multipliers are ×15, ×80, ×120, and ×75 before equipment. With current rank-5 armor, this resolves to 20,250 / 72,000 / 153,000 / 247,500 encounter HP. First-clear acquisition is persistent and does not advance the campaign; the acquired troop never receives terrain or named-boss multipliers. Listed battle gold is repeatable and defeat still grants 20%.
 
 ### Continuous enemy reinforcements
 
@@ -347,20 +391,20 @@ After the scripted opening waves, every non-boss stage cycles through the follow
 | 1 | 34 s | 3.5 s | Raider → Militia | 6 |
 | 2 | 32 s | 3.2 s | Guardian → Raider → Bulwark | 7 |
 | 3 | 33 s | 3.0 s | Archer → Guardian → Crossbow | 8 |
-| 4 | 36 s | 2.8 s | Lancer → Crossbow → Brute | 9 |
-| 5 | 48 s | 2.8 s | Raider → Bulwark → Crossbow → Brute → Lancer | 9 |
+| 4 | 36 s | 2.8 s | Lancer → Crossbow → Bulwark | 9 |
+| 5 | 48 s | 2.8 s | Raider → Bulwark → Crossbow → Swordsman → Lancer | 9 |
 | 6 | 5 s | 8.5 s | Raider → Militia | 4 |
-| 7 | 34 s | 2.3 s | Militia → Crossbow → Guardian → Brute | 13 |
+| 7 | 34 s | 2.3 s | Militia → Crossbow → Guardian → Swordsman | 13 |
 | 8 | 34 s | 2.3 s | Raider → Archer → Lancer → Crossbow → Royal Cavalry | 12 |
 | 9 | 37 s | 2.3 s | Guardian → Royal Cavalry → Militia → Lancer → Bulwark | 13 |
-| 10 | 39 s | 2.2 s | Bulwark → Crossbow → Guardian → Brute | 13 |
-| 11 | 39 s | 2.2 s | Royal Cavalry → Bulwark → Crossbow → Brute → Lancer | 12 |
+| 10 | 39 s | 2.2 s | Bulwark → Crossbow → Guardian → Swordsman | 13 |
+| 11 | 39 s | 2.2 s | Royal Cavalry → Bulwark → Crossbow → Swordsman → Lancer | 12 |
 | 12 | 5 s | 8.0 s | Militia → Raider → Archer | 4 |
 
 - Later boss garrisons are stage 18 `Raider → Goblin Archer / 7.8 s / cap 4`, stage 24 `Scout → Frost Spirit / 7.6 s / cap 4`, and stage 30 `Imp → Militia / 7.4 s / cap 5`; all begin at 5 seconds.
-- Every non-boss stage from 13–29 starts reinforcements at 55 seconds, rotates Militia → Guardian → Archer → Lancer → Bulwark → Cavalry → Crossbow → Brute, uses a 2.28–2.12 second interval, and caps living regular enemies at 13–15.
+- Every non-boss stage from 13–29 starts reinforcements at 55 seconds, rotates Militia → Guardian → Archer → Lancer → Bulwark → Cavalry → Crossbow → Swordsman, uses a 2.28–2.12 second interval, and caps living regular enemies at 13–15. Ogre Crushers, Griffins, and other upper-tier bodies remain finite opening-wave or elite events rather than repeatable filler.
 
-- Enemy equipment reaches the shared +5/+5/+5 cap at stage 7. Later difficulty uses composition, advanced mechanics, reinforcement timing/caps, fortress HP, and boss patterns rather than additional generic stat multipliers.
+- Enemy equipment reaches the shared +5/+5/+5 cap at stage 7. Later difficulty uses composition, advanced mechanics, reinforcement timing/caps, fortress HP and fire, and boss patterns rather than additional generic stat multipliers.
 
 ### Elite defenders
 
@@ -370,9 +414,10 @@ Stages 2, 3, 4, 5, 7–11, and every non-boss stage from 13–29 place one named
 
 `yarn balance` is a standalone design audit and is deliberately not part of `yarn build` or the normal `yarn test` suite. It runs the campaign-curve check, shared-roster Command-efficiency check, and focused-upgrade progression stress report against live data, printing their tables when console interception is disabled.
 
-The pure estimator in `src/game/difficulty.ts` combines six axes:
+The pure estimator in `src/game/difficulty.ts` combines seven axes:
 
 - objective durability from fortress HP at `HP / 5`, reflecting that every campaign battle—including boss sieges—retains a real fortress damage window;
+- enemy-fortress fire from its damage per second weighted by range, applied only to stages whose fortress can actually shoot;
 - battlefield endurance from half of the virtual distance beyond the stage-1 baseline, representing the extra travel and reinforcement window;
 - scripted-army pressure from trained unit threat, squad expansion, spawn timing, movement domain, attack pattern, and support healing per second;
 - recurring pressure from reinforcement composition, interval, and living-enemy cap;
@@ -389,7 +434,7 @@ Opening waves measure complete deployments including squad-size capstones. Reinf
 
 `scripts/unit-efficiency.test.ts` estimates each base deployment as `estimateUnitThreat(unit) × squadSize`, then divides by its Command cost. The shared threat estimate accounts for effective HP, flat defense, DPS, healing per second, range, movement, flying/charge/anti-large traits, and pierce or cleave reach. Every troop costing at least 150 Command must score at least 1.0 estimated threat per Command, and no base troop may cost more than the unupgraded 200 maximum Command.
 
-The current upper-tier range runs from the Treant at 1.03 to the Griffin Rider at 1.95. This is a regression guard, not a promise that the estimator perfectly orders every matchup: focus fire, path congestion, aerial counter availability, and real cleave density still require playtesting.
+The current 150+ Command range runs from the Ogre Crusher at 1.39 estimated threat per Command to Ifrit at 4.37. This is a minimum-value regression guard, not a promise that the estimator perfectly orders every matchup: focus fire, path congestion, active-body limits, aerial counter availability, and real cleave density still require playtesting.
 
 ### Focused-upgrade progression stress report
 
@@ -409,15 +454,15 @@ The map tier and campaign curve measure absolute enemy pressure. They intentiona
 | 1 | 100 | Militia weapon +1 | 3 | ×1.09 | 282.0 |
 | 2 | 200 | Militia weapon +2 | 3 | ×1.18 | 370.1 |
 | 3 | 400 | Militia weapon +3 | 3 | ×1.27 | 483.2 |
-| 4 | 1,000 | Militia weapon +5 | 4 | ×1.93 | 487.4 |
-| 5 | 1,400 | Militia weapon +5 | 4 | ×1.93 | 560.9 |
+| 4 | 1,000 | Militia weapon +5 | 4 | ×1.93 | 507.7 |
+| 5 | 1,400 | Militia weapon +5 | 4 | ×1.93 | 548.0 |
 | 6 | 2,400 | Militia weapon +5 | 4 | ×1.93 | 699.8 |
 
-The finding confirms an early progression cliff. From stage 3 to stage 4, enemy pressure rises by 53.5%, but the optimized Militia build rises from weapon +3 to +5 and receives its free fourth body, increasing deployment power by roughly 52%. Relative pressure therefore rises only from 483.2 to 487.4, or about 0.9%, instead of delivering the intended difficulty step. At +5, weapon stats alone account for ×1.45 base power and the 3→4 body capstone multiplies that by another ×1.33, producing ×1.93 together.
+The stress case remains real: before stage 4, the optimized Militia build jumps from weapon +3 to +5 and receives its free fourth body, increasing deployment power to ×1.93 of base. The rebalanced encounter now raises pressure per optimized power from 483.2 to 507.7, a ×1.05 step, instead of allowing the capstone to erase the increase. At +5, weapon stats alone account for ×1.45 base power and the 3→4 body capstone multiplies that by another ×1.33.
 
 This is a conservative finding: seven total stage-1 wins generate 700 battle gold on top of the starting 100, enough to buy the 750-gold Militia branch before entering stage 2. Achievements can accelerate it further. Repeated farming is allowed to make later battles easier, but the current free-body breakpoint is strong enough that the absolute campaign curve must not be presented as a player-relative guarantee.
 
-The stress test currently characterizes and reports this known risk rather than silently declaring it balanced. A future capstone/economy change should replace the characterized stage-4 cliff expectations with a maximum relative-power-spike gate.
+The stress test now enforces a bounded early progression band: every tested stage-to-stage relative-pressure step must remain between ×0.95 and ×1.35, and stage 4 must retain at least ×1.05 despite the equipment capstone. It continues to print the full report so later economy or capstone changes cannot hide a new cliff behind a passing absolute campaign curve.
 
 ## 8. Achievement rewards
 

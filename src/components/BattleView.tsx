@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { battleMobilizationTuning, castleBattleStats } from '../data/castle';
-import { troopDefinitions } from '../data/units';
+import { battleMobilizationTuning, castleBattleStats, rallyCommandTuning } from '../data/castle';
+import { troopDefinitions, unitGradeLabels } from '../data/units';
 import { getStage } from '../data/stages';
 import { BattleEvent, battleEvents } from '../game/EventBus';
 import { isHeroSkillKey } from '../game/controls';
@@ -24,6 +24,8 @@ const initialHud: BattleHudState = {
   heroSkillMaxCooldownMs: 25_000, heroName: '에드릭 · 철벽의 기사', heroSkillName: '수호의 결계', heroIcon: '♛',
   castleSkillCooldownMs: 0, castleSkillMaxCooldownMs: 32_000,
   mobilizationUses: 0, mobilizationMaxUses: battleMobilizationTuning.maxUses,
+  rallyUnlocked: false, rallyHeroControl: false, rallyTranscendentControl: false,
+  rallyTargeting: false, rallyTargetActive: false, rallyCooldownMs: 0, rallyCooldownMaxMs: 0,
   bossAwake: false, bossPhase: 1, bossHp: 0, bossMaxHp: 0, paused: false,
   battleSpeed: 1,
 };
@@ -84,6 +86,7 @@ export function BattleView({ stageId, onResult }: BattleViewProps) {
         battleEvents.emit(BattleEvent.SKILL);
       }
       if (event.key.toLowerCase() === 'e') battleEvents.emit(BattleEvent.MOBILIZE);
+      if (event.key.toLowerCase() === 'r') battleEvents.emit(BattleEvent.RALLY_MODE);
       if (event.key.toLowerCase() === 'p' || event.key === 'Escape') battleEvents.emit(BattleEvent.PAUSE);
     };
     window.addEventListener('keydown', onKeyDown);
@@ -93,6 +96,7 @@ export function BattleView({ stageId, onResult }: BattleViewProps) {
   const spawn = (id: UnitId) => battleEvents.emit(BattleEvent.SPAWN, id);
   const pause = () => battleEvents.emit(BattleEvent.PAUSE);
   const canMobilize = hud.command >= hud.maxCommand && hud.mobilizationUses < hud.mobilizationMaxUses && !hud.paused;
+  const rallyScope = ['1~4성 병사', hud.rallyHeroControl ? '영웅' : '', hud.rallyTranscendentControl ? '5성 초월 병종' : ''].filter(Boolean).join(' · ');
 
   return (
     <main className="battle-shell">
@@ -158,7 +162,7 @@ export function BattleView({ stageId, onResult }: BattleViewProps) {
               disabled={!canMobilize}
               onClick={() => battleEvents.emit(BattleEvent.MOBILIZE)}
               aria-label={`${battleMobilizationTuning.name}, 최대 지휘력과 회복 속도 상승, 단축키 E, ${hud.mobilizationUses}/${hud.mobilizationMaxUses}회`}
-              title={`지휘력 100% 소모 · 최대 +${battleMobilizationTuning.maxCommandBonus} · 회복 +${battleMobilizationTuning.commandRegenBonus}/초 (E)`}
+              title={`지휘력 100% 소모 · 최대 +${battleCastleStats.mobilizationMaxCommandBonus} · 회복 +${battleCastleStats.mobilizationCommandRegenBonus}/초 (E)`}
             ><kbd>E</kbd><span>동원 {hud.mobilizationUses}/{hud.mobilizationMaxUses}</span></button>
           </div>
           <div className="unit-buttons">
@@ -182,11 +186,11 @@ export function BattleView({ stageId, onResult }: BattleViewProps) {
                   className={`unit-command unit-${id} ${cooldown > 0 ? 'summon-cooling' : !disabled ? 'summon-ready' : ''}`}
                   disabled={disabled}
                   onClick={() => spawn(id)}
-                  aria-label={`${unit.name} ${actualDeploymentSize}명 소환, 지휘력 ${cost}${cooldownLabel}${fieldLimitLabel}`}
+                  aria-label={`${unit.name}, ${unit.grade}성 ${unitGradeLabels[unit.grade]}, ${actualDeploymentSize}명 소환, 지휘력 ${cost}${cooldownLabel}${fieldLimitLabel}`}
                 >
                   <span className="hotkey">{index + 1}</span>
                   <CharacterSprite id={id} className="unit-icon battle-unit-art" />
-                  <span className="unit-name">{unit.name}{deploymentSize > 1 ? ` ×${deploymentSize}` : ''}</span>
+                  <span className="unit-name">{unit.name}{deploymentSize > 1 ? ` ×${deploymentSize}` : ''} <i className={`battle-grade grade-${unit.grade}`}>{'★'.repeat(unit.grade)}</i></span>
                   <span className="unit-cost">✦ {cost}</span>
                   {unit.maxActivePerSide !== undefined && <span className={`unit-limit ${atFieldLimit ? 'at-limit' : ''}`}>전장 {activeCount}/{unit.maxActivePerSide}</span>}
                   {cooldown > 0 && (
@@ -199,14 +203,27 @@ export function BattleView({ stageId, onResult }: BattleViewProps) {
         </div>
 
         <div className="battle-utility">
+          {hud.rallyUnlocked && <div className="rally-controls">
+            <button
+              onClick={() => battleEvents.emit(BattleEvent.RALLY_MODE)}
+              className={`rally-command-button ${hud.rallyTargeting ? 'targeting' : hud.rallyTargetActive ? 'active' : ''}`}
+              disabled={(hud.rallyCooldownMs > 0 && !hud.rallyTargeting) || hud.paused}
+              aria-label={`${rallyCommandTuning.name}, ${rallyScope} 지휘, 단축키 R${hud.rallyCooldownMs > 0 ? `, 재지정 대기 ${(hud.rallyCooldownMs / 1000).toFixed(1)}초` : ''}`}
+              title={`${rallyScope}를 지정한 위치로 집결 (R)`}
+            >
+              <kbd>R</kbd><span>{hud.rallyTargeting ? '위치 선택' : hud.rallyCooldownMs > 0 ? Math.ceil(hud.rallyCooldownMs / 1000) : hud.rallyTargetActive ? '재지정' : '집결'}</span>
+            </button>
+            {hud.rallyTargetActive && <button className="rally-clear-button" onClick={() => battleEvents.emit(BattleEvent.RALLY_CLEAR)} disabled={hud.paused} aria-label="집결 명령 해제" title="집결 명령 해제">×</button>}
+          </div>}
           <button
             onClick={() => battleEvents.emit(BattleEvent.CASTLE_SKILL)}
             className="castle-skill-button"
             disabled={hud.castleSkillCooldownMs > 0 || hud.paused}
-            aria-label="성채 포격"
+            aria-label={`성채 포격, 최대 사거리 ${battleCastleStats.bombardRange}`}
+            title={`가장 가까운 지상 적을 포격 · 최대 사거리 ${battleCastleStats.bombardRange}`}
           >
             <span>♜</span>
-            <small>{hud.castleSkillCooldownMs > 0 ? Math.ceil(hud.castleSkillCooldownMs / 1000) : '포격'}</small>
+            <small>{hud.castleSkillCooldownMs > 0 ? Math.ceil(hud.castleSkillCooldownMs / 1000) : `포격 · ${battleCastleStats.bombardRange}`}</small>
           </button>
           {battleSpeedUnlocked && <button onClick={toggleBattleSpeed} className={`icon-button battle-speed-button ${hud.battleSpeed === 1.5 ? 'active' : ''}`} aria-label={`전투 속도 ${hud.battleSpeed}배, 눌러서 전환`} title="전투 속도 전환"><span>{hud.battleSpeed}×</span></button>}
           <button onClick={toggleMusic} className="icon-button" aria-label={muted ? '게임 사운드 켜기' : '게임 사운드 끄기'} title={muted ? '게임 사운드 켜기' : '게임 사운드 끄기'}>{muted ? '♩̸' : '♪'}</button>
@@ -220,6 +237,7 @@ export function BattleView({ stageId, onResult }: BattleViewProps) {
           <button className="primary-button" onClick={pause}>계속하기</button>
         </div>
       )}
+      {hud.rallyTargeting && <div className="rally-target-prompt" role="status"><b>⚑ 집결 위치 지정</b><span>전장 위 원하는 위치를 클릭하세요 · R 또는 Esc로 취소</span></div>}
       <div className="sr-only" aria-live="polite">
         영웅 스킬 재사용 대기 {Math.ceil(hud.heroSkillCooldownMs / 1000)}초
       </div>

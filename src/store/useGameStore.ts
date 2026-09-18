@@ -8,9 +8,13 @@ import { heroTrainingPackageById, isGameFeatureUnlocked } from '../data/features
 import { HERO_MASTERY_MAX_LEVEL } from '../data/mastery';
 import { getStage, stages } from '../data/stages';
 import { allTroopOrder, heroDefinitions, heroOrder, troopDefinitions } from '../data/units';
+import { GAME_VERSION, SAVE_SCHEMA_VERSION } from '../data/version';
 import { emptyEquipment, equipmentCost, heroMasteryLevelFromXp, scaledProgressionReward, totalMasteryXpForLevel } from '../game/rules';
 import { canClaimDailyReward, localDateKey } from '../game/daily';
+import { initializeSaveSlots, writeActiveSaveSlot } from '../game/saveSlots';
 import type { BattleResult, BattleSpeed, CastleTechId, CodexEnemyId, EquipmentLevels, EquipmentSlot, FirstClearReward, FortressTier, HeroId, HeroTrainingPackageId, PlayerStats, UnitId } from '../types/game';
+
+initializeSaveSlots();
 
 type UnitXp = Record<UnitId, number>;
 type HeroXp = Record<HeroId, number>;
@@ -144,7 +148,7 @@ const defaults = {
 type SavedGameProfile = Partial<GameProfile> & { upgrades?: LegacyUnitLevels; heroLevels?: LegacyHeroLevels };
 
 export const SAVE_EXPORT_FORMAT = 'last-bastion-save';
-export const SAVE_EXPORT_VERSION = 1;
+export const SAVE_EXPORT_VERSION = SAVE_SCHEMA_VERSION;
 
 function hydrateSavedProfile(saved: SavedGameProfile | undefined, current: GameProfile): GameProfile {
   const validUnit = (id: unknown): id is UnitId => typeof id === 'string' && allTroopOrder.includes(id as UnitId);
@@ -482,6 +486,8 @@ export const useGameStore = create<GameProfile>()(
       exportSave: () => JSON.stringify({
         format: SAVE_EXPORT_FORMAT,
         version: SAVE_EXPORT_VERSION,
+        gameVersion: GAME_VERSION,
+        saveSchemaVersion: SAVE_SCHEMA_VERSION,
         exportedAt: new Date().toISOString(),
         state: persistedProfile(get()),
       }, null, 2),
@@ -519,3 +525,5 @@ export const useGameStore = create<GameProfile>()(
     },
   ),
 );
+
+useGameStore.subscribe((state) => writeActiveSaveSlot(state.exportSave()));
