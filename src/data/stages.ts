@@ -221,11 +221,22 @@ const lateStageNames = [
 ] as const;
 
 const lateCoreComposition: UnitId[] = ['militia', 'guardian', 'archer', 'lancer', 'bulwark', 'crossbow'];
-const lateReinforcementComposition: UnitId[] = ['militia', 'guardian', 'archer', 'lancer', 'bulwark', 'cavalry', 'crossbow', 'swordsman'];
 const lateRegionalRosters: Record<3 | 4 | 5, UnitId[]> = {
   3: ['goblinArcher', 'goblinBomber', 'orcBerserker', 'orcShaman', 'troll', 'ogreMage', 'wolfRider', 'harpy', 'minotaur', 'slime', 'basilisk', 'direwolf', 'hydra', 'swordsman', 'pikeman'],
   4: ['spirit', 'fireSpirit', 'iceSpirit', 'earthSpirit', 'lightSpirit', 'darkSpirit', 'griffin', 'giantEagle', 'treant', 'golem', 'wyvern', 'priest', 'mage', 'archmage', 'scout'],
   5: ['hellhound', 'imp', 'succubus', 'demonGuard', 'demonMage', 'gargoyle', 'cerberus', 'reaper', 'abyssKnight', 'assassin', 'cavalry', 'crossbow', 'archer', 'lancer', 'brute'],
+};
+
+const lateRegionalReinforcementCore: Record<3 | 4 | 5, UnitId[]> = {
+  3: ['raider', 'bulwark'],
+  4: ['guardian', 'archer'],
+  5: ['imp', 'crossbow'],
+};
+
+const lateReinforcementIntervalMs: Record<number, number> = {
+  13: 2_400, 14: 4_600, 15: 5_000, 16: 4_600, 17: 3_300,
+  19: 3_100, 20: 5_300, 21: 5_800, 22: 4_800, 23: 3_200,
+  25: 4_100, 26: 5_000, 27: 4_800, 28: 2_900, 29: 2_900,
 };
 
 const lateFortressAttack = (stageId: number): NonNullable<StageDefinition['enemyFortressAttack']> => {
@@ -234,12 +245,30 @@ const lateFortressAttack = (stageId: number): NonNullable<StageDefinition['enemy
   return { damage: 36, range: 260, intervalMs: 2_800 };
 };
 
-function lateStageComposition(id: number): UnitId[] {
+function lateStageRegionalUnits(id: number): UnitId[] {
   const region = Math.min(5, Math.floor((id - 1) / 6) + 1) as 3 | 4 | 5;
   const regionStart = (region - 1) * 6 + 1;
   const offset = (id - regionStart) * 3;
   const roster = lateRegionalRosters[region];
-  return [...lateCoreComposition, ...Array.from({ length: 3 }, (_, index) => roster[(offset + index) % roster.length])];
+  return roster.slice(offset, offset + 3);
+}
+
+function lateStageComposition(id: number): Array<{ unitId: UnitId; signature: boolean }> {
+  const regional = lateStageRegionalUnits(id);
+  return lateCoreComposition.flatMap((unitId, index) => index < regional.length
+    ? [{ unitId, signature: false }, { unitId: regional[index], signature: true }]
+    : [{ unitId, signature: false }]);
+}
+
+function lateStageReinforcementUnits(id: number): UnitId[] {
+  const region = Math.min(5, Math.floor((id - 1) / 6) + 1) as 3 | 4 | 5;
+  const regionStart = (region - 1) * 6 + 1;
+  const introducedCount = (id - regionStart + 1) * 3;
+  const recentRegional = lateRegionalRosters[region]
+    .slice(0, introducedCount)
+    .filter((unitId) => troopDefinitions[unitId].grade <= 3)
+    .slice(-4);
+  return [...new Set([...lateRegionalReinforcementCore[region], ...recentRegional])];
 }
 
 function lateBossGarrison(id: number): NonNullable<StageDefinition['reinforcement']> {
@@ -252,15 +281,15 @@ function createLateStage(id: number): Omit<StageDefinition, 'fortressDistance' |
   const progress = id - 13;
   const boss = id % 6 === 0;
   const [name, subtitle] = lateStageNames[progress];
-  const composition = lateStageComposition(id);
+  const composition = boss ? [] : lateStageComposition(id);
   const waveInterval = Math.max(1_450, 2_150 - progress * 30);
   const regionOpeningFortressBonus = !boss && id % 6 === 1 ? 1_250 : 0;
-  const waves = boss ? [] : composition.map((unitId, index) => ({
+  const waves = composition.map(({ unitId, signature }, index) => ({
     timeMs: 700 + index * 4_500,
     unitId,
-    count: index < lateCoreComposition.length
-      ? 3 + Math.floor((progress + index) / composition.length)
-      : troopDefinitions[unitId].cost <= 100 ? 2 : 1,
+    count: signature
+      ? troopDefinitions[unitId].cost <= 120 ? 2 : 1
+      : 3 + Math.floor((progress + index) / composition.length),
     intervalMs: waveInterval,
   }));
   const bossRank = boss ? id / 6 : 0;
@@ -307,8 +336,8 @@ function createLateStage(id: number): Omit<StageDefinition, 'fortressDistance' |
       },
       reinforcement: {
         startMs: 55_000,
-        intervalMs: Math.max(2_100, 2_280 - progress * 10),
-        unitIds: lateReinforcementComposition,
+        intervalMs: lateReinforcementIntervalMs[id],
+        unitIds: lateStageReinforcementUnits(id),
         maxAlive: Math.min(15, 13 + Math.floor(progress / 8)),
       },
     }),

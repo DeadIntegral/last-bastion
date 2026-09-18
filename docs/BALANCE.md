@@ -316,7 +316,7 @@ At maximum `군수 표준화`, every one of the 51 deployment costs uses `max(10
 - Stage metadata identifies seven occupation groupings: traitorous humans, goblins, orcs, monsters, bound spirits, demons, and mixed Demon Army formations. Campaign terrain multipliers remain ×1 for now; visible non-neutral multipliers are reserved for the separate beast challenges and are included by the difficulty estimator.
 - Enemy weapon, armor, and boots upgrades are each capped at rank 5. No enemy or boss receives mastery XP, a mastery level, or a mastery multiplier.
 - Stages 13–30 keep enemy equipment at 5/5/5. Their battle reward and first-clear gold both equal `stage × 100`; stage 18 additionally grants Bran.
-- Each non-boss stage from 13–29 adds three entries from its 15-unit regional roster to the scripted opening. Five normal stages per region therefore expose all 15 entries exactly as an encounter path, while the continuous reinforcement roster remains stable to avoid a late-game pressure spike.
+- Each non-boss stage from 13–29 adds three entries from its 15-unit regional roster to the scripted opening. Five normal stages per region therefore expose all 15 entries exactly as an encounter path. Familiar and regional waves alternate for the first six entries, placing the first regional troop at 5.2 seconds and the other two at 14.2 and 23.2 seconds; remaining familiar formations follow afterward. Regional deployments of cost 120 or less use two deployments, while more expensive signatures use one.
 
 | Stage | Name | Fortress HP | Type |
 |---:|---|---:|---|
@@ -408,7 +408,15 @@ After the scripted opening waves, every non-boss stage cycles through the follow
 | 12 | 5 s | 8.0 s | Militia → Raider → Archer | 4 |
 
 - Later boss garrisons are stage 18 `Raider → Goblin Archer / 7.8 s / cap 4`, stage 24 `Scout → Frost Spirit / 7.6 s / cap 4`, and stage 30 `Imp → Militia / 7.4 s / cap 5`; all begin at 5 seconds.
-- Every non-boss stage from 13–29 starts reinforcements at 55 seconds, rotates Militia → Guardian → Archer → Lancer → Bulwark → Cavalry → Crossbow → Swordsman, uses a 2.28–2.12 second interval, and caps living regular enemies at 13–15. Ogre Crushers, Griffins, and other upper-tier bodies remain finite opening-wave or elite events rather than repeatable filler.
+- Every non-boss stage from 13–29 starts reinforcements at 55 seconds. Its rotation combines two regional foundation troops with up to four most recently introduced regional troops, excluding every 4–5-star unit. The strength-adjusted interval prevents the new regional roster from becoming a hidden pressure spike:
+
+| Stages | Reinforcement intervals |
+|---|---|
+| 13–17 | 2.4 / 4.6 / 5.0 / 4.6 / 3.3 s |
+| 19–23 | 3.1 / 5.3 / 5.8 / 4.8 / 3.2 s |
+| 25–29 | 4.1 / 5.0 / 4.8 / 2.9 / 2.9 s |
+
+- Non-boss stages 13–20 cap living reinforcement bodies at 13, non-boss stages 21–28 at 14, and stage 29 at 15. Ash-highland rotations are rooted in Raiders and Bulwarks, spirit-tundra rotations in Guardians and Archers, and demon-rift rotations in Imps and Crossbows. Recently introduced Trolls, Minotaurs, Spirits, Demon Guards, and Mages can therefore recur at a lower cadence, while Hydras, Griffins, Treants, Golems, Cerberus, Reapers, Abyss Knights, Ifrit, and Ancient Sky Dragon remain finite scripted or challenge threats.
 
 - Enemy equipment reaches the shared +5/+5/+5 cap at stage 7. Later difficulty uses composition, advanced mechanics, reinforcement timing/caps, fortress HP and fire, and boss patterns rather than additional generic stat multipliers.
 

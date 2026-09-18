@@ -220,4 +220,20 @@ describe('campaign rewards', () => {
     expect(Math.max(...lateReinforcements.map((reinforcement) => reinforcement.maxAlive))).toBeLessThanOrEqual(15);
     expect(Math.min(...lateReinforcements.map((reinforcement) => reinforcement.intervalMs))).toBeGreaterThanOrEqual(2_100);
   });
+
+  it('keeps late regional threats visible without infinitely repeating legendary troops', () => {
+    const signatureOpeners = new Map([
+      [17, 'hydra'], [21, 'griffin'], [22, 'golem'], [27, 'cerberus'],
+    ] as const);
+    for (const [stageId, unitId] of signatureOpeners) {
+      const stage = stages[stageId - 1];
+      expect(stage.waves[1]).toMatchObject({ unitId, timeMs: 5_200 });
+    }
+
+    for (const stage of stages.filter((candidate) => candidate.id >= 13 && !candidate.boss)) {
+      const reinforcement = stage.reinforcement!;
+      expect(reinforcement.unitIds.some((unitId) => troopDefinitions[unitId].grade >= 2)).toBe(true);
+      expect(reinforcement.unitIds.every((unitId) => troopDefinitions[unitId].grade <= 3)).toBe(true);
+    }
+  });
 });
