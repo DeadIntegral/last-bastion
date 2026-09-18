@@ -48,8 +48,8 @@ describe('castle technology tree', () => {
     expect(stats.rallyMoveSpeedMultiplier).toBe(1.05);
     expect(stats.heroSkillCooldownMultiplier).toBe(0.94);
     expect(stats.heroRespawnMultiplier).toBe(0.97);
-    expect(stats.mobilizationMaxCommandBonus).toBe(35);
-    expect(stats.mobilizationCommandRegenBonus).toBe(2.1);
+    expect(stats.mobilizationMaxCommandBonus).toBe(100);
+    expect(stats.mobilizationCommandRegenBonus).toBe(0.6);
   });
 
   it('keeps the tier-three economy and sustain capstones within their intended bounds', () => {

@@ -20,7 +20,7 @@ export const unitGradeById: Record<UnitId, UnitGrade> = {
   basilisk: 3, fireSpirit: 2, iceSpirit: 2, earthSpirit: 3, lightSpirit: 3,
   darkSpirit: 3, direwolf: 2, giantEagle: 2, treant: 4, golem: 4, hydra: 4,
   imp: 1, succubus: 2, demonGuard: 3, demonMage: 3, gargoyle: 2, cerberus: 4,
-  ifrit: 5, reaper: 4, abyssKnight: 4,
+  ifrit: 5, reaper: 4, abyssKnight: 4, dragon: 5,
 };
 
 export function unitGradeStars(grade: UnitGrade): string {
@@ -166,6 +166,7 @@ export const troopDefinitions: Record<UnitId, TroopDefinition> = {
   ifrit: makeTroop('ifrit', { name: '이프리트', cost: 200, maxHp: 11000, defense: 8, attackDamage: 140, attackRange: 215, attackIntervalMs: 1_650, moveSpeed: 42, spawnCooldownMs: 6_600, size: 29, tags: ['flying', 'large', 'demon', 'elemental', 'ranged', 'magic'], attackPattern: { kind: 'pierce', maxTargets: 3, followThroughRange: 150, secondaryDamageMultiplier: 0.75 }, icon: '✹', color: 0xc44831, accent: 0xffd06a, recruitCost: 0, recruitSource: 'challenge', maxActivePerSide: 2 }),
   reaper: makeTroop('reaper', { name: '영혼 수확자', cost: 200, maxHp: 1200, defense: 6, attackDamage: 125, attackRange: 64, attackIntervalMs: 1_350, moveSpeed: 47, spawnCooldownMs: 6_100, tags: ['ground', 'demon', 'magic'], attackPattern: { kind: 'cleave', secondaryDamageMultiplier: 0.9 }, icon: '☠', color: 0x3d3b4c, accent: 0xc9c3e8 }),
   abyssKnight: makeTroop('abyssKnight', { name: '심연 기사', cost: 200, maxHp: 1900, defense: 12, attackDamage: 115, attackRange: 48, attackIntervalMs: 1_250, moveSpeed: 34, spawnCooldownMs: 6_300, size: 27, tags: ['ground', 'demon', 'armored'], attackPattern: { kind: 'cleave', secondaryDamageMultiplier: 0.85 }, icon: '♞', color: 0x44364f, accent: 0xbda8d1 }),
+  dragon: makeTroop('dragon', { name: '창공의 고룡', cost: 200, maxHp: 15_000, defense: 12, attackDamage: 240, attackRange: 250, attackIntervalMs: 1_900, moveSpeed: 36, spawnCooldownMs: 9_000, size: 34, tags: ['flying', 'large', 'beast', 'ranged', 'magic'], attackPattern: { kind: 'pierce', maxTargets: 3, followThroughRange: 180, secondaryDamageMultiplier: 0.8 }, icon: '🐉', color: 0x293656, accent: 0xd7b26a, recruitCost: 0, recruitSource: 'challenge', maxActivePerSide: 1 }),
 };
 
 export const heroDefinitions: Record<HeroId, HeroDefinition> = {
@@ -245,7 +246,7 @@ const familyMembers: Record<UnitFamily, UnitId[]> = {
   goblin: ['raider', 'goblinArcher', 'goblinBomber', 'wolfRider'],
   orc: ['bulwark', 'orcBerserker', 'orcShaman'],
   ogre: ['brute', 'ogreMage'],
-  beast: ['griffin', 'troll', 'harpy', 'minotaur', 'wyvern', 'slime', 'basilisk', 'direwolf', 'giantEagle', 'treant', 'golem', 'hydra'],
+  beast: ['griffin', 'troll', 'harpy', 'minotaur', 'wyvern', 'slime', 'basilisk', 'direwolf', 'giantEagle', 'treant', 'golem', 'hydra', 'dragon'],
   spirit: ['spirit', 'fireSpirit', 'iceSpirit', 'earthSpirit', 'lightSpirit', 'darkSpirit'],
   demon: ['hellhound', 'imp', 'succubus', 'demonGuard', 'demonMage', 'gargoyle', 'cerberus', 'ifrit', 'reaper', 'abyssKnight'],
 };

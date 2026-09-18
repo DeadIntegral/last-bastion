@@ -358,6 +358,14 @@ export const challengeStages: StageDefinition[] = [
     enemyUpgrades: { equipment: { weapon: 5, armor: 5, boots: 5 } }, waves: [],
     firstClearReward: { label: '이프리트의 계약', description: '지형 증폭이 제거된 기본 이프리트를 전투에 편성할 수 있습니다.', icon: '✹', unitId: 'ifrit' },
   },
+  {
+    id: 105, name: '창공의 고룡', subtitle: '마왕성 너머 하늘 왕좌에서 마지막 초월자의 힘을 증명하세요.', reward: 3_000,
+    enemyCastleHp: 0, fortressDistance: MAX_FORTRESS_DISTANCE, challenge: true, requiredCampaignStage: 30, boss: true, bossName: '하늘 왕좌의 고룡', bossUnitId: 'dragon', enemyFaction: 'monsters',
+    terrain: { id: 'sky-throne', name: '하늘 왕좌', description: '고공의 마력이 적의 체력을 10배, 공격력을 2.5배, 이동속도를 1.15배로 만듭니다.', enemyHpMultiplier: 10, enemyAttackMultiplier: 2.5, enemyMoveSpeedMultiplier: 1.15 },
+    bossModifiers: { hpMultiplier: 1, attackMultiplier: 0.7, stompCadenceMultiplier: 0.48 },
+    enemyUpgrades: { equipment: { weapon: 5, armor: 5, boots: 5 } }, waves: [],
+    firstClearReward: { label: '창공의 맹약', description: '하늘 왕좌의 증폭이 제거된 기본 고룡이 원정대에 합류합니다.', icon: '🐉', unitId: 'dragon' },
+  },
 ];
 
 export const getStage = (id: number) => stages.find((stage) => stage.id === id)

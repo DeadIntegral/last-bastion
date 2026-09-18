@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { battleMobilizationTuning, castleBattleStats, rallyCommandTuning } from '../data/castle';
+import { battleMobilizationTuning, castleBattleStats, mobilizationCommandCost, rallyCommandTuning } from '../data/castle';
 import { troopDefinitions, unitGradeLabels } from '../data/units';
 import { getStage } from '../data/stages';
 import { BattleEvent, battleEvents } from '../game/EventBus';
@@ -95,7 +95,9 @@ export function BattleView({ stageId, onResult }: BattleViewProps) {
 
   const spawn = (id: UnitId) => battleEvents.emit(BattleEvent.SPAWN, id);
   const pause = () => battleEvents.emit(BattleEvent.PAUSE);
-  const canMobilize = hud.command >= hud.maxCommand && hud.mobilizationUses < hud.mobilizationMaxUses && !hud.paused;
+  const mobilizationComplete = hud.mobilizationUses >= hud.mobilizationMaxUses;
+  const nextMobilizationCost = mobilizationCommandCost(Math.min(hud.mobilizationUses, hud.mobilizationMaxUses - 1));
+  const canMobilize = hud.command >= nextMobilizationCost && !mobilizationComplete && !hud.paused;
   const rallyScope = ['1~4성 병사', hud.rallyHeroControl ? '영웅' : '', hud.rallyTranscendentControl ? '5성 초월 병종' : ''].filter(Boolean).join(' · ');
 
   return (
@@ -161,9 +163,9 @@ export function BattleView({ stageId, onResult }: BattleViewProps) {
               className={canMobilize ? 'mobilize-button ready' : 'mobilize-button'}
               disabled={!canMobilize}
               onClick={() => battleEvents.emit(BattleEvent.MOBILIZE)}
-              aria-label={`${battleMobilizationTuning.name}, 최대 지휘력과 회복 속도 상승, 단축키 E, ${hud.mobilizationUses}/${hud.mobilizationMaxUses}회`}
-              title={`지휘력 100% 소모 · 최대 +${battleCastleStats.mobilizationMaxCommandBonus} · 회복 +${battleCastleStats.mobilizationCommandRegenBonus}/초 (E)`}
-            ><kbd>E</kbd><span>동원 {hud.mobilizationUses}/{hud.mobilizationMaxUses}</span></button>
+              aria-label={mobilizationComplete ? `${battleMobilizationTuning.name}, 전투당 사용 횟수 완료` : `${battleMobilizationTuning.name}, 지휘력 ${nextMobilizationCost} 소모, 최대 지휘력 ${battleCastleStats.mobilizationMaxCommandBonus} 상승, 단축키 E, ${hud.mobilizationUses}/${hud.mobilizationMaxUses}회`}
+              title={mobilizationComplete ? '이번 전투의 동원령을 모두 사용했습니다.' : `지휘력 ${nextMobilizationCost} 소모 · 최대 +${battleCastleStats.mobilizationMaxCommandBonus}${battleCastleStats.mobilizationCommandRegenBonus > 0 ? ` · 회복 +${battleCastleStats.mobilizationCommandRegenBonus}/초` : ''} (E)`}
+            ><kbd>E</kbd><span>{mobilizationComplete ? '동원 완료' : `${hud.mobilizationUses}/${hud.mobilizationMaxUses} · ${nextMobilizationCost}`}</span></button>
           </div>
           <div className="unit-buttons" style={{ '--formation-slots': Math.max(4, equippedUnits.length) } as CSSProperties}>
             {equippedUnits.map((id, index) => {

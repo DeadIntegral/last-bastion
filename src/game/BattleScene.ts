@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { musicEngine } from '../audio/music';
-import { CHARACTER_ART_FRAME_HEIGHT, CHARACTER_ART_FRAME_WIDTH, characterArtFrameIndex, characterArtFrames, characterArtSheet, characterArtSheets, type CharacterArtId } from '../data/characterArt';
-import { battleMobilizationTuning, castleBattleStats, rallyCommandTuning, soldierCommandCost } from '../data/castle';
+import { CHARACTER_ART_FRAME_HEIGHT, CHARACTER_ART_FRAME_WIDTH, characterArtFrameIndex, characterArtFrames, characterArtSheet, characterArtSheets, TRANSCENDENT_BATTLE_ART_SCALE, type CharacterArtId } from '../data/characterArt';
+import { battleMobilizationTuning, castleBattleStats, mobilizationCommandCost, rallyCommandTuning, soldierCommandCost } from '../data/castle';
 import { fortressArtDefinitions, fortressArtLayout } from '../data/fortressArt';
 import { heroAwakeningAuras, heroSkillPower } from '../data/mastery';
 import { allTroopOrder, bossCombatTuning, bossDefinition, heroDefinitions, troopDefinitions } from '../data/units';
@@ -409,9 +409,10 @@ export class BattleScene extends Phaser.Scene {
     const inner = this.add.circle(-size * 0.2, -size * 0.25, size * 0.42, definition.accent, 0.3);
     const artId = definition.id === 'boss' ? undefined : definition.id as CharacterArtId;
     const sheet = artId ? characterArtSheet(artId) : undefined;
+    const artScale = definition.grade === 5 ? TRANSCENDENT_BATTLE_ART_SCALE : 1;
     const portrait = artId && characterArtFrames[artId] && sheet
       ? this.add.image(0, -size * 0.12, sheet.textureKey, characterArtFrameIndex(artId))
-        .setDisplaySize(size * 3.25, size * 3.4)
+        .setDisplaySize(size * 3.25 * artScale, size * 3.4 * artScale)
         .setFlipX(side === 'enemy')
       : this.add.text(0, -1, definition.icon, {
         fontFamily: 'Georgia, serif', fontSize: `${Math.max(15, size)}px`, color: '#f8f1df', fontStyle: 'bold',
@@ -1022,8 +1023,8 @@ export class BattleScene extends Phaser.Scene {
 
   private activateMobilization(): void {
     if (this.ended || this.isPaused) return;
-    if (!canActivateMobilization(this.command, this.castleStats.maxCommand, this.mobilizationUses, battleMobilizationTuning.maxUses)) return;
-    this.command = 0;
+    if (!canActivateMobilization(this.command, this.mobilizationUses, battleMobilizationTuning.maxUses)) return;
+    this.command -= mobilizationCommandCost(this.mobilizationUses);
     this.mobilizationUses += 1;
     const mobilizedStats = mobilizedCommandStats(
       this.castleStats.maxCommand,

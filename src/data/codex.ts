@@ -14,6 +14,7 @@ const authoredTroopCodex: Partial<Record<UnitId, CodexEntry>> = {
   griffin: { id: 'griffin', kind: 'unit', title: '그리폰 기수', role: '최상위 공중 강습병', description: '높은 체력과 방어력으로 원거리 화망을 견디며 강력한 착지 공격으로 전열 전체를 덮칩니다.', lore: '구름 봉우리의 알을 지켜낸 기수에게만 하늘의 맹수가 등을 허락합니다.' },
   spirit: { id: 'spirit', kind: 'unit', title: '폭풍 정령', role: '공중 관통 마법병', description: '원거리 병종만 맞설 수 있으며 번개가 일렬로 선 두 대상을 관통합니다.', lore: '마왕군이 폭풍의 눈을 봉인해 병기로 삼았지만 계약이 끊기면 스스로 주인을 선택합니다.' },
   hellhound: { id: 'hellhound', kind: 'unit', title: '심연의 마염견', role: '고속 근접 악마수', description: '빠른 돌진과 화염을 두른 범위 공격으로 후열을 흔듭니다.', lore: '마계 균열에서 태어난 사냥개입니다. 힘을 인정한 지휘관의 명령만 따릅니다.' },
+  dragon: { id: 'dragon', kind: 'unit', title: '창공의 고룡', role: '5성 초월 공중 제압병', description: '하나의 전장에 한 마리만 유지하며, 긴 사거리의 마력 숨결이 일렬의 적 세 명을 관통합니다.', lore: '마왕군도 완전히 굴복시키지 못한 하늘의 왕입니다. 대륙을 되찾은 지휘관의 힘을 시험한 뒤에야 맹약을 허락합니다.' },
 };
 
 const generatedRole = (id: UnitId): string => {

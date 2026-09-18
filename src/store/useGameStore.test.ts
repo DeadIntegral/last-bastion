@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { UNIT_IDS, type BattleResult, type UnitId } from '../types/game';
 import { emptyCastleTech } from '../data/castle';
-import { FORMATION_SLOT_LICENSE } from '../data/economy';
+import { FORMATION_SLOT_LICENSES } from '../data/economy';
 import { HERO_MASTERY_MAX_LEVEL } from '../data/mastery';
 import { totalMasteryXpForLevel } from '../game/rules';
 import { SAVE_EXPORT_FORMAT, SAVE_EXPORT_VERSION, useGameStore } from './useGameStore';
@@ -151,23 +151,32 @@ describe('shared troop progression', () => {
     expect(useGameStore.getState().castleTechLevels.siege_calculus).toBe(1);
   });
 
-  it('keeps four base formation slots and sells one permanent fifth slot after stage 12', () => {
+  it('expands formation slots from four to seven through three stage-gated purchases', () => {
     useGameStore.setState({
-      gems: FORMATION_SLOT_LICENSE.cost,
-      unlockedUnits: ['militia', 'guardian', 'archer', 'lancer', 'raider', 'swordsman'],
+      gems: FORMATION_SLOT_LICENSES.reduce((total, license) => total + license.cost, 0),
+      unlockedUnits: ['militia', 'guardian', 'archer', 'lancer', 'raider', 'swordsman', 'pikeman', 'scout'],
       equippedUnits: ['militia', 'guardian', 'archer', 'lancer'],
     });
     expect(useGameStore.getState().toggleEquippedUnit('raider')).toBe(false);
     expect(useGameStore.getState().purchaseFormationSlot()).toBe(false);
-    expect(useGameStore.getState().gems).toBe(FORMATION_SLOT_LICENSE.cost);
+    expect(useGameStore.getState().formationSlotPurchases).toBe(0);
 
     useGameStore.setState({ clearedStages: [12] });
     expect(useGameStore.getState().purchaseFormationSlot()).toBe(true);
-    expect(useGameStore.getState().formationSlotUnlocked).toBe(true);
-    expect(useGameStore.getState().gems).toBe(0);
+    expect(useGameStore.getState().formationSlotPurchases).toBe(1);
     expect(useGameStore.getState().toggleEquippedUnit('raider')).toBe(true);
-    expect(useGameStore.getState().equippedUnits).toEqual(['militia', 'guardian', 'archer', 'lancer', 'raider']);
     expect(useGameStore.getState().toggleEquippedUnit('swordsman')).toBe(false);
+
+    useGameStore.setState({ clearedStages: [12, 18] });
+    expect(useGameStore.getState().purchaseFormationSlot()).toBe(true);
+    expect(useGameStore.getState().toggleEquippedUnit('swordsman')).toBe(true);
+    expect(useGameStore.getState().toggleEquippedUnit('pikeman')).toBe(false);
+
+    useGameStore.setState({ clearedStages: [12, 18, 24] });
+    expect(useGameStore.getState().purchaseFormationSlot()).toBe(true);
+    expect(useGameStore.getState().formationSlotPurchases).toBe(3);
+    expect(useGameStore.getState().toggleEquippedUnit('pikeman')).toBe(true);
+    expect(useGameStore.getState().toggleEquippedUnit('scout')).toBe(false);
     expect(useGameStore.getState().purchaseFormationSlot()).toBe(true);
     expect(useGameStore.getState().gems).toBe(0);
   });
@@ -231,14 +240,14 @@ describe('shared troop progression', () => {
     expect(useGameStore.getState().gems).toBe(12);
     expect(useGameStore.getState().battleSpeedUnlocked).toBe(true);
     expect(useGameStore.getState().battleSpeed).toBe(1.5);
-    expect(useGameStore.getState().formationSlotUnlocked).toBe(true);
+    expect(useGameStore.getState().formationSlotPurchases).toBe(1);
     expect(useGameStore.getState().unlockedStage).toBe(5);
     expect(useGameStore.getState().unlockedUnits).toEqual(['militia', 'guardian', 'archer', 'lancer', 'raider', 'mage']);
     expect(useGameStore.getState().equippedUnits).toEqual(['militia', 'guardian', 'archer', 'lancer', 'raider']);
   });
 
   it('exports a portable versioned save without store actions and imports it again', () => {
-    useGameStore.setState({ gold: 1_234, gems: 56, unlockedStage: 13, clearedStages: [1, 2, 3, 4, 5, 6, 12], formationSlotUnlocked: true });
+    useGameStore.setState({ gold: 1_234, gems: 56, unlockedStage: 25, clearedStages: [1, 2, 3, 4, 5, 6, 12, 18, 24], formationSlotPurchases: 3 });
 
     const serialized = useGameStore.getState().exportSave();
     const exported = JSON.parse(serialized) as { format: string; version: number; gameVersion: string; saveSchemaVersion: number; exportedAt: string; state: Record<string, unknown> };
@@ -250,15 +259,15 @@ describe('shared troop progression', () => {
     expect(Number.isNaN(Date.parse(exported.exportedAt))).toBe(false);
     expect(exported.state.gold).toBe(1_234);
     expect(exported.state.gems).toBe(56);
-    expect(exported.state.formationSlotUnlocked).toBe(true);
+    expect(exported.state.formationSlotPurchases).toBe(3);
     expect(exported.state.exportSave).toBeUndefined();
     expect(exported.state.resetProgress).toBeUndefined();
 
     useGameStore.getState().resetProgress();
     expect(useGameStore.getState().importSave(serialized)).toBe(true);
     expect(useGameStore.getState().gold).toBe(1_234);
-    expect(useGameStore.getState().unlockedStage).toBe(13);
-    expect(useGameStore.getState().formationSlotUnlocked).toBe(true);
+    expect(useGameStore.getState().unlockedStage).toBe(25);
+    expect(useGameStore.getState().formationSlotPurchases).toBe(3);
   });
 
   it('rejects unrelated JSON and never lets imported fields replace store actions', () => {

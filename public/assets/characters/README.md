@@ -1,6 +1,6 @@
 # Character roster atlases
 
-The repository contains an original AI-generated full playable roster, correction sources, and five runtime atlases:
+The repository contains an original AI-generated full playable roster, correction sources, and six runtime atlases:
 
 - `roster-sheet.png`: 1225 × 1284 RGBA master output.
 - `griffin-source.png`: 1280 × 1280 RGBA replacement source for the wide Griffin Rider.
@@ -10,6 +10,8 @@ The repository contains an original AI-generated full playable roster, correctio
 - `expansion-atlas.png`: 612 × 640 RGBA runtime atlas using the same sixteen-frame geometry. Its first row is occupied and its remaining twelve frames are transparent.
 - `regional-source.png`, `elemental-source.png`, and `demon-source.png`: transparent 4 × 4 generation masters for the remaining thirty-six troops plus Mirena and Bran.
 - `regional-atlas.png`, `elemental-atlas.png`, and `demon-atlas.png`: 612 × 640 RGBA runtime atlases containing the remaining playable roster.
+- `dragon-source.png`: 1254 × 1254 RGBA standalone source for Ancient Sky Dragon.
+- `transcendent-atlas.png`: 612 × 640 RGBA runtime atlas with Ancient Sky Dragon in frame 0 and fifteen transparent cells.
 - `yarn art:atlas`: deterministic local rebuild of every non-core runtime atlas. It detects real transparent gutters in generated source grids, isolates each subject, alpha-crops it into a fixed frame, and preserves transparency in occupied and unused cells.
 
 Core frame order is left-to-right, top-to-bottom:
@@ -47,11 +49,18 @@ Demon frame order is:
 3. Abyss Knight, Marshal Bran, empty, empty
 4. empty, empty, empty, empty
 
+Transcendent frame order is:
+
+1. Ancient Sky Dragon, empty, empty, empty
+2. empty, empty, empty, empty
+3. empty, empty, empty, empty
+4. empty, empty, empty, empty
+
 `src/data/characterArt.ts` is the canonical sheet-and-frame mapping. React resolves CSS background images and positions from the same mapping, while Phaser loads every declared sheet as a spritesheet. Enemy troops reuse and horizontally flip the same faction-neutral art.
 
 ## Runtime attack motion
 
-The current five atlases contain one neutral pose per character. They are transparent PNGs, but the file extension does not contain skeletal joints or separable limbs. Phaser therefore keeps each portrait and combatant container stable and layers a spawn-time arm/weapon/effect rig over it. `src/game/combatMotion.ts` selects slash, thrust, shoot, cast, crush, or lunge from the canonical combat definition and samples the motion without allocating objects per strike. A future authored animation pass must add separated-part source files or multi-frame attack sheets; converting these same pixels to WebP, GIF, or another extension alone would not enable arm articulation.
+The current six atlases contain one neutral pose per character. They are transparent PNGs, but the file extension does not contain skeletal joints or separable limbs. Phaser therefore keeps each portrait and combatant container stable and layers a spawn-time arm/weapon/effect rig over it. `src/game/combatMotion.ts` selects slash, thrust, shoot, cast, crush, or lunge from the canonical combat definition and samples the motion without allocating objects per strike. Canonical 5-star transcendent troops render their portrait at 1.9× the ordinary battle-art scale while leaving collision and combat geometry unchanged. A future authored animation pass must add separated-part source files or multi-frame attack sheets; converting these same pixels to WebP, GIF, or another extension alone would not enable arm articulation.
 
 ## Generation record
 
@@ -123,3 +132,16 @@ Elemental final subject prompt:
 Demon final subject prompt:
 
 > Row 1: tiny crimson winged imp with a forked spear; elegant burgundy succubus with folded bat wings and a compact magic focus; broad armored demon guard with horned shield; robed violet abyss mage with a crooked staff and purple flame. Row 2: gray stone gargoyle with folded wings; massive black-red three-headed cerberus; towering flying Ifrit formed from crimson flame with gold armor; hooded soul reaper with a compact curved scythe. Row 3 columns 1–2: imposing black-violet abyss knight with full plate and greatsword; Bran the human liberation marshal in blue-and-crimson commander armor carrying a rally banner and one-handed sword. Remaining cells stay empty.
+
+## Ancient Sky Dragon generation record
+
+- Mode: built-in image generation tool
+- Use case: `stylized-concept`
+- Generated: 2026-09-18
+- Style reference: `demon-atlas.png`; visual language only, with no character copied
+- Saved editable source: `dragon-source.png`
+- Saved runtime atlas: `transcendent-atlas.png`
+
+Final prompt:
+
+> Create one original full-body massive ancient sky dragon facing right on a genuinely transparent square canvas for a side-view low-fantasy lane-strategy game. Use dark midnight-blue scales, broad crimson wing membranes, aged-gold horns and chest armor, and a compact cyan glow in the throat suggesting magic breath. Match the project's polished hand-painted 2D chibi proportions, subtle inked edges, restrained detail, and crisp silhouette, while making the creature feel much larger and more imposing than ordinary troops. Keep exactly one dragon and every wing, horn, claw, and tail inside the canvas with generous padding and a low consistent baseline. No rider, extra creatures, scenery, floor, cast shadow, text, border, logo, watermark, black background, pixel art, photorealism, front view, or isometric view.

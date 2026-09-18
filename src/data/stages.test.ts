@@ -44,8 +44,8 @@ describe('campaign rewards', () => {
   });
 
   it('keeps boss-only encounters in a separate challenge roster', () => {
-    expect(challengeStages).toHaveLength(4);
-    expect(challengeStages.map((challenge) => challenge.terrain.enemyHpMultiplier * (challenge.bossModifiers?.hpMultiplier ?? 1))).toEqual([15, 80, 120, 15]);
+    expect(challengeStages).toHaveLength(5);
+    expect(challengeStages.map((challenge) => challenge.terrain.enemyHpMultiplier * (challenge.bossModifiers?.hpMultiplier ?? 1))).toEqual([15, 80, 120, 15, 10]);
     for (const challenge of challengeStages) {
       expect(challenge.challenge).toBe(true);
       expect(challenge.boss).toBe(true);
@@ -109,12 +109,13 @@ describe('campaign rewards', () => {
   });
 
   it('provides more than forty real troops including fantasy and magic roles', () => {
-    expect(allTroopOrder.length).toBe(50);
+    expect(allTroopOrder.length).toBe(51);
     expect(new Set(allTroopOrder)).toEqual(new Set(UNIT_IDS));
     expect(troopDefinitions.griffin.name).toContain('그리폰');
     expect(troopDefinitions.ifrit.name).toBe('이프리트');
     expect(troopDefinitions.mage.name).toContain('마법사');
     expect(troopDefinitions.archmage.name).toBe('대마법사');
+    expect(troopDefinitions.dragon.name).toBe('창공의 고룡');
     expect(troopDefinitions.griffin.maxHp).toBeGreaterThan(troopDefinitions.wyvern.maxHp);
     expect(troopDefinitions.griffin.attackDamage).toBeGreaterThan(troopDefinitions.ifrit.attackDamage);
     expect(troopDefinitions.griffin.defense).toBeGreaterThanOrEqual(troopDefinitions.ifrit.defense ?? 0);
@@ -128,9 +129,10 @@ describe('campaign rewards', () => {
     expect(troopDefinitions.hydra.maxActivePerSide).toBe(2);
     expect(troopDefinitions.golem.maxActivePerSide).toBe(2);
     expect(troopDefinitions.ifrit.maxActivePerSide).toBe(2);
+    expect(troopDefinitions.dragon.maxActivePerSide).toBe(1);
     for (const unit of allTroopOrder.map((id) => troopDefinitions[id]).filter((unit) => unit.maxActivePerSide !== undefined)) {
       expect(Number.isInteger(unit.maxActivePerSide)).toBe(true);
-      expect(unit.maxActivePerSide).toBeGreaterThanOrEqual(2);
+      expect(unit.maxActivePerSide).toBeGreaterThanOrEqual(1);
     }
   });
 
@@ -146,6 +148,14 @@ describe('campaign rewards', () => {
     const ifritChallenge = challengeStages.find((stage) => stage.bossUnitId === 'ifrit');
     expect(ifritChallenge?.requiredCampaignStage).toBe(30);
     expect(ifritChallenge?.bossModifiers?.hpMultiplier).toBe(1.5);
+  });
+
+  it('introduces the transcendent dragon only through its post-finale challenge', () => {
+    expect(stages.some((stage) => stage.waves.some((wave) => wave.unitId === 'dragon') || stage.reinforcement?.unitIds.includes('dragon'))).toBe(false);
+    const dragonChallenge = challengeStages.find((stage) => stage.bossUnitId === 'dragon');
+    expect(dragonChallenge?.requiredCampaignStage).toBe(30);
+    expect(dragonChallenge?.firstClearReward.unitId).toBe('dragon');
+    expect(troopDefinitions.dragon.grade).toBe(5);
   });
 
   it('gives every shared troop an acquisition or encounter path', () => {

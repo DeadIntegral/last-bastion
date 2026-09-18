@@ -189,12 +189,14 @@ describe('combat rules', () => {
     expect(healedHp(90, 100, 35)).toBe(100);
   });
 
-  it('allows mobilization only at full command and before its use cap', () => {
-    expect(canActivateMobilization(199.9, 200, 0, 3)).toBe(false);
-    expect(canActivateMobilization(200, 200, 0, 3)).toBe(true);
-    expect(canActivateMobilization(240, 240, 3, 3)).toBe(false);
-    expect(mobilizedCommandStats(200, 10)).toEqual({ maxCommand: 225, commandRegen: 11.5 });
-    expect(mobilizedCommandStats(200, 10, 35, 2.1)).toEqual({ maxCommand: 235, commandRegen: 12.1 });
+  it('uses escalating fixed mobilization costs and a bounded +100 maximum bonus', () => {
+    expect(canActivateMobilization(299.9, 0, 3)).toBe(false);
+    expect(canActivateMobilization(300, 0, 3)).toBe(true);
+    expect(canActivateMobilization(399.9, 1, 3)).toBe(false);
+    expect(canActivateMobilization(400, 1, 3)).toBe(true);
+    expect(canActivateMobilization(500, 3, 3)).toBe(false);
+    expect(mobilizedCommandStats(200, 10)).toEqual({ maxCommand: 300, commandRegen: 10 });
+    expect(mobilizedCommandStats(300, 10, 100, 0.6)).toEqual({ maxCommand: 400, commandRegen: 10.6 });
   });
 
   it('expands rally control from 1–4 star soldiers to heroes and 5-star transcendent troops', () => {
@@ -211,7 +213,7 @@ describe('combat rules', () => {
     expect(canReceiveRallyOrder(troopDefinitions.griffin, false, fullCommand)).toBe(true);
     expect(canReceiveRallyOrder(troopDefinitions.ifrit, false, fullCommand)).toBe(true);
     expect(allTroopOrder.every((id) => troopDefinitions[id].grade >= 1 && troopDefinitions[id].grade <= 5)).toBe(true);
-    expect(allTroopOrder.filter((id) => troopDefinitions[id].grade === 5)).toEqual(['ifrit']);
+    expect(allTroopOrder.filter((id) => troopDefinitions[id].grade === 5)).toEqual(['ifrit', 'dragon']);
   });
 
   it('requires both the boss and fortress in campaign sieges but only the boss in challenges', () => {

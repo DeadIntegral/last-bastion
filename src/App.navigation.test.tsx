@@ -67,8 +67,8 @@ describe('title and kingdom-map navigation', () => {
     act(() => useGameStore.setState({ clearedStages: [6, 12], gems: 150 }));
     expect(formationButton.disabled).toBe(false);
     act(() => formationButton.click());
-    expect(useGameStore.getState().formationSlotUnlocked).toBe(true);
-    expect(formationButton.textContent).toContain('거래 완료');
+    expect(useGameStore.getState().formationSlotPurchases).toBe(1);
+    expect(formationButton.textContent).toContain('18장 클리어 필요');
 
     act(() => host.querySelector<HTMLButtonElement>('.back-button')!.click());
     const challengeNode = host.querySelector<HTMLButtonElement>('[aria-label="마수 도전 오우거 대족장"]')!;

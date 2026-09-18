@@ -3,9 +3,15 @@ import type { CastleBattleStats, CastleTechDefinition, CastleTechId, FortressTie
 export const battleMobilizationTuning = {
   name: '전시 동원령',
   maxUses: 3,
-  maxCommandBonus: 25,
-  commandRegenBonus: 1.5,
+  firstCommandCost: 300,
+  commandCostIncrease: 100,
+  maxCommandBonus: 100,
+  commandRegenBonus: 0,
 } as const;
+
+export function mobilizationCommandCost(uses: number): number {
+  return battleMobilizationTuning.firstCommandCost + Math.max(0, Math.floor(uses)) * battleMobilizationTuning.commandCostIncrease;
+}
 
 export const rallyCommandTuning = {
   name: '원정 집결령',
@@ -62,7 +68,7 @@ export const castleTechDefinitions: Record<CastleTechId, CastleTechDefinition> =
   siege_calculus: { id: 'siege_calculus', branch: 'artillery', name: '공성 계산학', description: '적 성채 직접 포격 피해 +60 · 포격 사거리 +80', icon: '⌖', maxLevel: 5, baseCost: 450, requiredTier: 3, prerequisite: { id: 'giantbreaker_shells', level: 3 } },
   rally_orders: { id: 'rally_orders', branch: 'expedition', name: '집결 신호', description: '일반 병사 깃발 지휘 · 재지정 대기 -2초', icon: '⚑', maxLevel: 5, baseCost: 150, requiredTier: 1 },
   heroic_orders: { id: 'heroic_orders', branch: 'expedition', name: '영웅 기치', description: '영웅 깃발 지휘 · 영웅 스킬 대기 -3%', icon: '♛', maxLevel: 5, baseCost: 300, requiredTier: 2, prerequisite: { id: 'rally_orders', level: 3 } },
-  mobilization_drill: { id: 'mobilization_drill', branch: 'expedition', name: '동원 전술 훈련', description: '동원령 최대 지휘력 +5 · 회복 +0.3/초', icon: '↟', maxLevel: 5, baseCost: 300, requiredTier: 2, prerequisite: { id: 'rally_orders', level: 2 } },
+  mobilization_drill: { id: 'mobilization_drill', branch: 'expedition', name: '동원 전술 훈련', description: '동원령 발동 후 지휘력 회복 +0.3/초', icon: '↟', maxLevel: 5, baseCost: 300, requiredTier: 2, prerequisite: { id: 'rally_orders', level: 2 } },
   field_recovery: { id: 'field_recovery', branch: 'expedition', name: '야전 구난대', description: '영웅 부활 대기시간 -3%', icon: '✚', maxLevel: 5, baseCost: 400, requiredTier: 3, prerequisite: { id: 'heroic_orders', level: 3 } },
   transcendent_orders: { id: 'transcendent_orders', branch: 'expedition', name: '초월의 군기', description: '5성 초월 병종 깃발 지휘 · 집결 이동속도 +5%', icon: '✦', maxLevel: 5, baseCost: 450, requiredTier: 3, prerequisite: { id: 'heroic_orders', level: 5 } },
 };
@@ -149,7 +155,7 @@ export function castleBattleStats(levels: Record<CastleTechId, number>): CastleB
     bombardCastleDamage: levels.siege_calculus * 60,
     heroSkillCooldownMultiplier: Math.max(0.85, 1 - levels.heroic_orders * 0.03),
     heroRespawnMultiplier: Math.max(0.85, 1 - levels.field_recovery * 0.03),
-    mobilizationMaxCommandBonus: battleMobilizationTuning.maxCommandBonus + levels.mobilization_drill * 5,
+    mobilizationMaxCommandBonus: battleMobilizationTuning.maxCommandBonus,
     mobilizationCommandRegenBonus: battleMobilizationTuning.commandRegenBonus + levels.mobilization_drill * 0.3,
     rallyUnlocked: levels.rally_orders > 0,
     rallyHeroControl: levels.heroic_orders > 0,

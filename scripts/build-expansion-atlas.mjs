@@ -15,6 +15,9 @@ const generatedSheets = [
   { source: 'elemental-source.png', output: 'elemental-atlas.png', occupiedFrames: 12 },
   { source: 'demon-source.png', output: 'demon-atlas.png', occupiedFrames: 10 },
 ];
+const standaloneSheets = [
+  { source: 'dragon-source.png', output: 'transcendent-atlas.png' },
+];
 
 function paeth(left, up, upperLeft) {
   const prediction = left + up - upperLeft;
@@ -213,5 +216,11 @@ for (const sheet of generatedSheets) {
     };
     compositeFrame(sheetAtlas, image, frameIndex, region);
   }
+  writeAtlas(sheetAtlas, path.join(root, 'public/assets/characters', sheet.output));
+}
+
+for (const sheet of standaloneSheets) {
+  const sheetAtlas = Buffer.alloc(atlasWidth * atlasHeight * 4);
+  compositeFrame(sheetAtlas, decodeRgbaPng(path.join(root, 'public/assets/characters', sheet.source)), 0);
   writeAtlas(sheetAtlas, path.join(root, 'public/assets/characters', sheet.output));
 }

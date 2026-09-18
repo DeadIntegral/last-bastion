@@ -111,14 +111,14 @@ These are product acceptance conditions, not eight mandatory test cases. Prefer 
 
 Status: **Implemented**.
 
-`원정 전술` shipped as the fifth fortress branch on 2026-09-16. It includes staged rally control for 1–4-star soldiers, heroes, and canonical 5-star transcendent troops; hero active/respawn timing research; and stronger full-gauge mobilization. The authoritative behavior is in `docs/GAME_SPEC.md` section 8 and all numeric values are in `docs/BALANCE.md` section 5.
+`원정 전술` shipped as the fifth fortress branch on 2026-09-16. It includes staged rally control for 1–4-star soldiers, heroes, and canonical 5-star transcendent troops; hero active/respawn timing research; and regeneration research for the fixed-price wartime mobilization ability. The authoritative behavior is in `docs/GAME_SPEC.md` section 8 and all numeric values are in `docs/BALANCE.md` section 5.
 
 ## 4. Quick Starter commerce bundle
 
 Status: **Planned**.
 
-- The intended bundle grants a data-driven amount of Royal Gems plus the existing permanent `battleSpeedUnlocked` and `formationSlotUnlocked` entitlements. It must reuse those fields rather than creating paid-only speed or formation mechanics.
-- A verified purchase may bypass the normal stage-6/stage-12 merchant gates. Entitlement application is idempotent, so buying the bundle after earning one or both licenses cannot duplicate 1.5× speed or raise formation capacity beyond five.
+- The intended bundle grants a data-driven amount of Royal Gems plus the existing permanent `battleSpeedUnlocked` entitlement and exactly one increment of `formationSlotPurchases`. It must reuse those fields rather than creating paid-only speed or formation mechanics.
+- A verified purchase may bypass the normal stage-6/stage-12 gates for battle speed and the first expansion. Entitlement application is idempotent, so buying the bundle after earning either benefit cannot duplicate 1.5× speed or grant more than the first expansion; slots six and seven continue to require their normal sequential licenses.
 - The final Gem quantity, regional price, refund behavior, platform integration, and handling for players who already own an entitlement remain undecided.
 - Payment confirmation must come from a trusted server or platform receipt. Client-side flags, imported saves, inferred purchase state, and local-storage edits must never be treated as proof of payment.
 - Accounts, payment UI, recharge, advertising, and server persistence remain unimplemented. Do not advertise the bundle inside the current game until the complete purchase and restoration flow exists.

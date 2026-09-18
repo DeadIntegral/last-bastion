@@ -1,4 +1,4 @@
-import { battleMobilizationTuning, fortressDeploymentTuning } from '../data/castle';
+import { battleMobilizationTuning, fortressDeploymentTuning, mobilizationCommandCost } from '../data/castle';
 import { HERO_AWAKENING_COOLDOWN_REDUCTION_MS, HERO_AWAKENING_LEVELS, HERO_MASTERY_MAX_LEVEL, SOLDIER_MASTERY_MAX_LEVEL, heroAwakeningAuras, heroMasteryGrowth, soldierMasteryGrowth, type MasteryStatGrowth } from '../data/mastery';
 import type { BattleSpeed, EquipmentLevels, HeroDefinition, HeroId, Side, StageDefinition, TerrainEffect, UnitDefinition, UnitId } from '../types/game';
 
@@ -88,8 +88,8 @@ export function usesStatEquipmentCapstone(definition: Pick<UnitDefinition, 'grad
   return definition.grade === 5 || definition.grade === 4 && definition.tags.includes('large');
 }
 
-export function canActivateMobilization(command: number, maxCommand: number, uses: number, maxUses: number): boolean {
-  return uses < maxUses && command >= maxCommand;
+export function canActivateMobilization(command: number, uses: number, maxUses: number): boolean {
+  return uses < maxUses && command >= mobilizationCommandCost(uses);
 }
 
 export function enemyObjectiveDefeated(stage: Pick<StageDefinition, 'boss' | 'challenge'>, enemyCastleHp: number, bossAlive: boolean): boolean {

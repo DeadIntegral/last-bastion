@@ -4,7 +4,7 @@ export const UNIT_IDS = [
   'goblinArcher', 'goblinBomber', 'orcBerserker', 'orcShaman', 'troll', 'ogreMage', 'wolfRider', 'harpy', 'minotaur', 'wyvern', 'slime', 'basilisk',
   'fireSpirit', 'iceSpirit', 'earthSpirit', 'lightSpirit', 'darkSpirit',
   'direwolf', 'giantEagle', 'treant', 'golem', 'hydra',
-  'imp', 'succubus', 'demonGuard', 'demonMage', 'gargoyle', 'cerberus', 'ifrit', 'reaper', 'abyssKnight',
+  'imp', 'succubus', 'demonGuard', 'demonMage', 'gargoyle', 'cerberus', 'ifrit', 'reaper', 'abyssKnight', 'dragon',
 ] as const;
 export type UnitId = typeof UNIT_IDS[number];
 export type EnemyId = UnitId;

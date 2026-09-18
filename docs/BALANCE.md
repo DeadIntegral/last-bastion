@@ -9,14 +9,14 @@ This is the canonical reference for implemented economy, progression, combat, an
 | Currency | Initial | Sources | Current sinks |
 |---|---:|---|---|
 | Gold | 100 | battles, first-clear rewards, achievement claims | troop recruitment, equipment, heroes, hero training, fortress research |
-| Royal Gems | 0 | daily attendance, achievement claims | permanent 1.5× battle-speed license; permanent fifth formation slot |
+| Royal Gems | 0 | daily attendance, achievement claims | permanent 1.5× battle-speed license; three permanent formation-slot licenses |
 
 - Royal Gems are currently non-purchasable with real money. There is no recharge, payment, or currency-exchange path.
 - Daily attendance grants 10 Royal Gems once per browser-local calendar date.
 - The claimed date persists as `YYYY-MM-DD`. Changing the device clock is not prevented because progression is local-only.
 - The `수수께끼 상인` shop is revealed after the stage-6 campaign boss clear. It sells `전투 가속 허가` for 200 Royal Gems once; the map operations button only enters the shop. The license permanently unlocks a persisted 1×/1.5× battle toggle. The purchase is idempotent and the speed applies to simulation time, timer events, and combat tweens; BGM tempo is not changed.
-- Clearing stage 12 reveals `편성 확장 허가` for 150 Royal Gems. It permanently changes formation capacity from four troop types to five, persists as `formationSlotUnlocked`, and exposes the fifth battle card and numeric hotkey. At daily income alone it represents 15 claims; both current licenses total 350 Gems before achievement income.
-- A future verified cash entitlement may bypass either license's currency price and stage gate, but no payment implementation currently exists. The planned Quick Starter may combine a data-driven Gem grant with both existing entitlements without inventing a second kind of speed or formation bonus.
+- Formation licenses are sequential: stage 12 reveals slot 5 for 150 Royal Gems, stage 18 reveals slot 6 for 250, and stage 24 reveals slot 7 for 350. They persist as a clamped `formationSlotPurchases` count and expose matching battle cards and numeric hotkeys. The full formation expansion costs 750 Gems, or 75 daily claims before achievement income; buying it together with battle speed costs 950 Gems. Legacy `formationSlotUnlocked: true` saves migrate to one purchase.
+- No payment implementation currently exists. A future verified Quick Starter may combine a data-driven Gem grant with battle-speed access and exactly the first formation purchase; slots 6–7 remain ordinary campaign progression unless a future documented entitlement explicitly changes that rule.
 
 Hero Training Ground unlocks from the stage-9 first clear. It supplements rather than replaces battle-earned hero mastery XP and refuses purchases at the level-30 cap.
 
@@ -30,7 +30,7 @@ Fortress growth research has two independent tier-2 roots in one branch: each `�
 
 ## 2. Shared troop base stats
 
-Player and enemy troops use the same 50 base definitions. Player equipment/mastery or the stage's enemy equipment profile is applied afterward. Enemy forces never receive mastery. `src/data/units.ts` is the exhaustive numeric source; the table below preserves the original foundation and challenge-signature values, while the family matrix records the complete implemented roster.
+Player and enemy troops use the same 51 base definitions. Player equipment/mastery or the stage's enemy equipment profile is applied afterward. Enemy forces never receive mastery. `src/data/units.ts` is the exhaustive numeric source; the table below preserves the original foundation and challenge-signature values, while the family matrix records the complete implemented roster.
 
 | Family | Count | Roster |
 |---|---:|---|
@@ -39,7 +39,7 @@ Player and enemy troops use the same 50 base definitions. Player equipment/maste
 | Goblin | 4 | Raider, Poison Archer, Bomber, Wolf Rider |
 | Orc | 3 | Bulwark, Berserker, Shaman |
 | Ogre | 2 | Crusher, Ogre Mage |
-| Beast/monster | 12 | Griffin, Troll, Harpy, Minotaur, Wyvern, Slime, Basilisk, Direwolf, Giant Eagle, Treant, Golem, Hydra |
+| Beast/monster | 13 | Griffin, Troll, Harpy, Minotaur, Wyvern, Slime, Basilisk, Direwolf, Giant Eagle, Treant, Golem, Hydra, Ancient Sky Dragon |
 | Spirit | 6 | Storm, Fire, Frost, Earth, Radiance, Shadow |
 | Demon | 10 | Hellhound, Imp, Succubus, Guard, Mage, Gargoyle, Cerberus, Ifrit, Reaper, Abyss Knight |
 
@@ -53,7 +53,7 @@ Grade is fixed canonical metadata, not an additional upgrade track. It applies e
 | ★★☆☆☆ | Trained | Bulwark, Royal Cavalry, Priest, Kingdom Mage, Assassin, Orc Berserker, Orc Shaman, Wolf Rider, Harpy, Fire Spirit, Frost Spirit, Direwolf, Giant Eagle, Succubus, Gargoyle |
 | ★★★☆☆ | Elite | Ogre Crusher, Storm Spirit, Hellhound, Archmage, Troll, Ogre Mage, Minotaur, Wyvern, Basilisk, Earth Spirit, Radiance Spirit, Shadow Spirit, Demon Guard, Demon Mage |
 | ★★★★☆ | Legendary | Griffin Rider, Ancient Treant, Rune Golem, Swamp Hydra, Cerberus, Reaper, Abyss Knight |
-| ★★★★★ | Transcendent | Ifrit |
+| ★★★★★ | Transcendent | Ifrit, Ancient Sky Dragon |
 
 Only 5-star troops count as transcendent for `초월의 군기`. In particular, Griffin Rider is 4-star and Minotaur is 3-star. Changing a grade does not rebalance a stat automatically; any intended numerical change must still be made and audited separately.
 
@@ -74,11 +74,12 @@ Only 5-star troops count as transcendent for `초월의 군기`. In particular, 
 | 왕국 마법사 | 115 | 1 | 110 | 36 | 195 | 1300 ms | 37 | 3.5 s | encounter | pierce 2, ×0.65 follow-through |
 | 대마법사 | 190 | 1 | 700 | 110 | 245 | 1600 ms | 31 | 5.5 s | encounter | pierce 3, ×0.70 follow-through |
 | 이프리트 | 200 | 1 | 11,000 | 140 | 215 | 1650 ms | 42 | 6.6 s | challenge 104 after stage 30 | pierce 3, ×0.75 follow-through |
+| 창공의 고룡 | 200 | 1 | 15,000 | 240 | 250 | 1900 ms | 36 | 9.0 s | challenge 105 after stage 30 | pierce 3, ×0.80 follow-through |
 
 - A new profile owns and equips only the militia.
-- Battle formations contain one to four acquired troop types by default and up to five after purchasing the permanent formation-slot license.
+- Battle formations contain one to four acquired troop types by default and up to seven after purchasing the three sequential permanent formation-slot licenses.
 - Command and cooldown are paid once per card activation. One Militia/Raider activation creates three bodies and one Guardian/Archer activation creates two; a wave's `count` likewise counts activations before squad expansion. Mastery summon counts track the activation rather than multiplying XP per body.
-- Encounter alone does not bypass fortress recruitment permits: expansion troops below 110 Command default to tier 2 and troops at or above 110 default to tier 3. Royal Cavalry is revealed and recruitable at tier 2 without an encounter; Griffin Rider follows the same rule at tier 3. Ogre Crusher, Storm Spirit, Hellhound, and Ifrit are challenge-only recruits. Already-owned troops remain owned when an older save migrates.
+- Encounter alone does not bypass fortress recruitment permits: expansion troops below 110 Command default to tier 2 and troops at or above 110 default to tier 3. Royal Cavalry is revealed and recruitable at tier 2 without an encounter; Griffin Rider follows the same rule at tier 3. Ogre Crusher, Storm Spirit, Hellhound, Ifrit, and Ancient Sky Dragon are challenge-only recruits. Already-owned troops remain owned when an older save migrates.
 - Lancer and Huntress attacks deal ×1.75 damage to `large` targets.
 - Royal Cavalry has 3 base defense and its first attack after each spawn deals ×1.6 damage. Griffin Rider has 8 base defense, is tagged `flying` and `large`, and moves 112 virtual pixels above the lane. It retains higher per-hit melee damage than Ifrit, but consumes the full 200 base Command, waits 6.5 seconds between deployments, must enter melee range, and permits only two living bodies per side.
 - Only combatants tagged `ranged` and the player watchtower can select a flying target. Late enemy-fortress fire is an explicit domain-independent exception and can shoot both ground and flying attackers. Fortress bombardment and beast stomp skip flying targets; flying units can attack ground targets normally.
@@ -106,6 +107,7 @@ The expensive roster was rebalanced against Command cost rather than rarity alon
 | 악마 근위병 | 175 | 1,300 | 10 | 75 | 1.20 s |
 | 케르베로스 | 200 | 1,600 | 6 | 110 | 0.95 s |
 | 이프리트 | 200 | 11,000 | 8 | 140 | 1.65 s |
+| 창공의 고룡 | 200 | 15,000 | 12 | 240 | 1.90 s |
 | 영혼 수확자 | 200 | 1,200 | 6 | 125 | 1.35 s |
 | 심연 기사 | 200 | 1,900 | 12 | 115 | 1.25 s |
 
@@ -115,6 +117,7 @@ The expensive roster was rebalanced against Command cost rather than rarity alon
 
 | Limit | Troops |
 |---:|---|
+| 1 per side | Ancient Sky Dragon |
 | 2 per side | Griffin Rider, Minotaur, Wyvern, Basilisk, Treant, Golem, Hydra, Cerberus, Ifrit |
 | 3 per side | Ogre Crusher, Storm Spirit, Hellhound, Troll, Ogre Mage, Earth Spirit, Radiance Spirit, Shadow Spirit, Giant Eagle, Gargoyle |
 
@@ -148,6 +151,7 @@ Expansion troops created through `makeTroop` derive readable fixed growth once a
 | 그리폰 기수 | +15 | +160 | +2.0 | +2.2 |
 | 폭풍 정령 | +6 | +60 | +1.2 | +2.0 |
 | 마염견 | +7 | +85 | +1.5 | +2.2 |
+| 창공의 고룡 | +24 | +1,500 | +1.5 | +1.1 |
 | 에드릭 | +3 | +42 | +2.0 | +1.2 |
 | 셀레네 | +5 | +24 | +1.0 | +1.4 |
 | 리아 | +5 | +28 | +1.2 | +1.8 |
@@ -159,9 +163,9 @@ Expansion troops created through `makeTroop` derive readable fixed growth once a
 - Every 2-star troop uses base 100: 100 / 200 / 300 / 400 / 500 gold.
 - Every 3-star troop uses base 200: 200 / 400 / 600 / 800 / 1,000 gold; one complete branch costs 3,000.
 - Every 4-star troop uses base 300: 300 / 600 / 900 / 1,200 / 1,500 gold; one complete branch costs 4,500.
-- The 5-star Ifrit uses base 400: 400 / 800 / 1,200 / 1,600 / 2,000 gold; one complete branch costs 6,000.
+- Every 5-star troop uses base 400: 400 / 800 / 1,200 / 1,600 / 2,000 gold; one complete branch costs 6,000.
 - Heroes retain authored bases: Edric 100, Selene/Ria/Mirena 125, and Bran 150.
-- Soldier equipment capstone: when any one of Weapon, Armor, or Boots reaches rank 5, ordinary, 3-star, and non-large 4-star troops permanently gain +1 deployment body. Every 5-star troop and 4-star `large` troop instead stays at its canonical squad size and gains one additional fixed rank of Weapon attack/healing, Armor HP/defense, and Boots movement simultaneously. The current stat-capstone roster is Griffin Rider, Ancient Treant, Rune Golem, Swamp Hydra, Cerberus, and Ifrit. Completing additional slots does not stack either bonus. The rule applies symmetrically to stage-equipped regular enemies; heroes and bosses receive neither bonus, named elite spawning remains single-body, and reinforcement `maxAlive` remains an exact living-body cap rather than a deployment count.
+- Soldier equipment capstone: when any one of Weapon, Armor, or Boots reaches rank 5, ordinary, 3-star, and non-large 4-star troops permanently gain +1 deployment body. Every 5-star troop and 4-star `large` troop instead stays at its canonical squad size and gains one additional fixed rank of Weapon attack/healing, Armor HP/defense, and Boots movement simultaneously. The current stat-capstone roster is Griffin Rider, Ancient Treant, Rune Golem, Swamp Hydra, Cerberus, Ifrit, and Ancient Sky Dragon. Completing additional slots does not stack either bonus. The rule applies symmetrically to stage-equipped regular enemies; heroes and bosses receive neither bonus, named elite spawning remains single-body, and reinforcement `maxAlive` remains an exact living-body cap rather than a deployment count.
 - Soldier mastery maximum: level 50. Hero mastery maximum: level 30.
 - XP for next mastery level: `round(45 × level^1.32)`.
 - Mastery uses character-specific flat gains. At level `L`, add `(L - 1) × listed gain` to canonical HP and ATK before adding equipment.
@@ -222,7 +226,7 @@ Each awakening rank also enables one level of a nearby-soldier aura: Edric gives
 | Command regeneration | 10/s |
 | Maximum Command | 200 |
 | Command per normal kill | 6 |
-| Full-gauge mobilization | consume 100%; maximum +25; regeneration +1.5/s; 3 uses/battle |
+| Wartime mobilization | costs 300 / 400 / 500 Command; maximum +100 each; 3 uses/battle |
 | Player fortress HP | 1800, plus 70 per stage after stage 1 |
 | Bombardment damage | 175 |
 | Bombardment radius | 125 |
@@ -271,7 +275,7 @@ Fortress research has five ranks per node. Rank cost is `baseCost × (currentRan
 | Artillery | 3 | 공성 계산학 | 450 | direct enemy-fortress bombardment damage +60; bombardment range +80 | 마수 관통탄 3 |
 | Expedition | 1 | 집결 신호 | 150 | ordinary-soldier rally control; redeploy cooldown -2 s | — |
 | Expedition | 2 | 영웅 기치 | 300 | hero rally control; hero active cooldown -3% | 집결 신호 3 |
-| Expedition | 2 | 동원 전술 훈련 | 300 | each mobilization maximum +5 and regeneration +0.3/s | 집결 신호 2 |
+| Expedition | 2 | 동원 전술 훈련 | 300 | each mobilization regeneration +0.3/s | 집결 신호 2 |
 | Expedition | 3 | 야전 구난대 | 400 | hero respawn time -3% | 영웅 기치 3 |
 | Expedition | 3 | 초월의 군기 | 450 | 5-star transcendent rally control; rally movement +5% | 영웅 기치 5 |
 
@@ -284,10 +288,10 @@ Fortress research has five ranks per node. Rank cost is `baseCost × (currentRan
 - Direct fortress bombardment requires at least one `공성 계산학` rank and the enemy fortress to be inside the resulting bombardment range.
 - Rally placement starts at a 20-second base redeploy cooldown. `집결 신호` rank 1 is required to use the flag and resolves the cooldown to 18 seconds; ranks 2–5 reduce it to 16/14/12/10 seconds. Clearing an order does not erase the remaining cooldown. Eligible units attack targets already in range, otherwise move to a deterministic slot within 27 units of the clicked center and hold within an 18-unit arrival radius.
 - `영웅 기치` rank 1 admits the selected hero and reduces the mastery-adjusted active cooldown by 3% per rank, capped at 15%. `야전 구난대` applies the same 3%-per-rank, 15%-maximum multiplier to mastery-adjusted hero respawn time.
-- `초월의 군기` rank 1 admits canonical 5-star transcendent troops and increases every eligible unit's movement toward the flag by 5% per rank, capped at +25%. The current 5-star roster is Ifrit. Grades 1–4 use ordinary-soldier permission, regardless of size, rarity, active-unit cap, or Command cost.
-- `동원 전술 훈련` adds +5 maximum Command and +0.3 Command/s per rank to each activation. Rank 5 therefore changes every activation from +25/+1.5 per second to +50/+3.0 per second while retaining the three-use cap and full-current-gauge cost.
+- `초월의 군기` rank 1 admits canonical 5-star transcendent troops and increases every eligible unit's movement toward the flag by 5% per rank, capped at +25%. The current 5-star roster is Ifrit and Ancient Sky Dragon. Grades 1–4 use ordinary-soldier permission, regardless of size, rarity, active-unit cap, or Command cost.
+- `전시 동원령` has three battle-local uses costing exactly 300, 400, and 500 Command. Each successful use deducts only its listed cost and adds exactly +100 maximum Command; stored Command above the cost is preserved. `동원 전술 훈련` adds +0.3 Command/s per rank to every activation, so rank 5 grants +1.5/s per use without changing the fixed maximum gain. The first activation requires enough `지휘 저장고` research to hold at least 300 Command.
 
-At maximum `군수 표준화`, every one of the 50 deployment costs uses `max(10, ceil(base Command × 0.85))`; cards, affordability checks, and deductions share that calculation.
+At maximum `군수 표준화`, every one of the 51 deployment costs uses `max(10, ceil(base Command × 0.85))`; cards, affordability checks, and deductions share that calculation.
 
 ## 6. Campaign curve
 
@@ -380,8 +384,9 @@ Stages 13–30 add a basic enemy-fortress shot as a separate, visible difficulty
 | 폭풍의 대정령 | stage 18 | 1,000 | 폭풍 정령 | ×10 / ×2.5 / ×1.15 | ×8 / ×1.05 / ×0.68 | 폭풍 정령 |
 | 심연의 마염수 | stage 30 | 1,800 | 마염견 | ×10 / ×2.5 / ×1.2 | ×12 / ×1.05 / ×0.56 | 마염견 |
 | 태양 감옥의 이프리트 | stage 30 | 2,400 | 이프리트 | ×10 / ×2.5 / ×1.1 | ×1.5 / ×1 / ×0.52 | 이프리트 |
+| 창공의 고룡 | stage 30 | 3,000 | 창공의 고룡 | ×10 / ×2.5 / ×1.15 | ×1 / ×0.7 / ×0.48 | 창공의 고룡 |
 
-Challenges contain no enemy fortress, fortress fire, waves, reinforcements, or elite. The enemy is derived from the same base troop later granted to the player, then receives rank-5 stage equipment, the visible terrain multipliers, and its named-boss modifier. The common HP ×10 terrain rule remains legible while the named modifier preserves progression; combined effective HP multipliers are ×15, ×80, ×120, and ×15 before equipment. Ifrit's base HP increase is offset only inside challenge 104 by reducing its named modifier from ×7.5 to ×1.5, so its rank-5 equipment/stat-capstone encounter durability remains 264,000 HP rather than jumping fivefold. First-clear acquisition is persistent and does not advance the campaign; the acquired troop never receives terrain or named-boss multipliers. Listed battle gold is repeatable and defeat still grants 20%.
+Challenges contain no enemy fortress, fortress fire, waves, reinforcements, or elite. The enemy is derived from the same base troop later granted to the player, then receives rank-5 stage equipment, the visible terrain multipliers, and its named-boss modifier. The common HP ×10 terrain rule remains legible while the named modifier preserves progression; combined effective HP multipliers are ×15, ×80, ×120, ×15, and ×10 before equipment. Ifrit's base HP increase is offset only inside challenge 104 by reducing its named modifier from ×7.5 to ×1.5, so its rank-5 equipment/stat-capstone encounter durability remains 264,000 HP rather than jumping fivefold. Challenge 105 instead uses the dragon's canonical base, rank-5 armor, stat capstone, and ×10 terrain for 240,000 HP; its named attack modifier yields 672 trained attack after terrain. First-clear acquisition is persistent and does not advance the campaign; the acquired troop never receives terrain or named-boss multipliers. Listed battle gold is repeatable and defeat still grants 20%.
 
 ### Continuous enemy reinforcements
 
@@ -427,7 +432,7 @@ The pure estimator in `src/game/difficulty.ts` combines seven axes:
 
 Long scripted timelines use the square root of total deployment mass so a sequence that can be defeated piecemeal does not count as if every body arrived simultaneously. The resulting raw totals are normalized from stage 1 = 0 to the final stage = 100 and compared with equal linear targets. The audit requires strict monotonic growth, maximum target deviation ≤16, linear-fit R² ≥0.92, and every adjacent step between 0.3× and 2.2× the ideal step. There is no hand-authored stage difficulty value, preventing the check from proving itself circularly or the UI from merely repeating the stage number.
 
-The map uses the same analyzed threat index for its player-facing tier. Index ≤15 is `낮음`, ≤35 `보통`, ≤60 `높음`, ≤82 `매우 높음`, and anything above is `극한`. Challenge totals are evaluated against the same campaign stage-1-to-stage-30 range, so exceptionally strong beasts naturally remain in `극한`. The map shows only the tier and five-slot marker; the numeric index is available as explanatory hover text rather than a fake stage-like fraction.
+The map uses the same analyzed threat index for its player-facing tier. Index ≤15 is `낮음`, ≤35 `보통`, ≤60 `높음`, ≤82 `매우 높음`, and anything above is `극한`. Challenge totals are evaluated against the same campaign stage-1-to-stage-30 range, so exceptionally strong beasts naturally remain in `극한`. The map shows only the tier and five-step marker; the numeric index is available as explanatory hover text rather than a fake stage-like fraction.
 
 Opening waves measure complete deployments including squad-size capstones. Reinforcement pressure instead measures per-body threat because `maxAlive` already limits the number of living bodies; multiplying squad size there would count the same deployment bonus twice.
 
@@ -435,7 +440,7 @@ Opening waves measure complete deployments including squad-size capstones. Reinf
 
 `scripts/unit-efficiency.test.ts` estimates each base deployment as `estimateUnitThreat(unit) × squadSize`, then divides by its Command cost. The shared threat estimate accounts for effective HP, flat defense, DPS, healing per second, range, movement, flying/charge/anti-large traits, and pierce or cleave reach. Every troop costing at least 150 Command must score at least 1.0 estimated threat per Command, and no base troop may cost more than the unupgraded 200 maximum Command.
 
-The current 150+ Command range runs from the Ogre Crusher at 1.39 estimated threat per Command to the post-finale Ifrit at 13.35 after its deliberate fivefold base-HP increase. This is a minimum-value regression guard, not a promise that the estimator perfectly orders every matchup: focus fire, path congestion, active-body limits, aerial counter availability, and real cleave density still require playtesting. Ifrit's exceptional value is gated behind stage 30, challenge 104, a full base Command bar, a one-body deployment, a long cooldown, and a two-body living cap rather than being treated as an ordinary campaign recruit.
+The current 150+ Command range runs from the Ogre Crusher at 1.39 estimated threat per Command to the post-finale Ancient Sky Dragon at 21.15. This is a minimum-value regression guard, not a promise that the estimator perfectly orders every matchup: focus fire, path congestion, active-body limits, aerial counter availability, and real cleave density still require playtesting. Ifrit and Ancient Sky Dragon are gated behind stage 30 challenges 104 and 105, full-base-capacity 200 Command costs, one-body deployments, long cooldowns, and living caps of two and one rather than being treated as ordinary campaign recruits.
 
 ### Focused-upgrade progression stress report
 
@@ -482,9 +487,9 @@ Each row lists aligned `target / Gold / Royal Gem` sequences. Every threshold is
 | Hero skill uses | 5 / 15 / 50 / 100 / 200 / 500 | 90 / 180 / 400 / 650 / 900 / 2,000 | 4 / 8 / 15 / 22 / 30 / 65 |
 | Fortress bombardments | 1 / 10 / 50 / 100 / 200 / 500 | 60 / 160 / 400 / 650 / 900 / 2,000 | 2 / 7 / 15 / 22 / 30 / 65 |
 | Battles | 1 / 10 / 25 / 50 / 100 / 250 | 50 / 220 / 500 / 900 / 1,800 / 4,000 | 2 / 10 / 18 / 30 / 55 / 110 |
-| Codex entries | 10 / 28 / 42 / 56 | 100 / 180 / 350 / 600 | 6 / 12 / 24 / 40 |
+| Codex entries | 10 / 29 / 43 / 57 | 100 / 180 / 350 / 600 | 6 / 12 / 24 / 40 |
 
-- The codex ladder uses 10 entries, `ceil(CODEX_TOTAL × 0.5)`, `ceil(CODEX_TOTAL × 0.75)`, and `CODEX_TOTAL`; with the current 56-entry codex these resolve to 10/28/42/56.
+- The codex ladder uses 10 entries, `ceil(CODEX_TOTAL × 0.5)`, `ceil(CODEX_TOTAL × 0.75)`, and `CODEX_TOTAL`; with the current 57-entry codex these resolve to 10/29/43/57.
 - The 64 definitions remain presented as twelve compact series by default, with the full list available as an alternate view.
 
 ## 9. Balance change workflow

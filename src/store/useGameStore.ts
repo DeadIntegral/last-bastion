@@ -3,7 +3,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { achievementById, unlockedAchievements } from '../data/achievements';
 import { canUpgradeCastleTech, castleBattleStats, castleTechCost, castleTechDefinitions, emptyCastleTech, fortressTierDefinitions, minimumFortressTierForResearch, totalCastleResearch } from '../data/castle';
 import { codexEntryCount } from '../data/codex';
-import { battleFormationCapacity, BATTLE_SPEED_LICENSE, DAILY_REWARD, FORMATION_SLOT_LICENSE } from '../data/economy';
+import { battleFormationCapacity, BATTLE_SPEED_LICENSE, DAILY_REWARD, FORMATION_SLOT_LICENSES, MAX_FORMATION_SLOT_PURCHASES } from '../data/economy';
 import { heroTrainingPackageById, isGameFeatureUnlocked } from '../data/features';
 import { HERO_MASTERY_MAX_LEVEL } from '../data/mastery';
 import { getStage, stages } from '../data/stages';
@@ -52,7 +52,7 @@ interface GameProfile {
   muted: boolean;
   battleSpeedUnlocked: boolean;
   battleSpeed: BattleSpeed;
-  formationSlotUnlocked: boolean;
+  formationSlotPurchases: number;
   addReward: (amount: number, clearedStage: number) => number;
   completeStage: (stageId: number) => FirstClearReward | undefined;
   completeChallenge: (stageId: number) => FirstClearReward | undefined;
@@ -145,10 +145,15 @@ const defaults = {
   muted: false,
   battleSpeedUnlocked: false,
   battleSpeed: 1 as BattleSpeed,
-  formationSlotUnlocked: false,
+  formationSlotPurchases: 0,
 };
 
-type SavedGameProfile = Partial<GameProfile> & { upgrades?: LegacyUnitLevels; heroLevels?: LegacyHeroLevels };
+type SavedGameProfile = Partial<GameProfile> & {
+  upgrades?: LegacyUnitLevels;
+  heroLevels?: LegacyHeroLevels;
+  /** Legacy v0.2.0 entitlement, migrated to one purchased slot. */
+  formationSlotUnlocked?: boolean;
+};
 
 export const SAVE_EXPORT_FORMAT = 'last-bastion-save';
 export const SAVE_EXPORT_VERSION = SAVE_SCHEMA_VERSION;
@@ -167,10 +172,13 @@ function hydrateSavedProfile(saved: SavedGameProfile | undefined, current: GameP
   ] : defaults.unlockedUnits);
   const inferredHeroes = savedUnlockedHeroes ?? defaults.unlockedHeroes;
   const discoveredEnemies = (Array.isArray(saved?.discoveredEnemies) ? saved.discoveredEnemies : []).filter((id): id is CodexEnemyId => id === 'boss' || validUnit(id));
-  const formationSlotUnlocked = saved?.formationSlotUnlocked === true;
+  const formationSlotPurchases = Math.min(
+    MAX_FORMATION_SLOT_PURCHASES,
+    nonNegative(saved?.formationSlotPurchases, saved?.formationSlotUnlocked === true ? 1 : 0),
+  );
   const equippedUnits = (Array.isArray(saved?.equippedUnits) ? saved.equippedUnits : inferredUnits)
     .filter((id) => validUnit(id) && inferredUnits.includes(id))
-    .slice(0, battleFormationCapacity(formationSlotUnlocked));
+    .slice(0, battleFormationCapacity(formationSlotPurchases));
   const normalizeXp = <T extends string>(ids: readonly T[], values: unknown): Record<T, number> => Object.fromEntries(ids.map((id) => {
     const source = values && typeof values === 'object' ? (values as Record<string, unknown>)[id] : 0;
     return [id, nonNegative(source, 0)];
@@ -224,19 +232,19 @@ function hydrateSavedProfile(saved: SavedGameProfile | undefined, current: GameP
     muted: typeof saved?.muted === 'boolean' ? saved.muted : current.muted,
     battleSpeedUnlocked: saved?.battleSpeedUnlocked === true,
     battleSpeed: saved?.battleSpeedUnlocked === true && saved?.battleSpeed === 1.5 ? 1.5 : 1,
-    formationSlotUnlocked,
+    formationSlotPurchases,
   };
 }
 
 function persistedProfile({
   gold, gems, lastDailyClaimDate, unlockedStage, equipmentLevels, unlockedUnits, equippedUnits, clearedStages, clearedChallenges, unitMasteryXp, selectedHero, unlockedHeroes,
   heroEquipmentLevels, heroMasteryXp, fortressTier, castleTechLevels, stats,
-  unlockedAchievementIds, claimedAchievementIds, discoveredEnemies, muted, battleSpeedUnlocked, battleSpeed, formationSlotUnlocked,
+  unlockedAchievementIds, claimedAchievementIds, discoveredEnemies, muted, battleSpeedUnlocked, battleSpeed, formationSlotPurchases,
 }: GameProfile) {
   return {
     gold, gems, lastDailyClaimDate, unlockedStage, equipmentLevels, unlockedUnits, equippedUnits, clearedStages, clearedChallenges, unitMasteryXp, selectedHero, unlockedHeroes,
     heroEquipmentLevels, heroMasteryXp, fortressTier, castleTechLevels, stats,
-    unlockedAchievementIds, claimedAchievementIds, discoveredEnemies, muted, battleSpeedUnlocked, battleSpeed, formationSlotUnlocked,
+    unlockedAchievementIds, claimedAchievementIds, discoveredEnemies, muted, battleSpeedUnlocked, battleSpeed, formationSlotPurchases,
   };
 }
 
@@ -264,7 +272,7 @@ export const useGameStore = create<GameProfile>()(
         const unlockedHeroes = reward.heroId && !state.unlockedHeroes.includes(reward.heroId)
           ? [...state.unlockedHeroes, reward.heroId]
           : state.unlockedHeroes;
-        const equippedUnits = reward.unitId && !state.equippedUnits.includes(reward.unitId) && state.equippedUnits.length < battleFormationCapacity(state.formationSlotUnlocked)
+        const equippedUnits = reward.unitId && !state.equippedUnits.includes(reward.unitId) && state.equippedUnits.length < battleFormationCapacity(state.formationSlotPurchases)
           ? [...state.equippedUnits, reward.unitId]
           : state.equippedUnits;
         const nextStats = { ...state.stats, codexEntries: codexEntryCount(unlockedUnits, unlockedHeroes, state.discoveredEnemies) };
@@ -290,7 +298,7 @@ export const useGameStore = create<GameProfile>()(
         const unlockedUnits = reward.unitId && !state.unlockedUnits.includes(reward.unitId)
           ? [...state.unlockedUnits, reward.unitId]
           : state.unlockedUnits;
-        const equippedUnits = reward.unitId && !state.equippedUnits.includes(reward.unitId) && state.equippedUnits.length < battleFormationCapacity(state.formationSlotUnlocked)
+        const equippedUnits = reward.unitId && !state.equippedUnits.includes(reward.unitId) && state.equippedUnits.length < battleFormationCapacity(state.formationSlotPurchases)
           ? [...state.equippedUnits, reward.unitId]
           : state.equippedUnits;
         const nextStats = { ...state.stats, codexEntries: codexEntryCount(unlockedUnits, state.unlockedHeroes, state.discoveredEnemies) };
@@ -310,7 +318,7 @@ export const useGameStore = create<GameProfile>()(
         const cost = definition.recruitCost ?? 0;
         if (state.gold < cost) return false;
         const unlockedUnits = [...state.unlockedUnits, id];
-        const equippedUnits = state.equippedUnits.length < battleFormationCapacity(state.formationSlotUnlocked) ? [...state.equippedUnits, id] : state.equippedUnits;
+        const equippedUnits = state.equippedUnits.length < battleFormationCapacity(state.formationSlotPurchases) ? [...state.equippedUnits, id] : state.equippedUnits;
         const nextStats = { ...state.stats, codexEntries: codexEntryCount(unlockedUnits, state.unlockedHeroes, state.discoveredEnemies) };
         set({
           gold: state.gold - cost,
@@ -329,7 +337,7 @@ export const useGameStore = create<GameProfile>()(
           set({ equippedUnits: state.equippedUnits.filter((unitId) => unitId !== id) });
           return true;
         }
-        if (state.equippedUnits.length >= battleFormationCapacity(state.formationSlotUnlocked)) return false;
+        if (state.equippedUnits.length >= battleFormationCapacity(state.formationSlotPurchases)) return false;
         set({ equippedUnits: [...state.equippedUnits, id] });
         return true;
       },
@@ -485,11 +493,12 @@ export const useGameStore = create<GameProfile>()(
       },
       purchaseFormationSlot: () => {
         const state = get();
-        if (state.formationSlotUnlocked) return true;
-        if (!state.clearedStages.includes(FORMATION_SLOT_LICENSE.unlockStage) || state.gems < FORMATION_SLOT_LICENSE.cost) return false;
+        const license = FORMATION_SLOT_LICENSES[state.formationSlotPurchases];
+        if (!license) return true;
+        if (!state.clearedStages.includes(license.unlockStage) || state.gems < license.cost) return false;
         set({
-          gems: state.gems - FORMATION_SLOT_LICENSE.cost,
-          formationSlotUnlocked: true,
+          gems: state.gems - license.cost,
+          formationSlotPurchases: state.formationSlotPurchases + 1,
         });
         return true;
       },
