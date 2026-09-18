@@ -454,9 +454,11 @@ const mapStageSpacing = 185;
 const mapPositions = stages.map((_, index) => ({ x: 135 + index * mapStageSpacing, y: mapHeightPattern[index % mapHeightPattern.length] }));
 const challengeMapPositions: Record<number, { x: number; y: number }> = {
   101: { x: mapPositions[5].x + 55, y: 11 },
-  102: { x: mapPositions[17].x + 35, y: 88 },
-  103: { x: mapPositions[29].x - 110, y: 10 },
-  104: { x: mapPositions[29].x + 95, y: 86 },
+  106: { x: mapPositions[11].x + 45, y: 88 },
+  102: { x: mapPositions[17].x + 35, y: 11 },
+  107: { x: mapPositions[23].x + 25, y: 88 },
+  103: { x: mapPositions[26].x + 45, y: 12 },
+  104: { x: mapPositions[29].x + 70, y: 86 },
   105: { x: mapPositions[29].x + 210, y: 45 },
 };
 const campaignRegionNames = ['서부 변경', '점령 왕도', '오크 고원', '정령 설원', '마왕성 균열'];

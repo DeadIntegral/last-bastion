@@ -95,8 +95,10 @@ Priest is the roster's symmetric support unit: its 190 healing range exceeds its
 | 왕립 기마병 | 120 | 1 | 250 | 40 | 40 | 1050 ms | 700 | pierce 2 |
 | 석궁병 | 85 | 1 | 115 | 36 | 160 | 1450 ms | 400 | pierce 2 |
 | 오우거 파쇄자 | 170 | 1 | 900 | 65 | 52 | 1500 ms | challenge 101 | melee cleave |
+| 다이어울프 | 85 | 2 | 155 | 31 | 32 | 800 ms | challenge 106 | single, charge opener |
 | 그리폰 기수 | 200 | 1 | 1,600 | 150 | 58 | 1050 ms | 1,500 | melee cleave |
 | 폭풍 정령 | 155 | 1 | 600 | 55 | 185 | 1150 ms | challenge 102 | pierce 2 |
+| 룬 골렘 | 200 | 1 | 2,300 | 110 | 46 | 1650 ms | challenge 107 | melee cleave, guard |
 | 마염견 | 170 | 1 | 850 | 70 | 46 | 900 ms | challenge 103 | melee cleave |
 | 창공의 고룡 | 200 | 1 | 15,000 | 240 | 250 | 1900 ms | challenge 105 | pierce 3 |
 
@@ -193,7 +195,7 @@ Enemy equipment ranks and numeric elite modifiers are intentionally hidden from 
 
 Enemy equipment reaches its finite maximum at stage 7. Stages 8–30 add no further generic equipment scaling; their difficulty comes from denser formations, finite alive-capped reinforcements, named elites, Royal Cavalry charges, Griffin flight rules, progressively tougher fortresses, late-fortress fire, and boss behavior. The hardened campaign keeps stages 1–6 as the onboarding region, then raises fortress durability, elite pressure, and reinforcement density from stage 7 onward. Stages 13–29 use a 55-second reinforcement start, strength-adjusted intervals from 2.0 to 4.6 seconds, and living-enemy caps no higher than 17. Fortress fire begins at stage 13 and advances in three regional profiles: 60 damage / 260 range / 2.8 seconds, then 90 / 290 / 2.4 seconds at stage 19, and 125 / 320 / 2.1 seconds at stage 25.
 
-The shared beast behavior is reused by five campaign boss sieges at stages 6, 12, 18, 24, and 30 plus five standalone challenges. Campaign beasts use a canonical 5,200 HP, 82 attack, 68 range, 1.5-second attack interval, and 20 movement-speed body, while challenge beasts start from the exact recruitable Ogre, Storm Spirit, Hellhound, Ifrit, or Ancient Sky Dragon definition. The first player attack triggers their advance and telegraphed ground-only stomp. At 55% HP they enter phase two: attack interval becomes 65%, movement becomes 160%, stomp cadence accelerates from 5.2 to 3.4 seconds, and stomp damage rises from 105% to 155% of trained attack.
+The shared beast behavior is reused by five campaign boss sieges at stages 6, 12, 18, 24, and 30 plus seven standalone challenges. Campaign beasts use a canonical 5,200 HP, 82 attack, 68 range, 1.5-second attack interval, and 20 movement-speed body, while challenge beasts start from the exact recruitable Ogre Crusher, Direwolf, Storm Spirit, Rune Golem, Hellhound, Ifrit, or Ancient Sky Dragon definition. The first player attack triggers their advance and telegraphed ground-only stomp. At 55% HP they enter phase two: attack interval becomes 65%, movement becomes 160%, stomp cadence accelerates from 5.2 to 3.4 seconds, and stomp damage rises from 105% to 155% of trained attack.
 
 A pending stomp telegraph is canceled and removed immediately when its boss dies, the battle ends, or the scene shuts down. A canceled warning can never resolve damage or remain rendered over the battlefield.
 
@@ -228,7 +230,7 @@ Status: **Implemented**.
 
 ### Beast challenges
 
-Beast challenges have no separate menu. Clearing campaign milestones 6, 18, and 30 reveals five pulsing red rift nodes inside the draggable kingdom-map world; the three final rifts occupy distinct positions around stage 30. Selecting a rift reuses the normal mission panel but switches it to beast styling and shows the exact terrain amplification, solo-boss objective, first-clear recruit, and repeat reward. These encounters set `challenge: true`, contain one named boss, draw no enemy fortress, schedule no waves or reinforcements, and end immediately when the boss dies. They apply a clearly displayed terrain advantage of HP ×10 and attack ×2.5. Their named HP multipliers are ×1.5, ×8, ×12, ×4/3, and ×8/9; the final two compensate for the apex three-rank equipment capstone so Ifrit and Ancient Sky Dragon retain their established 264,000 and 240,000 trained challenge HP. Their first clears persist separately and grant the exact base Ogre Crusher, Storm Spirit, Hellhound, Ifrit, and Ancient Sky Dragon troops without terrain or boss multipliers. Repeat victories grant 400, 1,000, 1,800, 2,400, and 3,000 gold respectively but never advance `unlockedStage`.
+Beast challenges have no separate menu. Clearing campaign milestones 6, 12, 18, 24, 27, and 30 reveals seven pulsing red rift nodes inside the draggable continent-map world. The stage-6 through stage-27 nodes form an intermediate 2-to-4-star reward cadence, while only the two distinct stage-30 rifts grant 5-star transcendent troops. Selecting a rift reuses the normal mission panel but switches it to beast styling and shows the exact terrain amplification, solo-boss objective, first-clear recruit, and repeat reward. These encounters set `challenge: true`, contain one named boss, draw no enemy fortress, schedule no waves or reinforcements, and end immediately when the boss dies. They apply a clearly displayed terrain advantage of HP ×10 and attack ×2.5. In unlock order, their named HP multipliers are ×1.5, ×12, ×8, ×3, ×12, ×4/3, and ×8/9. Their first clears persist separately and grant the exact base Ogre Crusher, Direwolf, Storm Spirit, Rune Golem, Hellhound, Ifrit, and Ancient Sky Dragon troops without terrain or boss multipliers. Repeat victories grant 400, 700, 1,000, 1,400, 1,800, 2,400, and 3,000 gold respectively but never advance `unlockedStage`.
 
 ## 8. Fortress technology
 
@@ -458,6 +460,7 @@ Regression tests follow a minimum-sufficient strategy: protect formulas, combat 
 
 ## 17. Changelog
 
+- 2026-09-18: Expanded beast-only challenges from five to seven and distributed them across stages 6/12/18/24/27/30/30; added challenge-only Direwolf and Rune Golem recruits so intermediate campaign milestones now grant 2–4-star options while only the two finale rifts grant 5-star transcendents.
 - 2026-09-18: Implemented faction-neutral guard protection, deterministic pierce interception, directional rear-wave attenuation, pooled guard feedback, cluster-aware telegraphed ground-burst magic, armory/codex disclosure, and difficulty valuation; converted four ground casters plus Archmage to the new patterns and raised the stage-30 campaign beast HP modifier to preserve the audited finale step.
 - 2026-09-18: Added data-driven attack windup, recovery lock, close-range dead zones, impact-time target validation, ranged retreat behavior, and ground/all-domain splash attacks; exact attack rhythm now unlocks only in the codex at mastery 5, while the difficulty audits value commitment costs.
 - 2026-09-18: Replaced the single late fortress-front elite with two stage-13–17 and three stage-19–29 regional midfield commanders, normalized their single-body growth into a smooth audited curve, and strengthened the stage-24 and stage-30 campaign beasts to remain clear difficulty peaks.

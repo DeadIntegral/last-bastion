@@ -15,7 +15,9 @@ describe('combat rules', () => {
 
   it('applies visible challenge terrain only to the enemy encounter copy', () => {
     const base = troopDefinitions.spirit;
-    const terrainCopy = applyEnemyTerrain(base, challengeStages[1].terrain);
+    const spiritChallenge = challengeStages.find((stage) => stage.bossUnitId === 'spirit');
+    if (!spiritChallenge) throw new Error('Storm Spirit challenge must exist.');
+    const terrainCopy = applyEnemyTerrain(base, spiritChallenge.terrain);
     expect(terrainCopy.maxHp).toBe(base.maxHp * 10);
     expect(terrainCopy.attackDamage).toBe(Math.round(base.attackDamage * 2.5));
     expect(terrainCopy.moveSpeed).toBeCloseTo(base.moveSpeed * 1.15);

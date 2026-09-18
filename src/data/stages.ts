@@ -400,6 +400,14 @@ export const challengeStages: StageDefinition[] = [
     firstClearReward: { label: '오우거 파쇄자 영입', description: '지형 보정이 없는 기본 오우거 파쇄자가 원정대에 합류합니다.', icon: '●', unitId: 'brute' },
   },
   {
+    id: 106, name: '월식의 늑대왕', subtitle: '달그림자 수렵장에서 무리를 지배하는 빠른 마수를 추격하세요.', reward: 700,
+    enemyCastleHp: 0, fortressDistance: MAX_FORTRESS_DISTANCE, challenge: true, requiredCampaignStage: 12, boss: true, bossName: '월식 송곳니', bossUnitId: 'direwolf', enemyFaction: 'monsters',
+    terrain: { id: 'moonlit-hunt', name: '달그림자 수렵장', description: '월식의 야성이 적의 체력을 10배, 공격력을 2.5배, 이동속도를 1.25배로 만듭니다.', enemyHpMultiplier: 10, enemyAttackMultiplier: 2.5, enemyMoveSpeedMultiplier: 1.25 },
+    bossModifiers: { hpMultiplier: 12, attackMultiplier: 1.1, stompCadenceMultiplier: 0.78 },
+    enemyUpgrades: { equipment: { weapon: 5, armor: 5, boots: 5 } }, waves: [],
+    firstClearReward: { label: '다이어울프 복종', description: '지형 증폭이 제거된 기본 다이어울프 무리가 원정대에 합류합니다.', icon: '♠', unitId: 'direwolf' },
+  },
+  {
     id: 102, name: '폭풍의 대정령', subtitle: '폭풍의 눈에서 열 배로 증폭된 정령의 생명력을 꺾으세요.', reward: 1_000,
     enemyCastleHp: 0, fortressDistance: MAX_FORTRESS_DISTANCE, challenge: true, requiredCampaignStage: 18, boss: true, bossName: '해방되지 못한 대정령', bossUnitId: 'spirit', enemyFaction: 'spirits',
     terrain: { id: 'storm-eye', name: '폭풍의 눈', description: '응축된 원소가 적의 체력을 10배, 공격력을 2.5배, 이동속도를 1.15배로 만듭니다.', enemyHpMultiplier: 10, enemyAttackMultiplier: 2.5, enemyMoveSpeedMultiplier: 1.15 },
@@ -408,8 +416,16 @@ export const challengeStages: StageDefinition[] = [
     firstClearReward: { label: '폭풍 정령 계약', description: '지형 증폭이 제거된 기본 폭풍 정령을 전투에 편성할 수 있습니다.', icon: '✦', unitId: 'spirit' },
   },
   {
+    id: 107, name: '룬 심장의 파수자', subtitle: '고대 룬 분지의 수호핵을 깨우고 철벽의 거체를 굴복시키세요.', reward: 1_400,
+    enemyCastleHp: 0, fortressDistance: MAX_FORTRESS_DISTANCE, challenge: true, requiredCampaignStage: 24, boss: true, bossName: '봉인된 룬 거인', bossUnitId: 'golem', enemyFaction: 'spirits',
+    terrain: { id: 'ancient-rune-basin', name: '고대 룬 분지', description: '대지의 룬이 적의 체력을 10배, 공격력을 2.5배로 만들지만 이동속도를 0.9배로 낮춥니다.', enemyHpMultiplier: 10, enemyAttackMultiplier: 2.5, enemyMoveSpeedMultiplier: 0.9 },
+    bossModifiers: { hpMultiplier: 3, attackMultiplier: 1.1, stompCadenceMultiplier: 0.62 },
+    enemyUpgrades: { equipment: { weapon: 5, armor: 5, boots: 5 } }, waves: [],
+    firstClearReward: { label: '룬 골렘 기동', description: '지형 증폭이 제거된 기본 룬 골렘이 원정대의 명령을 따릅니다.', icon: '▣', unitId: 'golem' },
+  },
+  {
     id: 103, name: '심연의 마염수', subtitle: '마왕성 아래 균열에서 가장 강한 악마수를 굴복시키세요.', reward: 1_800,
-    enemyCastleHp: 0, fortressDistance: MAX_FORTRESS_DISTANCE, challenge: true, requiredCampaignStage: 30, boss: true, bossName: '종말의 마염견', bossUnitId: 'hellhound', enemyFaction: 'demons',
+    enemyCastleHp: 0, fortressDistance: MAX_FORTRESS_DISTANCE, challenge: true, requiredCampaignStage: 27, boss: true, bossName: '종말의 마염견', bossUnitId: 'hellhound', enemyFaction: 'demons',
     terrain: { id: 'abyss-rift', name: '심연의 균열', description: '마계의 불길이 적의 체력을 10배, 공격력을 2.5배, 이동속도를 1.2배로 만듭니다.', enemyHpMultiplier: 10, enemyAttackMultiplier: 2.5, enemyMoveSpeedMultiplier: 1.2 },
     bossModifiers: { hpMultiplier: 12, attackMultiplier: 1.05, stompCadenceMultiplier: 0.56 },
     enemyUpgrades: { equipment: { weapon: 5, armor: 5, boots: 5 } }, waves: [],

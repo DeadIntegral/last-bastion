@@ -70,8 +70,10 @@ Only 5-star troops count as transcendent for `초월의 군기`. In particular, 
 | 왕립 기마병 | 120 | 1 | 250 | 40 | 40 | 1050 ms | 82 | 3.9 s | 700 | pierce 2, ×0.80 follow-through |
 | 석궁병 | 85 | 1 | 115 | 36 | 160 | 1450 ms | 36 | 3.0 s | 400 | pierce 2, ×0.75 follow-through |
 | 오우거 파쇄자 | 170 | 1 | 900 | 65 | 52 | 1500 ms | 25 | 4.3 s | challenge 101 | cleave, ×0.80 secondary |
+| 다이어울프 | 85 | 2 | 155 | 31 | 32 | 800 ms | 82 | 3.5 s | challenge 106 | single, first strike ×1.60 |
 | 그리폰 기수 | 200 | 1 | 1,600 | 150 | 58 | 1050 ms | 78 | 6.5 s | 1,500 | cleave, ×0.85 secondary |
 | 폭풍 정령 | 155 | 1 | 600 | 55 | 185 | 1150 ms | 58 | 4.5 s | challenge 102 | pierce 2, ×0.70 follow-through |
+| 룬 골렘 | 200 | 1 | 2,300 | 110 | 46 | 1650 ms | 17 | 6.2 s | challenge 107 | cleave ×0.85, guard ×0.15 |
 | 마염견 | 170 | 1 | 850 | 70 | 46 | 900 ms | 76 | 4.8 s | challenge 103 | cleave, ×0.65 secondary |
 | 왕국 마법사 | 115 | 1 | 110 | 36 | 195 | 1300 ms | 37 | 3.5 s | encounter | ground burst r72, ×0.70 secondary |
 | 대마법사 | 190 | 1 | 700 | 110 | 245 | 1600 ms | 31 | 5.5 s | encounter | all-domain directional 245, ×0.70 secondary |
@@ -81,7 +83,7 @@ Only 5-star troops count as transcendent for `초월의 군기`. In particular, 
 - A new profile owns and equips only the militia.
 - Battle formations contain one to four acquired troop types by default and up to seven after purchasing the three sequential permanent formation-slot licenses.
 - Command and cooldown are paid once per card activation. One Militia/Raider activation creates three bodies and one Guardian/Archer activation creates two; a wave's `count` likewise counts activations before squad expansion. Mastery summon counts track the activation rather than multiplying XP per body.
-- Encounter alone does not bypass fortress recruitment permits: expansion troops below 110 Command default to tier 2 and troops at or above 110 default to tier 3. Royal Cavalry is revealed and recruitable at tier 2 without an encounter; Griffin Rider follows the same rule at tier 3. Ogre Crusher, Storm Spirit, Hellhound, Ifrit, and Ancient Sky Dragon are challenge-only recruits. Already-owned troops remain owned when an older save migrates.
+- Encounter alone does not bypass fortress recruitment permits: expansion troops below 110 Command default to tier 2 and troops at or above 110 default to tier 3. Royal Cavalry is revealed and recruitable at tier 2 without an encounter; Griffin Rider follows the same rule at tier 3. Ogre Crusher, Direwolf, Storm Spirit, Rune Golem, Hellhound, Ifrit, and Ancient Sky Dragon are challenge-only recruits. Already-owned troops remain owned when an older save migrates.
 - Lancer and Huntress attacks deal ×1.75 damage to `large` targets.
 - Royal Cavalry has 3 base defense and its first attack after each spawn deals ×1.6 damage. Griffin Rider has 8 base defense, is tagged `flying` and `large`, and moves 112 virtual pixels above the lane. It retains higher per-hit melee damage than Ifrit, but consumes the full 200 base Command, waits 6.5 seconds between deployments, must enter melee range, and permits only two living bodies per side.
 - Only combatants tagged `ranged` and the player watchtower can select a flying target. Late enemy-fortress fire is an explicit domain-independent exception and can shoot both ground and flying attackers. Fortress bombardment and beast stomp skip flying targets; flying units can attack ground targets normally.
@@ -427,12 +429,14 @@ Stages 13–30 add a basic enemy-fortress shot as a separate, visible difficulty
 | Challenge | Unlock | Repeat gold | Shared base | Terrain HP/ATK/Move | Named HP/ATK/cadence | First clear |
 |---|---:|---:|---|---|---|---|
 | 오우거 대족장 | stage 6 | 400 | 오우거 파쇄자 | ×10 / ×2.5 / ×1 | ×1.5 / ×1 / ×0.92 | 오우거 파쇄자 |
+| 월식의 늑대왕 | stage 12 | 700 | 다이어울프 | ×10 / ×2.5 / ×1.25 | ×12 / ×1.1 / ×0.78 | 다이어울프 |
 | 폭풍의 대정령 | stage 18 | 1,000 | 폭풍 정령 | ×10 / ×2.5 / ×1.15 | ×8 / ×1.05 / ×0.68 | 폭풍 정령 |
-| 심연의 마염수 | stage 30 | 1,800 | 마염견 | ×10 / ×2.5 / ×1.2 | ×12 / ×1.05 / ×0.56 | 마염견 |
+| 룬 심장의 파수자 | stage 24 | 1,400 | 룬 골렘 | ×10 / ×2.5 / ×0.9 | ×3 / ×1.1 / ×0.62 | 룬 골렘 |
+| 심연의 마염수 | stage 27 | 1,800 | 마염견 | ×10 / ×2.5 / ×1.2 | ×12 / ×1.05 / ×0.56 | 마염견 |
 | 태양 감옥의 이프리트 | stage 30 | 2,400 | 이프리트 | ×10 / ×2.5 / ×1.1 | ×4/3 / ×8/9 / ×0.52 | 이프리트 |
 | 창공의 고룡 | stage 30 | 3,000 | 창공의 고룡 | ×10 / ×2.5 / ×1.15 | ×8/9 / ×28/45 / ×0.48 | 창공의 고룡 |
 
-Challenges contain no enemy fortress, fortress fire, waves, reinforcements, or elite. The enemy is derived from the same base troop later granted to the player, then receives rank-5 stage equipment, the visible terrain multipliers, and its named-boss modifier. The common HP ×10 terrain rule remains legible while the named modifier preserves progression; combined pre-equipment HP multipliers are ×15, ×80, ×120, ×40/3, and ×80/9. Because the apex stat capstone now contributes three equipment ranks instead of one, challenge 104 uses ×4/3 HP and ×8/9 ATK to preserve 264,000 trained HP and its prior attack pressure. Challenge 105 likewise uses ×8/9 HP and ×28/45 ATK, preserving 240,000 trained HP and 672 trained attack. First-clear acquisition is persistent and does not advance the campaign; the acquired troop never receives terrain or named-boss multipliers. Listed battle gold is repeatable and defeat still grants 20%.
+Challenges contain no enemy fortress, fortress fire, waves, reinforcements, or elite. The enemy is derived from the same base troop later granted to the player, then receives rank-5 stage equipment, the visible terrain multipliers, and its named-boss modifier. The common HP ×10 terrain rule remains legible while the named modifier preserves progression; combined pre-equipment HP multipliers in unlock order are ×15, ×120, ×80, ×30, ×120, ×40/3, and ×80/9. Their trained HP rises through approximately 20,250 / 28,200 / 72,000 / 124,200 / 153,000 / 264,000 / 240,000; the last two are parallel finale challenges rather than a strict internal ordering. The stage-6 through stage-27 rewards deliberately mix 2-, 3-, and 4-star troops, while only the two stage-30 encounters grant 5-star transcendents. Because the apex stat capstone now contributes three equipment ranks instead of one, the 4-star Rune Golem receives the same fixed-rank stat capstone before its named modifier. Challenge 104 uses ×4/3 HP and ×8/9 ATK to preserve 264,000 trained HP and its prior attack pressure. Challenge 105 likewise uses ×8/9 HP and ×28/45 ATK, preserving 240,000 trained HP and 672 trained attack. First-clear acquisition is persistent and does not advance the campaign; the acquired troop never receives terrain or named-boss multipliers. Listed battle gold is repeatable and defeat still grants 20%.
 
 ### Continuous enemy reinforcements
 

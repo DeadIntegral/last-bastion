@@ -47,9 +47,11 @@ describe('campaign rewards', () => {
   });
 
   it('keeps boss-only encounters in a separate challenge roster', () => {
-    expect(challengeStages).toHaveLength(5);
+    expect(challengeStages).toHaveLength(7);
+    expect(challengeStages.map((challenge) => challenge.requiredCampaignStage)).toEqual([6, 12, 18, 24, 27, 30, 30]);
+    expect(challengeStages.map((challenge) => troopDefinitions[challenge.bossUnitId!].grade)).toEqual([3, 2, 3, 4, 3, 5, 5]);
     const combinedHpMultipliers = challengeStages.map((challenge) => challenge.terrain.enemyHpMultiplier * (challenge.bossModifiers?.hpMultiplier ?? 1));
-    [15, 80, 120, 40 / 3, 80 / 9].forEach((expected, index) => expect(combinedHpMultipliers[index]).toBeCloseTo(expected));
+    [15, 120, 80, 30, 120, 40 / 3, 80 / 9].forEach((expected, index) => expect(combinedHpMultipliers[index]).toBeCloseTo(expected));
     for (const challenge of challengeStages) {
       expect(challenge.challenge).toBe(true);
       expect(challenge.boss).toBe(true);
@@ -61,6 +63,11 @@ describe('campaign rewards', () => {
       expect(challenge.terrain.enemyHpMultiplier).toBe(10);
       expect(challenge.terrain.enemyAttackMultiplier).toBe(2.5);
     }
+    const challengeRewardIds = new Set(challengeStages.map((challenge) => challenge.firstClearReward.unitId));
+    const challengeRecruitIds = Object.values(troopDefinitions)
+      .filter((troop) => troop.recruitSource === 'challenge')
+      .map((troop) => troop.id);
+    expect(challengeRewardIds).toEqual(new Set(challengeRecruitIds));
   });
 
   it('structures the occupation armies and terrain instead of hiding them in scene code', () => {
