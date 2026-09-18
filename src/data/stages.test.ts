@@ -45,7 +45,7 @@ describe('campaign rewards', () => {
 
   it('keeps boss-only encounters in a separate challenge roster', () => {
     expect(challengeStages).toHaveLength(4);
-    expect(challengeStages.map((challenge) => challenge.terrain.enemyHpMultiplier * (challenge.bossModifiers?.hpMultiplier ?? 1))).toEqual([15, 80, 120, 75]);
+    expect(challengeStages.map((challenge) => challenge.terrain.enemyHpMultiplier * (challenge.bossModifiers?.hpMultiplier ?? 1))).toEqual([15, 80, 120, 15]);
     for (const challenge of challengeStages) {
       expect(challenge.challenge).toBe(true);
       expect(challenge.boss).toBe(true);
@@ -138,7 +138,14 @@ describe('campaign rewards', () => {
     const upperTier = allTroopOrder.map((id) => troopDefinitions[id]).filter((unit) => unit.grade >= 4);
     expect(upperTier.length).toBeGreaterThan(0);
     expect(upperTier.every((unit) => unit.maxHp >= 1_000)).toBe(true);
-    expect(troopDefinitions.ifrit.maxHp).toBe(2_200);
+    expect(troopDefinitions.ifrit.maxHp).toBe(11_000);
+  });
+
+  it('reserves Ifrit for the post-finale challenge instead of revealing it in campaign waves', () => {
+    expect(stages.some((stage) => stage.waves.some((wave) => wave.unitId === 'ifrit') || stage.reinforcement?.unitIds.includes('ifrit'))).toBe(false);
+    const ifritChallenge = challengeStages.find((stage) => stage.bossUnitId === 'ifrit');
+    expect(ifritChallenge?.requiredCampaignStage).toBe(30);
+    expect(ifritChallenge?.bossModifiers?.hpMultiplier).toBe(1.5);
   });
 
   it('gives every shared troop an acquisition or encounter path', () => {

@@ -1,6 +1,6 @@
 # Last Bastion — Balance Reference
 
-Last updated: 2026-09-17
+Last updated: 2026-09-18
 
 This is the canonical reference for implemented economy, progression, combat, and campaign numbers. Change this file in the same commit as any balance value. Product behavior and architecture remain canonical in `docs/GAME_SPEC.md`.
 
@@ -9,13 +9,14 @@ This is the canonical reference for implemented economy, progression, combat, an
 | Currency | Initial | Sources | Current sinks |
 |---|---:|---|---|
 | Gold | 100 | battles, first-clear rewards, achievement claims | troop recruitment, equipment, heroes, hero training, fortress research |
-| Royal Gems | 0 | daily attendance, achievement claims | permanent 1.5× battle-speed license |
+| Royal Gems | 0 | daily attendance, achievement claims | permanent 1.5× battle-speed license; permanent fifth formation slot |
 
 - Royal Gems are currently non-purchasable with real money. There is no recharge, payment, or currency-exchange path.
 - Daily attendance grants 10 Royal Gems once per browser-local calendar date.
 - The claimed date persists as `YYYY-MM-DD`. Changing the device clock is not prevented because progression is local-only.
 - The `수수께끼 상인` shop is revealed after the stage-6 campaign boss clear. It sells `전투 가속 허가` for 200 Royal Gems once; the map operations button only enters the shop. The license permanently unlocks a persisted 1×/1.5× battle toggle. The purchase is idempotent and the speed applies to simulation time, timer events, and combat tweens; BGM tempo is not changed.
-- At daily income alone the license represents 20 claims. Achievement rewards shorten this, including 25 Royal Gems from the first-boss achievement itself. A future verified cash entitlement may bypass both the currency price and stage gate, but no payment implementation currently exists.
+- Clearing stage 12 reveals `편성 확장 허가` for 150 Royal Gems. It permanently changes formation capacity from four troop types to five, persists as `formationSlotUnlocked`, and exposes the fifth battle card and numeric hotkey. At daily income alone it represents 15 claims; both current licenses total 350 Gems before achievement income.
+- A future verified cash entitlement may bypass either license's currency price and stage gate, but no payment implementation currently exists. The planned Quick Starter may combine a data-driven Gem grant with both existing entitlements without inventing a second kind of speed or formation bonus.
 
 Hero Training Ground unlocks from the stage-9 first clear. It supplements rather than replaces battle-earned hero mastery XP and refuses purchases at the level-30 cap.
 
@@ -72,10 +73,10 @@ Only 5-star troops count as transcendent for `초월의 군기`. In particular, 
 | 마염견 | 170 | 1 | 850 | 70 | 46 | 900 ms | 76 | 4.8 s | challenge 103 | cleave, ×0.65 secondary |
 | 왕국 마법사 | 115 | 1 | 110 | 36 | 195 | 1300 ms | 37 | 3.5 s | encounter | pierce 2, ×0.65 follow-through |
 | 대마법사 | 190 | 1 | 700 | 110 | 245 | 1600 ms | 31 | 5.5 s | encounter | pierce 3, ×0.70 follow-through |
-| 이프리트 | 200 | 1 | 2,200 | 140 | 215 | 1650 ms | 42 | 6.6 s | challenge 104 | pierce 3, ×0.75 follow-through |
+| 이프리트 | 200 | 1 | 11,000 | 140 | 215 | 1650 ms | 42 | 6.6 s | challenge 104 after stage 30 | pierce 3, ×0.75 follow-through |
 
 - A new profile owns and equips only the militia.
-- Battle formations contain one to four acquired troop types.
+- Battle formations contain one to four acquired troop types by default and up to five after purchasing the permanent formation-slot license.
 - Command and cooldown are paid once per card activation. One Militia/Raider activation creates three bodies and one Guardian/Archer activation creates two; a wave's `count` likewise counts activations before squad expansion. Mastery summon counts track the activation rather than multiplying XP per body.
 - Encounter alone does not bypass fortress recruitment permits: expansion troops below 110 Command default to tier 2 and troops at or above 110 default to tier 3. Royal Cavalry is revealed and recruitable at tier 2 without an encounter; Griffin Rider follows the same rule at tier 3. Ogre Crusher, Storm Spirit, Hellhound, and Ifrit are challenge-only recruits. Already-owned troops remain owned when an older save migrates.
 - Lancer and Huntress attacks deal ×1.75 damage to `large` targets.
@@ -104,7 +105,7 @@ The expensive roster was rebalanced against Command cost rather than rarity alon
 | 늪지 히드라 | 200 | 2,100 | 7 | 115 | 1.45 s |
 | 악마 근위병 | 175 | 1,300 | 10 | 75 | 1.20 s |
 | 케르베로스 | 200 | 1,600 | 6 | 110 | 0.95 s |
-| 이프리트 | 200 | 2,200 | 8 | 140 | 1.65 s |
+| 이프리트 | 200 | 11,000 | 8 | 140 | 1.65 s |
 | 영혼 수확자 | 200 | 1,200 | 6 | 125 | 1.35 s |
 | 심연 기사 | 200 | 1,900 | 12 | 115 | 1.25 s |
 
@@ -378,9 +379,9 @@ Stages 13–30 add a basic enemy-fortress shot as a separate, visible difficulty
 | 오우거 대족장 | stage 6 | 400 | 오우거 파쇄자 | ×10 / ×2.5 / ×1 | ×1.5 / ×1 / ×0.92 | 오우거 파쇄자 |
 | 폭풍의 대정령 | stage 18 | 1,000 | 폭풍 정령 | ×10 / ×2.5 / ×1.15 | ×8 / ×1.05 / ×0.68 | 폭풍 정령 |
 | 심연의 마염수 | stage 30 | 1,800 | 마염견 | ×10 / ×2.5 / ×1.2 | ×12 / ×1.05 / ×0.56 | 마염견 |
-| 태양 감옥의 이프리트 | stage 30 | 2,400 | 이프리트 | ×10 / ×2.5 / ×1.1 | ×7.5 / ×1 / ×0.52 | 이프리트 |
+| 태양 감옥의 이프리트 | stage 30 | 2,400 | 이프리트 | ×10 / ×2.5 / ×1.1 | ×1.5 / ×1 / ×0.52 | 이프리트 |
 
-Challenges contain no enemy fortress, fortress fire, waves, reinforcements, or elite. The enemy is derived from the same base troop later granted to the player, then receives rank-5 stage equipment, the visible terrain multipliers, and its named-boss modifier. The common HP ×10 terrain rule remains legible while the named modifier preserves progression; combined effective HP multipliers are ×15, ×80, ×120, and ×75 before equipment. With current rank-5 armor, this resolves to 20,250 / 72,000 / 153,000 / 247,500 encounter HP. First-clear acquisition is persistent and does not advance the campaign; the acquired troop never receives terrain or named-boss multipliers. Listed battle gold is repeatable and defeat still grants 20%.
+Challenges contain no enemy fortress, fortress fire, waves, reinforcements, or elite. The enemy is derived from the same base troop later granted to the player, then receives rank-5 stage equipment, the visible terrain multipliers, and its named-boss modifier. The common HP ×10 terrain rule remains legible while the named modifier preserves progression; combined effective HP multipliers are ×15, ×80, ×120, and ×15 before equipment. Ifrit's base HP increase is offset only inside challenge 104 by reducing its named modifier from ×7.5 to ×1.5, so its rank-5 equipment/stat-capstone encounter durability remains 264,000 HP rather than jumping fivefold. First-clear acquisition is persistent and does not advance the campaign; the acquired troop never receives terrain or named-boss multipliers. Listed battle gold is repeatable and defeat still grants 20%.
 
 ### Continuous enemy reinforcements
 
@@ -434,7 +435,7 @@ Opening waves measure complete deployments including squad-size capstones. Reinf
 
 `scripts/unit-efficiency.test.ts` estimates each base deployment as `estimateUnitThreat(unit) × squadSize`, then divides by its Command cost. The shared threat estimate accounts for effective HP, flat defense, DPS, healing per second, range, movement, flying/charge/anti-large traits, and pierce or cleave reach. Every troop costing at least 150 Command must score at least 1.0 estimated threat per Command, and no base troop may cost more than the unupgraded 200 maximum Command.
 
-The current 150+ Command range runs from the Ogre Crusher at 1.39 estimated threat per Command to Ifrit at 4.37. This is a minimum-value regression guard, not a promise that the estimator perfectly orders every matchup: focus fire, path congestion, active-body limits, aerial counter availability, and real cleave density still require playtesting.
+The current 150+ Command range runs from the Ogre Crusher at 1.39 estimated threat per Command to the post-finale Ifrit at 13.35 after its deliberate fivefold base-HP increase. This is a minimum-value regression guard, not a promise that the estimator perfectly orders every matchup: focus fire, path congestion, active-body limits, aerial counter availability, and real cleave density still require playtesting. Ifrit's exceptional value is gated behind stage 30, challenge 104, a full base Command bar, a one-body deployment, a long cooldown, and a two-body living cap rather than being treated as an ordinary campaign recruit.
 
 ### Focused-upgrade progression stress report
 

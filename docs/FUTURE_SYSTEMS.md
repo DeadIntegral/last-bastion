@@ -1,6 +1,6 @@
 # Last Bastion — Future Systems Specification
 
-Last updated: 2026-09-16
+Last updated: 2026-09-18
 
 This document is the canonical backlog for game systems that have been designed but are not yet implemented. Everything in this file is **Planned** unless a section explicitly says otherwise. Implemented behavior belongs in `docs/GAME_SPEC.md`, while final numeric values belong in `docs/BALANCE.md`.
 
@@ -113,7 +113,17 @@ Status: **Implemented**.
 
 `원정 전술` shipped as the fifth fortress branch on 2026-09-16. It includes staged rally control for 1–4-star soldiers, heroes, and canonical 5-star transcendent troops; hero active/respawn timing research; and stronger full-gauge mobilization. The authoritative behavior is in `docs/GAME_SPEC.md` section 8 and all numeric values are in `docs/BALANCE.md` section 5.
 
-## 4. Future-system entry template
+## 4. Quick Starter commerce bundle
+
+Status: **Planned**.
+
+- The intended bundle grants a data-driven amount of Royal Gems plus the existing permanent `battleSpeedUnlocked` and `formationSlotUnlocked` entitlements. It must reuse those fields rather than creating paid-only speed or formation mechanics.
+- A verified purchase may bypass the normal stage-6/stage-12 merchant gates. Entitlement application is idempotent, so buying the bundle after earning one or both licenses cannot duplicate 1.5× speed or raise formation capacity beyond five.
+- The final Gem quantity, regional price, refund behavior, platform integration, and handling for players who already own an entitlement remain undecided.
+- Payment confirmation must come from a trusted server or platform receipt. Client-side flags, imported saves, inferred purchase state, and local-storage edits must never be treated as proof of payment.
+- Accounts, payment UI, recharge, advertising, and server persistence remain unimplemented. Do not advertise the bundle inside the current game until the complete purchase and restoration flow exists.
+
+## 5. Future-system entry template
 
 Every later proposal added to this file should include:
 

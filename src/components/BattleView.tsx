@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { battleMobilizationTuning, castleBattleStats, rallyCommandTuning } from '../data/castle';
 import { troopDefinitions, unitGradeLabels } from '../data/units';
 import { getStage } from '../data/stages';
@@ -165,7 +165,7 @@ export function BattleView({ stageId, onResult }: BattleViewProps) {
               title={`지휘력 100% 소모 · 최대 +${battleCastleStats.mobilizationMaxCommandBonus} · 회복 +${battleCastleStats.mobilizationCommandRegenBonus}/초 (E)`}
             ><kbd>E</kbd><span>동원 {hud.mobilizationUses}/{hud.mobilizationMaxUses}</span></button>
           </div>
-          <div className="unit-buttons">
+          <div className="unit-buttons" style={{ '--formation-slots': Math.max(4, equippedUnits.length) } as CSSProperties}>
             {equippedUnits.map((id, index) => {
               const unit = troopDefinitions[id];
               const deploymentSize = upgradedStats(unit, equipmentLevels[id]).squadSize;

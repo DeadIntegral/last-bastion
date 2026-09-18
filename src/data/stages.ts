@@ -225,7 +225,7 @@ const lateReinforcementComposition: UnitId[] = ['militia', 'guardian', 'archer',
 const lateRegionalRosters: Record<3 | 4 | 5, UnitId[]> = {
   3: ['goblinArcher', 'goblinBomber', 'orcBerserker', 'orcShaman', 'troll', 'ogreMage', 'wolfRider', 'harpy', 'minotaur', 'slime', 'basilisk', 'direwolf', 'hydra', 'swordsman', 'pikeman'],
   4: ['spirit', 'fireSpirit', 'iceSpirit', 'earthSpirit', 'lightSpirit', 'darkSpirit', 'griffin', 'giantEagle', 'treant', 'golem', 'wyvern', 'priest', 'mage', 'archmage', 'scout'],
-  5: ['hellhound', 'imp', 'succubus', 'demonGuard', 'demonMage', 'gargoyle', 'cerberus', 'ifrit', 'reaper', 'abyssKnight', 'assassin', 'cavalry', 'crossbow', 'archer', 'lancer'],
+  5: ['hellhound', 'imp', 'succubus', 'demonGuard', 'demonMage', 'gargoyle', 'cerberus', 'reaper', 'abyssKnight', 'assassin', 'cavalry', 'crossbow', 'archer', 'lancer', 'brute'],
 };
 
 const lateFortressAttack = (stageId: number): NonNullable<StageDefinition['enemyFortressAttack']> => {
@@ -354,7 +354,7 @@ export const challengeStages: StageDefinition[] = [
     id: 104, name: '태양 감옥의 이프리트', subtitle: '불타는 공중 영역에서 고대 화염 악마 이프리트를 굴복시키세요.', reward: 2_400,
     enemyCastleHp: 0, fortressDistance: MAX_FORTRESS_DISTANCE, challenge: true, requiredCampaignStage: 30, boss: true, bossName: '태양 포식자 이프리트', bossUnitId: 'ifrit', enemyFaction: 'demons',
     terrain: { id: 'sun-prison', name: '태양 감옥', description: '끝없는 열기가 적의 체력을 10배, 공격력을 2.5배, 이동속도를 1.1배로 만듭니다.', enemyHpMultiplier: 10, enemyAttackMultiplier: 2.5, enemyMoveSpeedMultiplier: 1.1 },
-    bossModifiers: { hpMultiplier: 7.5, attackMultiplier: 1, stompCadenceMultiplier: 0.52 },
+    bossModifiers: { hpMultiplier: 1.5, attackMultiplier: 1, stompCadenceMultiplier: 0.52 },
     enemyUpgrades: { equipment: { weapon: 5, armor: 5, boots: 5 } }, waves: [],
     firstClearReward: { label: '이프리트의 계약', description: '지형 증폭이 제거된 기본 이프리트를 전투에 편성할 수 있습니다.', icon: '✹', unitId: 'ifrit' },
   },

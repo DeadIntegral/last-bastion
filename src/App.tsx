@@ -3,7 +3,7 @@ import { allTroopOrder, bossDefinition, heroDefinitions, heroOrder, troopDefinit
 import { bossCodex, CODEX_TOTAL, codexEntryCount, heroCodex, troopCodex } from './data/codex';
 import { achievementById, achievementGroups, achievementProgress, achievements, featuredAchievement } from './data/achievements';
 import { canUpgradeCastleTech, castleBattleStats, castleTechChildren, castleTechCost, castleTechDefinitions, castleTechPrerequisiteStatus, castleTechRoots, fortressTierDefinitions, totalCastleResearch } from './data/castle';
-import { BATTLE_SPEED_LICENSE, DAILY_REWARD } from './data/economy';
+import { battleFormationCapacity, BATTLE_SPEED_LICENSE, DAILY_REWARD, FORMATION_SLOT_LICENSE } from './data/economy';
 import { gameFeatures, heroTrainingPackages, isGameFeatureUnlocked } from './data/features';
 import { OPENING_SCENE_DURATION_MS, openingScenes } from './data/opening';
 import { HERO_AWAKENING_LEVELS, HERO_MASTERY_MAX_LEVEL, heroAwakeningAuras, heroMasteryGrowth, heroSkillPower, soldierMasteryGrowth } from './data/mastery';
@@ -459,6 +459,7 @@ function MapCommandCenter({ onNavigate }: { onNavigate: (screen: Screen) => void
   const lastDailyClaimDate = useGameStore((state) => state.lastDailyClaimDate);
   const claimDailyReward = useGameStore((state) => state.claimDailyReward);
   const battleSpeedUnlocked = useGameStore((state) => state.battleSpeedUnlocked);
+  const formationSlotUnlocked = useGameStore((state) => state.formationSlotUnlocked);
   const muted = useGameStore((state) => state.muted);
   const toggleMuted = useGameStore((state) => state.toggleMuted);
   const [notice, setNotice] = useState('');
@@ -466,6 +467,9 @@ function MapCommandCenter({ onNavigate }: { onNavigate: (screen: Screen) => void
   const dailyAvailable = lastDailyClaimDate !== localDateKey();
   const trainingUnlocked = isGameFeatureUnlocked('hero-training', clearedStages);
   const speedLicenseRevealed = clearedStages.includes(BATTLE_SPEED_LICENSE.unlockStage);
+  const merchantStatus = battleSpeedUnlocked && formationSlotUnlocked
+    ? '영구 허가 2종 보유'
+    : battleSpeedUnlocked || formationSlotUnlocked ? '영구 허가 보유 · 상점 방문' : '희귀한 물건을 거래합니다';
 
   const receiveDaily = () => {
     if (!claimDailyReward()) return;
@@ -490,7 +494,7 @@ function MapCommandCenter({ onNavigate }: { onNavigate: (screen: Screen) => void
       <button onClick={() => onNavigate('achievements')}><i>✦</i><span>업적 기록<small>{claimable ? `${claimable} 보상 대기` : `${unlockedAchievements.length}/${achievements.length}`}</small></span></button>
       <button onClick={() => onNavigate('codex')}><i>▤</i><span>전쟁 사전<small>{codexEntries}/{CODEX_TOTAL}</small></span></button>
       <button className={dailyAvailable ? 'daily-ready' : ''} disabled={!dailyAvailable} onClick={receiveDaily}><i>◆</i><span>{DAILY_REWARD.label}<small>{dailyAvailable ? `보석 ${DAILY_REWARD.gems}개 받기` : '오늘 수령 완료'}</small></span></button>
-      <button className={speedLicenseRevealed ? 'merchant-ready' : 'feature-locked'} disabled={!speedLicenseRevealed} onClick={() => onNavigate('merchant')}><i>?</i><span>수수께끼 상인<small>{!speedLicenseRevealed ? `${BATTLE_SPEED_LICENSE.unlockStage}장 보스 격파 시 출현` : battleSpeedUnlocked ? '가속 허가 보유 · 상점 방문' : '희귀한 물건을 거래합니다'}</small></span></button>
+      <button className={speedLicenseRevealed ? 'merchant-ready' : 'feature-locked'} disabled={!speedLicenseRevealed} onClick={() => onNavigate('merchant')}><i>?</i><span>수수께끼 상인<small>{!speedLicenseRevealed ? `${BATTLE_SPEED_LICENSE.unlockStage}장 보스 격파 시 출현` : merchantStatus}</small></span></button>
       <button onClick={toggleMusic}><i>{muted ? '♩̸' : '♪'}</i><span>게임 사운드<small>{muted ? 'OFF' : 'ON'}</small></span></button>
     </section>
     {notice && <div className="toast" role="status">{notice}</div>}
@@ -499,14 +503,25 @@ function MapCommandCenter({ onNavigate }: { onNavigate: (screen: Screen) => void
 
 function MysteryMerchant({ onBack }: { onBack: () => void }) {
   const gems = useGameStore((state) => state.gems);
+  const clearedStages = useGameStore((state) => state.clearedStages);
   const battleSpeedUnlocked = useGameStore((state) => state.battleSpeedUnlocked);
+  const formationSlotUnlocked = useGameStore((state) => state.formationSlotUnlocked);
   const purchaseBattleSpeed = useGameStore((state) => state.purchaseBattleSpeed);
+  const purchaseFormationSlot = useGameStore((state) => state.purchaseFormationSlot);
   const [notice, setNotice] = useState('');
-  const canAfford = gems >= BATTLE_SPEED_LICENSE.cost;
+  const canAffordSpeed = gems >= BATTLE_SPEED_LICENSE.cost;
+  const formationLicenseRevealed = clearedStages.includes(FORMATION_SLOT_LICENSE.unlockStage);
+  const canAffordFormation = gems >= FORMATION_SLOT_LICENSE.cost;
 
   const buyBattleSpeed = () => {
     if (!purchaseBattleSpeed()) return;
     setNotice(`${BATTLE_SPEED_LICENSE.label}: 전투 1.5배속이 영구 해금되었습니다.`);
+    window.setTimeout(() => setNotice(''), 1_800);
+  };
+
+  const buyFormationSlot = () => {
+    if (!purchaseFormationSlot()) return;
+    setNotice(`${FORMATION_SLOT_LICENSE.label}: 전투 편성이 최대 ${battleFormationCapacity(true)}종으로 확장되었습니다.`);
     window.setTimeout(() => setNotice(''), 1_800);
   };
 
@@ -532,12 +547,30 @@ function MysteryMerchant({ onBack }: { onBack: () => void }) {
           </div>
           <div className="merchant-item-action">
             <span>보유 보석 <strong>◆ {gems.toLocaleString()}</strong></span>
-            <button disabled={battleSpeedUnlocked || !canAfford} onClick={buyBattleSpeed}>
-              {battleSpeedUnlocked ? '거래 완료' : canAfford ? `◆ ${BATTLE_SPEED_LICENSE.cost} · 구매` : `◆ ${BATTLE_SPEED_LICENSE.cost} · 보석 부족`}
+            <button disabled={battleSpeedUnlocked || !canAffordSpeed} onClick={buyBattleSpeed}>
+              {battleSpeedUnlocked ? '거래 완료' : canAffordSpeed ? `◆ ${BATTLE_SPEED_LICENSE.cost} · 구매` : `◆ ${BATTLE_SPEED_LICENSE.cost} · 보석 부족`}
             </button>
           </div>
         </article>
-        <article className="merchant-empty"><span>◇</span><div><small>EMPTY DISPLAY</small><strong>천막의 빈 진열대</strong><p>상인은 다음 원정에서 새로운 물건을 구해 오겠다고 말합니다.</p></div></article>
+        <article className={`merchant-item formation-license ${formationSlotUnlocked ? 'owned' : ''} ${formationLicenseRevealed ? '' : 'locked'}`}>
+          <div className="merchant-item-mark"><span>4→5</span><small>FORMATION</small></div>
+          <div className="merchant-item-copy">
+            <small>왕실 인장 · 희귀품</small>
+            <h3>{FORMATION_SLOT_LICENSE.label}</h3>
+            <p>{FORMATION_SLOT_LICENSE.description}</p>
+            <ul><li>전투 편성 최대 4종에서 5종으로 확장</li><li>다섯 번째 병종은 숫자키 5로 소환</li><li>한 번 구매하면 모든 원정에서 영구 적용</li></ul>
+          </div>
+          <div className="merchant-item-action">
+            <span>보유 보석 <strong>◆ {gems.toLocaleString()}</strong></span>
+            <button disabled={formationSlotUnlocked || !formationLicenseRevealed || !canAffordFormation} onClick={buyFormationSlot}>
+              {formationSlotUnlocked
+                ? '거래 완료'
+                : !formationLicenseRevealed
+                  ? `${FORMATION_SLOT_LICENSE.unlockStage}장 클리어 필요`
+                  : canAffordFormation ? `◆ ${FORMATION_SLOT_LICENSE.cost} · 구매` : `◆ ${FORMATION_SLOT_LICENSE.cost} · 보석 부족`}
+            </button>
+          </div>
+        </article>
       </section>
       {notice && <div className="toast" role="status">{notice}</div>}
     </main>
@@ -727,6 +760,7 @@ function Armory({ onBack }: { onBack: () => void }) {
   const equipmentLevels = useGameStore((state) => state.equipmentLevels);
   const unlockedUnits = useGameStore((state) => state.unlockedUnits);
   const equippedUnits = useGameStore((state) => state.equippedUnits);
+  const formationSlotUnlocked = useGameStore((state) => state.formationSlotUnlocked);
   const discoveredEnemies = useGameStore((state) => state.discoveredEnemies);
   const fortressTier = useGameStore((state) => state.fortressTier);
   const unitMasteryXp = useGameStore((state) => state.unitMasteryXp);
@@ -739,6 +773,7 @@ function Armory({ onBack }: { onBack: () => void }) {
   const [confirmReset, setConfirmReset] = useState(false);
   const [familyFilter, setFamilyFilter] = useState<UnitFamily | 'all'>('all');
   const visibleRoster = familyFilter === 'all' ? allTroopOrder : allTroopOrder.filter((id) => unitFamilyById[id] === familyFilter);
+  const formationCapacity = battleFormationCapacity(formationSlotUnlocked);
 
   const buy = (id: UnitId, slot: EquipmentSlot) => {
     const slotName = equipmentSlots.find((item) => item.id === slot)?.name ?? '장비';
@@ -758,7 +793,7 @@ function Armory({ onBack }: { onBack: () => void }) {
     const wasEquipped = equippedUnits.includes(id);
     setNotice(toggleEquippedUnit(id)
       ? `${troopDefinitions[id].name}을(를) 전투 편성에서 ${wasEquipped ? '제외' : '등록'}했습니다.`
-      : '전투 편성은 1종 이상, 최대 4종까지 가능합니다.');
+      : `전투 편성은 1종 이상, 최대 ${formationCapacity}종까지 가능합니다.`);
     window.setTimeout(() => setNotice(''), 1800);
   };
 
@@ -767,10 +802,10 @@ function Armory({ onBack }: { onBack: () => void }) {
       <ShellHeader title="왕립 병영" onBack={onBack} />
       <section className="armory-intro">
         <div><span className="eyebrow">ARMORY</span><h2>병사 장비고</h2></div>
-        <p>조우한 적 병종은 성채 티어에 맞는 영입 허가가 필요합니다. 보유 병종 중 최대 4종을 편성하고 성장시키세요.</p>
+        <p>조우한 적 병종은 성채 티어에 맞는 영입 허가가 필요합니다. 보유 병종 중 최대 {formationCapacity}종을 편성하고 성장시키세요.</p>
       </section>
       <section className="formation-strip">
-        <div><span className="eyebrow">BATTLE FORMATION</span><strong>현재 편성 {equippedUnits.length}/4</strong></div>
+        <div><span className="eyebrow">BATTLE FORMATION</span><strong>현재 편성 {equippedUnits.length}/{formationCapacity}</strong></div>
         <div>{equippedUnits.map((id, index) => <span key={id}><i>{index + 1}</i>{troopDefinitions[id].icon} {troopDefinitions[id].name}</span>)}</div>
       </section>
       <nav className="roster-filters" aria-label="병종 계열 필터">
@@ -814,7 +849,7 @@ function Armory({ onBack }: { onBack: () => void }) {
                     <div><dt>공격 / 방어</dt><dd className="growth-pair"><GrowthStat current={stats.attackDamage} base={unit.attackDamage} /><i>/</i><GrowthStat current={stats.defense ?? 0} base={unit.defense ?? 0} /></dd></div>
                     <div><dt>이동속도</dt><dd><GrowthStat current={stats.moveSpeed} base={unit.moveSpeed} /></dd></div>
                   </dl>
-                  <button className={`formation-button ${equipped ? 'equipped' : ''}`} onClick={() => toggleFormation(id)}>{equipped ? '편성 제외' : '전투 편성'} <span>{equipped ? 'ACTIVE' : `${equippedUnits.length}/4`}</span></button>
+                  <button className={`formation-button ${equipped ? 'equipped' : ''}`} onClick={() => toggleFormation(id)}>{equipped ? '편성 제외' : '전투 편성'} <span>{equipped ? 'ACTIVE' : `${equippedUnits.length}/${formationCapacity}`}</span></button>
                   <div className={`equipment-capstone ${equipmentCapstone ? 'unlocked' : ''}`}>
                     <span>{equipmentCapstone ? '✦' : '◇'}</span>
                     <div><b>{statEquipmentCapstone ? '최상위 개체 완성 보너스' : '장비 완성 보너스'}</b><small>{equipmentCapstone
