@@ -15,7 +15,7 @@ import { analyzeCampaignDifficulty, stageDifficultyPresentation } from './game/d
 import { decryptSave, encryptSave, isEncryptedSave, MAX_SAVE_FILE_BYTES } from './game/saveCrypto';
 import { activeSaveSlot, deleteSaveSlot, readSaveSlot, saveSlotSummaries, saveSlotSummary, setActiveSaveSlot, type SaveSlotId } from './game/saveSlots';
 import { musicEngine, type MusicScene } from './audio/music';
-import { STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS, attackPatternLabel, equipmentCost, formatTime, hasEquipmentCapstone, heroAwakeningRank, heroMasteryLevelFromXp, heroRespawnReductionMs, masteryLevelFromXp, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, upgradedStats, usesStatEquipmentCapstone } from './game/rules';
+import { ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL, STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS, attackPatternLabel, attackRangeLabel, attackTimingLabel, equipmentCost, formatTime, hasEquipmentCapstone, heroAwakeningRank, heroMasteryLevelFromXp, heroRespawnReductionMs, masteryLevelFromXp, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, upgradedStats, usesStatEquipmentCapstone } from './game/rules';
 import { useGameStore } from './store/useGameStore';
 import { CharacterSprite } from './components/CharacterSprite';
 import type { BattleResult, CastleTechId, EquipmentSlot, FortressTier, HeroId, Screen, UnitDefinition, UnitFamily, UnitId } from './types/game';
@@ -761,7 +761,7 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
           {isChallenge && <div className="challenge-terrain-preview"><small>TERRAIN AMPLIFICATION</small><strong>적 HP ×{selected.terrain.enemyHpMultiplier} · 공격 ×{selected.terrain.enemyAttackMultiplier}</strong><span>{selected.terrain.description}</span></div>}
           <div className="mission-objective"><small>MISSION · 전선 거리 {selected.fortressDistance}</small><strong>{isChallenge ? `${selected.bossName ?? selected.name} 단독 격파` : selected.boss ? '성채 수비대와 마수를 돌파하고 적 성채 파괴' : '적 성채 파괴'}</strong></div>
           {selected.enemyFortressAttack && <div className="elite-guard-preview"><small>FORTRESS FIRE</small><strong>적 성채 수비 사격</strong><span>사거리 {selected.enemyFortressAttack.range} · 공격 {selected.enemyFortressAttack.damage} · {(selected.enemyFortressAttack.intervalMs / 1000).toFixed(1)}초 간격</span></div>}
-          {selected.eliteGuard && <div className="elite-guard-preview"><small>ELITE DEFENDER</small><strong>{selected.eliteGuard.name}</strong><span>적 성채 앞을 지키는 단 한 명의 정예 수비대</span></div>}
+          {selected.eliteGuards && selected.eliteGuards.length > 0 && <div className="elite-guard-preview"><small>ELITE DEFENDERS · {selected.eliteGuards.length}</small><strong>{selected.eliteGuards.map((elite) => elite.name).join(' · ')}</strong><span>전선 거점에 배치된 중간 우두머리 · 상세 강화 수치는 비공개</span></div>}
           <div className={`first-clear-reward ${cleared ? 'claimed' : ''}`}>
             <span>{selected.firstClearReward.icon}</span>
             <div><small>{cleared ? 'FIRST CLEAR · 획득 완료' : 'FIRST CLEAR REWARD'}</small><strong>{selected.firstClearReward.label}</strong><p>{selected.firstClearReward.description}</p>{displayedFirstClearGold !== undefined && <em>연구 적용 골드 ● {displayedFirstClearGold}</em>}</div>
@@ -871,7 +871,7 @@ function Armory({ onBack }: { onBack: () => void }) {
                   <div className="mastery-line"><b>숙련 LV.{mastery.level}</b><span>{mastery.requiredXp ? `${mastery.currentXp}/${mastery.requiredXp} XP` : 'MAX'}</span></div>
                   <div className="mastery-track"><i style={{ width: mastery.requiredXp ? `${mastery.currentXp / mastery.requiredXp * 100}%` : '100%' }} /></div>
                   <div className="mastery-benefit"><b>레벨당 고정 성장</b><span>HP +{soldierMasteryGrowth[id].hp} · 공격 +{soldierMasteryGrowth[id].attack}</span></div>
-                  <div className="unit-deployment-traits"><span>1회 배치 <b>{stats.squadSize}명{equipmentCapstone && !statEquipmentCapstone ? ' (+1)' : ''}</b></span><span>공격 방식 <b>{attackPatternLabel(unit)}</b></span>{stats.healingPower && <span>치유 <b>{stats.healingPower} · 사거리 {stats.healingRange}</b></span>}{unit.maxActivePerSide && <span>전장 제한 <b>진영당 {unit.maxActivePerSide}명</b></span>}{unit.grade === 5 && <span>지휘 분류 <b>5성 초월 병종</b></span>}</div>
+                  <div className="unit-deployment-traits"><span>1회 배치 <b>{stats.squadSize}명{equipmentCapstone && !statEquipmentCapstone ? ' (+1)' : ''}</b></span><span>공격 방식 <b>{attackPatternLabel(unit)}</b></span><span>유효 사거리 <b>{attackRangeLabel(unit)}</b></span>{stats.healingPower && <span>치유 <b>{stats.healingPower} · 사거리 {stats.healingRange}</b></span>}{unit.maxActivePerSide && <span>전장 제한 <b>진영당 {unit.maxActivePerSide}명</b></span>}{unit.grade === 5 && <span>지휘 분류 <b>5성 초월 병종</b></span>}</div>
                   <dl>
                     <div><dt>생명력</dt><dd><GrowthStat current={stats.maxHp} base={unit.maxHp} /></dd></div>
                     <div><dt>공격 / 방어</dt><dd className="growth-pair"><GrowthStat current={stats.attackDamage} base={unit.attackDamage} /><i>/</i><GrowthStat current={stats.defense ?? 0} base={unit.defense ?? 0} /></dd></div>
@@ -984,6 +984,7 @@ function HeroHall({ onBack }: { onBack: () => void }) {
                   <div><dt>공격 / 방어</dt><dd className="growth-pair"><GrowthStat current={stats.attackDamage} base={hero.attackDamage} /><i>/</i><GrowthStat current={stats.defense ?? 0} base={hero.defense ?? 0} /></dd></div>
                   <div><dt>이동속도</dt><dd><GrowthStat current={stats.moveSpeed} base={hero.moveSpeed} /></dd></div>
                   <div><dt>부활</dt><dd><GrowthStat current={respawnMs / 1000} base={hero.respawnMs / 1000} /></dd></div>
+                  <div><dt>유효 사거리</dt><dd>{attackRangeLabel(hero)}</dd></div>
                 </dl>
                 {unlocked && <div className="equipment-list hero-equipment-list">
                   {equipmentSlots.map((slot) => {
@@ -1388,6 +1389,8 @@ function WarCodex({ onBack }: { onBack: () => void }) {
   const unlockedUnits = useGameStore((state) => state.unlockedUnits);
   const unlockedHeroes = useGameStore((state) => state.unlockedHeroes);
   const discoveredEnemies = useGameStore((state) => state.discoveredEnemies);
+  const unitMasteryXp = useGameStore((state) => state.unitMasteryXp);
+  const heroMasteryXp = useGameStore((state) => state.heroMasteryXp);
   const visibleTroops = allTroopOrder.filter((id) => unlockedUnits.includes(id) || discoveredEnemies.includes(id));
   const completion = codexEntryCount(unlockedUnits, unlockedHeroes, discoveredEnemies);
   const percent = Math.round(completion / CODEX_TOTAL * 100);
@@ -1408,7 +1411,8 @@ function WarCodex({ onBack }: { onBack: () => void }) {
             const unit = troopDefinitions[id];
             const acquired = unlockedUnits.includes(id);
             const encountered = discoveredEnemies.includes(id);
-            return <article className="codex-card allied-entry" key={id}><span className="codex-icon"><CharacterSprite id={id} className="codex-character-art" /></span><div><small>{entry.role}</small><h4>{entry.title}</h4><div className="codex-tags"><b className={`grade-tag grade-${unit.grade}`} title={`${unit.grade}성 ${unitGradeLabels[unit.grade]}`}>{unitGradeStars(unit.grade)} · {unitGradeLabels[unit.grade]}</b>{acquired && <b>아군 확보</b>}{encountered && <b className="enemy-tag">적군 조우</b>}</div><p>{entry.description}</p><blockquote>{entry.lore}</blockquote><dl><div><dt>HP</dt><dd>{unit.maxHp}</dd></div><div><dt>ATK</dt><dd>{unit.attackDamage}</dd></div><div><dt>RANGE</dt><dd>{unit.attackRange}</dd></div></dl></div></article>;
+            const rhythmKnown = acquired && masteryLevelFromXp(unitMasteryXp[id] ?? 0).level >= ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL;
+            return <article className="codex-card allied-entry" key={id}><span className="codex-icon"><CharacterSprite id={id} className="codex-character-art" /></span><div><small>{entry.role}</small><h4>{entry.title}</h4><div className="codex-tags"><b className={`grade-tag grade-${unit.grade}`} title={`${unit.grade}성 ${unitGradeLabels[unit.grade]}`}>{unitGradeStars(unit.grade)} · {unitGradeLabels[unit.grade]}</b>{acquired && <b>아군 확보</b>}{encountered && <b className="enemy-tag">적군 조우</b>}</div><p>{entry.description}</p><blockquote>{entry.lore}</blockquote><dl><div><dt>HP</dt><dd>{unit.maxHp}</dd></div><div><dt>ATK</dt><dd>{unit.attackDamage}</dd></div><div><dt>RANGE</dt><dd>{attackRangeLabel(unit)}</dd></div><div><dt>RHYTHM</dt><dd>{rhythmKnown ? attackTimingLabel(unit) : `숙련 ${ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL}에 분석`}</dd></div></dl></div></article>;
           })}
         </div>
       </section>
@@ -1419,7 +1423,8 @@ function WarCodex({ onBack }: { onBack: () => void }) {
           {unlockedHeroes.map((id) => {
             const entry = heroCodex[id];
             const hero = heroDefinitions[id];
-            return <article className="codex-card hero-entry" key={id}><span className="codex-icon"><CharacterSprite id={id} className="codex-character-art" /></span><div><small>{entry.role}</small><h4>{entry.title}</h4><p>{entry.description}</p><blockquote>{entry.lore}</blockquote><dl><div><dt>HP</dt><dd>{hero.maxHp}</dd></div><div><dt>ATK</dt><dd>{hero.attackDamage}</dd></div><div><dt>REVIVE</dt><dd>{hero.respawnMs / 1000}s</dd></div></dl></div></article>;
+            const rhythmKnown = heroMasteryLevelFromXp(heroMasteryXp[id] ?? 0).level >= ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL;
+            return <article className="codex-card hero-entry" key={id}><span className="codex-icon"><CharacterSprite id={id} className="codex-character-art" /></span><div><small>{entry.role}</small><h4>{entry.title}</h4><p>{entry.description}</p><blockquote>{entry.lore}</blockquote><dl><div><dt>HP</dt><dd>{hero.maxHp}</dd></div><div><dt>ATK</dt><dd>{hero.attackDamage}</dd></div><div><dt>RANGE</dt><dd>{attackRangeLabel(hero)}</dd></div><div><dt>RHYTHM</dt><dd>{rhythmKnown ? attackTimingLabel(hero) : `숙련 ${ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL}에 분석`}</dd></div><div><dt>REVIVE</dt><dd>{hero.respawnMs / 1000}s</dd></div></dl></div></article>;
           })}
         </div>
       </section>

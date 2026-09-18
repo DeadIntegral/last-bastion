@@ -93,9 +93,16 @@ describe('campaign rewards', () => {
     expect(stages.map((stage) => stage.reward)).toEqual(
       stages.map((stage) => stage.id * 100),
     );
-    expect(stages.filter((stage) => stage.eliteGuard).map((stage) => stage.id)).toEqual(
+    expect(stages.filter((stage) => stage.eliteGuards?.length).map((stage) => stage.id)).toEqual(
       stages.filter((stage) => !stage.boss && stage.id !== 1).map((stage) => stage.id),
     );
+    expect(stages.filter((stage) => stage.id >= 13 && !stage.boss).every((stage) => (stage.eliteGuards?.length ?? 0) >= 2)).toBe(true);
+    expect(stages.filter((stage) => stage.id >= 19 && !stage.boss).every((stage) => stage.eliteGuards?.length === 3)).toBe(true);
+    for (const elite of stages.flatMap((stage) => stage.eliteGuards ?? [])) {
+      expect(troopDefinitions[elite.unitId]).toBeDefined();
+      expect(elite.positionRatio).toBeGreaterThan(0);
+      expect(elite.positionRatio).toBeLessThan(1);
+    }
   });
 
   it('introduces bounded enemy-fortress fire from the third region onward', () => {

@@ -64,7 +64,7 @@ const campaignStageBlueprints: Array<Omit<StageDefinition, 'fortressDistance' | 
       { timeMs: 9000, unitId: 'bulwark', count: 2, intervalMs: 4500 },
       { timeMs: 21000, unitId: 'raider', count: 2, intervalMs: 3300 },
     ],
-    eliteGuard: { unitId: 'guardian', name: '철문 부대장', hpMultiplier: 1.8, attackMultiplier: 1.15, defenseBonus: 2 },
+    eliteGuards: [{ unitId: 'guardian', name: '철문 부대장', positionRatio: 0.86, hpMultiplier: 1.8, attackMultiplier: 1.15, defenseBonus: 2 }],
     reinforcement: { startMs: 32_000, intervalMs: 3_200, unitIds: ['guardian', 'raider', 'bulwark'], maxAlive: 7 },
   },
   {
@@ -77,7 +77,7 @@ const campaignStageBlueprints: Array<Omit<StageDefinition, 'fortressDistance' | 
       { timeMs: 19000, unitId: 'bulwark', count: 2, intervalMs: 3300 },
       { timeMs: 25000, unitId: 'crossbow', count: 2, intervalMs: 2400 },
     ],
-    eliteGuard: { unitId: 'lancer', name: '붉은 선봉대장', hpMultiplier: 1.5, attackMultiplier: 1.2, defenseBonus: 2 },
+    eliteGuards: [{ unitId: 'lancer', name: '붉은 선봉대장', positionRatio: 0.86, hpMultiplier: 1.5, attackMultiplier: 1.2, defenseBonus: 2 }],
     reinforcement: { startMs: 33_000, intervalMs: 3_000, unitIds: ['archer', 'guardian', 'crossbow'], maxAlive: 8 },
   },
   {
@@ -90,7 +90,7 @@ const campaignStageBlueprints: Array<Omit<StageDefinition, 'fortressDistance' | 
       { timeMs: 17000, unitId: 'crossbow', count: 4, intervalMs: 2200 },
       { timeMs: 25000, unitId: 'brute', count: 1, intervalMs: 4500 },
     ],
-    eliteGuard: { unitId: 'brute', name: '산길 파쇄대장', hpMultiplier: 1.15, attackMultiplier: 1.05, defenseBonus: 1 },
+    eliteGuards: [{ unitId: 'brute', name: '산길 파쇄대장', positionRatio: 0.86, hpMultiplier: 1.35, attackMultiplier: 1.12, defenseBonus: 2 }],
     reinforcement: { startMs: 36_000, intervalMs: 2_800, unitIds: ['lancer', 'crossbow', 'bulwark'], maxAlive: 9 },
   },
   {
@@ -108,7 +108,7 @@ const campaignStageBlueprints: Array<Omit<StageDefinition, 'fortressDistance' | 
       { timeMs: 38000, unitId: 'archer', count: 2, intervalMs: 2500 },
       { timeMs: 41000, unitId: 'lancer', count: 2, intervalMs: 2300 },
     ],
-    eliteGuard: { unitId: 'bulwark', name: '검은 성문장', hpMultiplier: 1.6, attackMultiplier: 1.2, defenseBonus: 3 },
+    eliteGuards: [{ unitId: 'bulwark', name: '검은 성문장', positionRatio: 0.86, hpMultiplier: 1.6, attackMultiplier: 1.2, defenseBonus: 3 }],
     reinforcement: { startMs: 48_000, intervalMs: 2_800, unitIds: ['raider', 'bulwark', 'crossbow', 'swordsman', 'lancer'], maxAlive: 9 },
   },
   {
@@ -129,7 +129,7 @@ const campaignStageBlueprints: Array<Omit<StageDefinition, 'fortressDistance' | 
       { timeMs: 13500, unitId: 'guardian', count: 2, intervalMs: 3200 },
       { timeMs: 22000, unitId: 'brute', count: 2, intervalMs: 4200 },
     ],
-    eliteGuard: { unitId: 'brute', name: '협곡 집행자', hpMultiplier: 1.45, attackMultiplier: 1.22, defenseBonus: 4 },
+    eliteGuards: [{ unitId: 'brute', name: '협곡 집행자', positionRatio: 0.86, hpMultiplier: 1.45, attackMultiplier: 1.22, defenseBonus: 4 }],
     reinforcement: { startMs: 34_000, intervalMs: 2_000, unitIds: ['militia', 'crossbow', 'guardian', 'swordsman'], maxAlive: 15 },
   },
   {
@@ -143,7 +143,7 @@ const campaignStageBlueprints: Array<Omit<StageDefinition, 'fortressDistance' | 
       { timeMs: 22000, unitId: 'lancer', count: 4, intervalMs: 1900 },
       { timeMs: 27000, unitId: 'crossbow', count: 5, intervalMs: 1500 },
     ],
-    eliteGuard: { unitId: 'bulwark', name: '사막의 철벽', hpMultiplier: 1.95, attackMultiplier: 1.3, defenseBonus: 4 },
+    eliteGuards: [{ unitId: 'bulwark', name: '사막의 철벽', positionRatio: 0.86, hpMultiplier: 1.95, attackMultiplier: 1.3, defenseBonus: 4 }],
     reinforcement: { startMs: 34_000, intervalMs: 1_950, unitIds: ['raider', 'archer', 'lancer', 'crossbow', 'cavalry'], maxAlive: 15 },
   },
   {
@@ -157,7 +157,7 @@ const campaignStageBlueprints: Array<Omit<StageDefinition, 'fortressDistance' | 
       { timeMs: 21000, unitId: 'lancer', count: 4, intervalMs: 2100 },
       { timeMs: 28000, unitId: 'bulwark', count: 3, intervalMs: 2900 },
     ],
-    eliteGuard: { unitId: 'cavalry', name: '몰락한 근위대장', hpMultiplier: 2.25, attackMultiplier: 1.42, defenseBonus: 4 },
+    eliteGuards: [{ unitId: 'cavalry', name: '몰락한 근위대장', positionRatio: 0.86, hpMultiplier: 2.25, attackMultiplier: 1.42, defenseBonus: 4 }],
     reinforcement: { startMs: 37_000, intervalMs: 1_900, unitIds: ['guardian', 'cavalry', 'militia', 'lancer', 'bulwark'], maxAlive: 16 },
   },
   {
@@ -171,7 +171,7 @@ const campaignStageBlueprints: Array<Omit<StageDefinition, 'fortressDistance' | 
       { timeMs: 20500, unitId: 'brute', count: 4, intervalMs: 3300 },
       { timeMs: 28500, unitId: 'griffin', count: 1, intervalMs: 2400 },
     ],
-    eliteGuard: { unitId: 'brute', name: '수도원 문지기', hpMultiplier: 1.5, attackMultiplier: 1.24, defenseBonus: 5 },
+    eliteGuards: [{ unitId: 'brute', name: '수도원 문지기', positionRatio: 0.86, hpMultiplier: 1.5, attackMultiplier: 1.24, defenseBonus: 5 }],
     reinforcement: { startMs: 39_000, intervalMs: 1_850, unitIds: ['bulwark', 'crossbow', 'guardian', 'swordsman'], maxAlive: 16 },
   },
   {
@@ -186,7 +186,7 @@ const campaignStageBlueprints: Array<Omit<StageDefinition, 'fortressDistance' | 
       { timeMs: 22000, unitId: 'lancer', count: 6, intervalMs: 1700 },
       { timeMs: 29000, unitId: 'griffin', count: 2, intervalMs: 2500 },
     ],
-    eliteGuard: { unitId: 'brute', name: '황혼 사령관', hpMultiplier: 1.55, attackMultiplier: 1.27, defenseBonus: 6 },
+    eliteGuards: [{ unitId: 'brute', name: '황혼 사령관', positionRatio: 0.86, hpMultiplier: 1.55, attackMultiplier: 1.27, defenseBonus: 6 }],
     reinforcement: { startMs: 39_000, intervalMs: 1_800, unitIds: ['cavalry', 'bulwark', 'crossbow', 'swordsman', 'lancer'], maxAlive: 16 },
   },
   {
@@ -277,6 +277,39 @@ function lateBossGarrison(id: number): NonNullable<StageDefinition['reinforcemen
   return { startMs: 5_000, intervalMs: 6_200, unitIds: ['imp', 'militia'], maxAlive: 6 };
 }
 
+function lateStageEliteGuards(id: number, progress: number, stageName: string): NonNullable<StageDefinition['eliteGuards']> {
+  const region = Math.min(5, Math.floor((id - 1) / 6) + 1) as 3 | 4 | 5;
+  const regionStart = (region - 1) * 6 + 1;
+  const introducedCount = (id - regionStart + 1) * 3;
+  const count = id >= 19 ? 3 : 2;
+  const candidates = [...new Set([
+    ...lateRegionalRosters[region].slice(0, introducedCount),
+    ...lateRegionalReinforcementCore[region],
+    ...lateCoreComposition,
+  ])].filter((unitId) => troopDefinitions[unitId].grade <= 3);
+  const units = candidates.slice(-count);
+  const positions = count === 2 ? [0.55, 0.86] : [0.38, 0.64, 0.87];
+  const titles = count === 2 ? ['전초 지휘관', '성문 수호자'] : ['전초 지휘관', '중진 집행자', '성문 수호자'];
+  const targetHp = 1_500 + progress * 180;
+  const targetAttack = 60 + progress * 4;
+  const defenseBonus = 5 + Math.floor(progress / 3);
+
+  return units.map((unitId, index) => {
+    const unit = troopDefinitions[unitId];
+    const trainedHp = unit.maxHp + unit.equipmentGrowth.hp * 5;
+    const trainedAttack = unit.attackDamage + unit.equipmentGrowth.attack * 5;
+    const positionScale = 0.9 + index * 0.1;
+    return {
+      unitId,
+      name: `${stageName} ${titles[index]}`,
+      positionRatio: positions[index],
+      hpMultiplier: targetHp * positionScale / trainedHp,
+      attackMultiplier: Math.max(1.05, targetAttack * positionScale / trainedAttack),
+      defenseBonus,
+    };
+  });
+}
+
 function createLateStage(id: number): Omit<StageDefinition, 'fortressDistance' | 'enemyFaction' | 'terrain'> {
   const progress = id - 13;
   const boss = id % 6 === 0;
@@ -331,18 +364,12 @@ function createLateStage(id: number): Omit<StageDefinition, 'fortressDistance' |
       bossName: bossNames[id],
       reinforcement: lateBossGarrison(id),
       bossModifiers: {
-        hpMultiplier: 2.05 + bossRank * 0.13 + (bossRank === 4 ? 0.08 : bossRank === 5 ? 0.2 : 0),
+        hpMultiplier: 2.05 + bossRank * 0.13 + (bossRank === 4 ? 0.43 : bossRank === 5 ? 0.25 : 0),
         attackMultiplier: 1.08 + bossRank * 0.08,
         stompCadenceMultiplier: Math.max(0.74, 1 - bossRank * 0.05),
       },
     } : {
-      eliteGuard: {
-        unitId: 'brute',
-        name: `${name} 수비대장`,
-        hpMultiplier: 1.55 + progress * 0.035,
-        attackMultiplier: 1.22 + progress * 0.012,
-        defenseBonus: 8 + Math.floor(progress / 4),
-      },
+      eliteGuards: lateStageEliteGuards(id, progress, name),
       reinforcement: {
         startMs: 55_000,
         intervalMs: lateReinforcementIntervalMs[id],

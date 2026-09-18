@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { heroMasteryGrowth, heroSkillPower, soldierMasteryGrowth } from '../data/mastery';
 import { allTroopOrder, bossCombatTuning, bossDefinition, heroDefinitions, troopDefinitions } from '../data/units';
 import { challengeStages, stages } from '../data/stages';
-import { STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS, applyEnemyTerrain, applyTriumphMonumentStats, attackPatternLabel, calculateDamage, canActivateMobilization, canAttackTarget, canReceiveRallyOrder, cooldownFillRatio, enemyFortressCanReinforce, enemyObjectiveDefeated, equipmentCost, fortressRearSpawnX, hasEquipmentCapstone, healedHp, heroAuraBonuses, heroAwakeningRank, heroMasteryLevelFromXp, isBehindLivingFortress, masteryLevelFromXp, mobilizedCommandStats, regenerateCommand, scaledBattleDelta, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, unitDeploymentCapacity, upgradedStats, upgradeCost, usesStatEquipmentCapstone } from './rules';
+import { ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL, STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS, applyEnemyTerrain, applyTriumphMonumentStats, attackPatternLabel, attackRangeLabel, attackRecoveryMs, attackTimingLabel, calculateDamage, canActivateMobilization, canAttackTarget, canReceiveRallyOrder, cooldownFillRatio, enemyFortressCanReinforce, enemyObjectiveDefeated, equipmentCost, fortressRearSpawnX, hasEquipmentCapstone, healedHp, heroAuraBonuses, heroAwakeningRank, heroMasteryLevelFromXp, isBehindLivingFortress, isWithinAttackBand, masteryLevelFromXp, mobilizedCommandStats, regenerateCommand, scaledBattleDelta, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, unitDeploymentCapacity, upgradedStats, upgradeCost, usesStatEquipmentCapstone } from './rules';
 
 describe('combat rules', () => {
   it('applies anti-large damage bonus', () => {
@@ -37,6 +37,8 @@ describe('combat rules', () => {
     expect(canAttackTarget(troopDefinitions.militia, troopDefinitions.griffin)).toBe(false);
     expect(canAttackTarget(troopDefinitions.archer, troopDefinitions.griffin)).toBe(true);
     expect(canAttackTarget(troopDefinitions.griffin, troopDefinitions.militia)).toBe(true);
+    expect(canAttackTarget(troopDefinitions.goblinBomber, troopDefinitions.griffin)).toBe(false);
+    expect(canAttackTarget(troopDefinitions.fireSpirit, troopDefinitions.griffin)).toBe(true);
   });
 
   it('describes squad deployments and bounded multi-target attacks from unit data', () => {
@@ -45,6 +47,30 @@ describe('combat rules', () => {
     expect(attackPatternLabel(troopDefinitions.lancer)).toBe('2명 관통');
     expect(attackPatternLabel(troopDefinitions.crossbow)).toBe('2명 관통');
     expect(attackPatternLabel(troopDefinitions.brute)).toBe('근접 범위 전체 공격');
+    expect(attackPatternLabel(troopDefinitions.goblinBomber)).toBe('착탄 범위 공격 · 반경 82');
+  });
+
+  it('defines a valid windup, recovery, and optional close-range dead zone for every combatant', () => {
+    for (const definition of [...allTroopOrder.map((id) => troopDefinitions[id]), ...Object.values(heroDefinitions), bossDefinition]) {
+      expect(definition.attackWindupMs).toBeGreaterThanOrEqual(0);
+      expect(definition.attackWindupMs).toBeLessThanOrEqual(definition.attackIntervalMs);
+      expect(attackRecoveryMs(definition)).toBe(definition.attackIntervalMs - definition.attackWindupMs);
+      expect(definition.minimumAttackRange).toBeGreaterThanOrEqual(0);
+      expect(definition.minimumAttackRange).toBeLessThan(definition.attackRange);
+    }
+  });
+
+  it('treats minimum range as a real attack dead zone and exposes the full rhythm', () => {
+    expect(ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL).toBe(5);
+    const crossbow = troopDefinitions.crossbow;
+    expect(isWithinAttackBand(crossbow, 74)).toBe(false);
+    expect(isWithinAttackBand(crossbow, 75)).toBe(true);
+    expect(isWithinAttackBand(crossbow, 160)).toBe(true);
+    expect(isWithinAttackBand(crossbow, 161)).toBe(false);
+    expect(isWithinAttackBand(crossbow, -5)).toBe(false);
+    expect(isWithinAttackBand(troopDefinitions.militia, -5)).toBe(true);
+    expect(attackRangeLabel(crossbow)).toBe('75–160');
+    expect(attackTimingLabel(crossbow)).toBe('선딜 0.65초 · 후딜 0.80초');
   });
 
   it('keeps archers superior at range and single-target deployment damage', () => {
@@ -52,6 +78,8 @@ describe('combat rules', () => {
     const crossbow = troopDefinitions.crossbow;
     expect(archer.attackRange - crossbow.attackRange).toBeGreaterThanOrEqual(50);
     expect(archer.attackIntervalMs).toBeLessThan(crossbow.attackIntervalMs);
+    expect(archer.attackWindupMs).toBeLessThan(crossbow.attackWindupMs);
+    expect(archer.minimumAttackRange).toBeLessThan(crossbow.minimumAttackRange);
     expect(archer.attackDamage * archer.squadSize).toBeGreaterThan(crossbow.attackDamage * crossbow.squadSize);
   });
 

@@ -90,6 +90,26 @@ Only 5-star troops count as transcendent for `초월의 군기`. In particular, 
 - Archer versus Crossbow is an explicit tradeoff rather than a faction advantage. An Archer deployment has two bodies, 215 range, and higher combined single-target pressure. A Crossbow deployment has one tougher body, 160 range, a slower 1.45-second attack, and a stronger 36-damage bolt; its total volley exceeds the Archer deployment only when a second target lines up for the capped two-target pierce. High per-shot damage also loses less of its proportion to flat defense, while the Archer remains safer and stronger against one target.
 - Priest is the symmetric healer for both factions: 105 Command, 145 HP, 1 defense, 20 attack, 175 attack range, 34 healing at 190 range, and a 1.25-second shared action interval. It heals the in-range non-boss ally with the greatest missing HP before attacking and cannot overheal; bosses are deliberately excluded so a producing garrison cannot sustain an unbounded boss-healing loop. Weapon equipment and mastery attack growth add the same flat amount to healing power. The unit-threat estimator values its healing per second at a 1.35 support coefficient.
 
+### Attack commitment, dead zones, and splash
+
+`attackIntervalMs` is the complete attack-start-to-attack-start cycle. `attackWindupMs` is the immobile pre-impact commitment and recovery is exactly `attackIntervalMs - attackWindupMs`; the unit remains immobile for that remainder after impact. The locked target is revalidated when windup ends. A dead target, a target newly protected behind a living fortress, a target behind the attacker, or a target outside the current minimum–maximum attack band causes the committed attack to miss. A ranged unit whose nearest forward threat is inside `minimumAttackRange` retreats instead of selecting a farther target through the screen.
+
+| Combatant | Effective range | Windup | Recovery | Pattern |
+|---|---:|---:|---:|---|
+| Militia | 0–34 | 180 ms | 640 ms | single |
+| Guardian | 0–32 | 360 ms | 690 ms | single |
+| Archer | 55–215 | 320 ms | 860 ms | single |
+| Lancer | 0–62 | 260 ms | 840 ms | pierce 2 |
+| Royal Cavalry | 0–40 | 230 ms | 820 ms | pierce 2 + charge |
+| Crossbow | 75–160 | 650 ms | 800 ms | pierce 2 |
+| Goblin Bomber | 80–145 | 720 ms | 880 ms | ground splash radius 82, ×0.80 secondary |
+| Ogre Mage | 75–170 | 720 ms | 780 ms | ground splash radius 95, ×0.70 secondary |
+| Fire Spirit | 50–165 | 430 ms | 620 ms | ground/flying splash radius 68, ×0.60 secondary |
+| Ifrit | 100–215 | 850 ms | 800 ms | pierce 3 |
+| Ancient Sky Dragon | 120–250 | 1,100 ms | 800 ms | pierce 3 |
+
+Every expanded roster entry stores resolved timing/range data even when `makeTroop` supplies a role-based default. Exact windup/recovery is intentionally hidden from the armory, Hero Hall, and battle cards. An owned troop or hero reveals it only in the codex at mastery level 5; encountered-but-unowned troops remain `미분석`. Attack pattern and effective range remain available before that analysis so formation choices are understandable.
+
 ### Upper-tier value corrections
 
 The expensive roster was rebalanced against Command cost rather than rarity alone. These are the current corrected values for previously inefficient upper-tier troops; omitted columns retain their canonical values in `src/data/units.ts`.
@@ -382,7 +402,7 @@ Stages 13–30 add a basic enemy-fortress shot as a separate, visible difficulty
 - Shared campaign-beast base stats: 5,200 HP, 82 ATK, 68 range, 1.5 s attack interval, and 20 movement speed.
 - Its normal strike cleaves all valid targets in its melee range at full secondary damage.
 - Stomp radius is 175, knockback is 55, and its 850 ms warning remains unchanged.
-- Bounded rank-5 armor and weapon produce 5,550 HP and 112 ATK before stage modifiers. Campaign boss modifiers are: stage 6 `×1.08 HP / ×1.00 ATK / ×1.00 cadence`, stage 12 `×2.40 / ×1.35 / ×0.82`, stage 18 `×2.44 / ×1.32 / ×0.85`, stage 24 `×2.65 / ×1.40 / ×0.80`, and stage 30 `×2.90 / ×1.48 / ×0.75`. Every campaign boss stands in front of a separately damageable fortress; both must fall. Its weak garrison continues while that fortress survives and stops immediately when it falls. No boss has mastery scaling.
+- Bounded rank-5 armor and weapon produce 5,550 HP and 112 ATK before stage modifiers. Campaign boss modifiers are: stage 6 `×1.08 HP / ×1.00 ATK / ×1.00 cadence`, stage 12 `×2.40 / ×1.35 / ×0.82`, stage 18 `×2.44 / ×1.32 / ×0.85`, stage 24 `×3.00 / ×1.40 / ×0.80`, and stage 30 `×2.95 / ×1.48 / ×0.75`. Every campaign boss stands in front of a separately damageable fortress; both must fall. Its weak garrison continues while that fortress survives and stops immediately when it falls. No boss has mastery scaling.
 
 ### Beast-only challenges and terrain
 
@@ -428,11 +448,13 @@ After the scripted opening waves, every non-boss stage cycles through the follow
 
 - Enemy equipment reaches the shared +5/+5/+5 cap at stage 7. Later difficulty uses composition, advanced mechanics, reinforcement timing/caps, fortress HP and fire, and boss patterns rather than additional generic stat multipliers.
 
-### Elite defenders
+### Elite defenders and midfield commanders
 
-Stages 2, 3, 4, 5, 7–11, and every non-boss stage from 13–29 place one named elite near the enemy fortress. Each elite starts from the stage-trained shared troop, is forced to one body, and then applies only the explicit HP/ATK/DEF modifier in `eliteGuard`. Campaign stages 6/12/18/24/30 use a boss instead. The map exposes the elite name but hides all enemy equipment ranks and modifier numbers.
+Stages 2, 3, 4, 5, and 7–11 place one named elite at 86% of the route. Each normal stage from 13–17 places two at 55% and 86%; every normal stage from 19–29 places three at 38%, 64%, and 87%. Campaign stages 6/12/18/24/30 use a boss and fortress garrison instead of midfield elites. Every elite starts from a stage-trained shared troop, is forced to one body, and then applies only its explicit `eliteGuards` position and HP/ATK/DEF modifiers. The map exposes every name and the count but hides equipment ranks and modifier numbers.
 
-The hardened eastern elites at stages 7–11 use HP/ATK/flat-DEF profiles `1.45/1.22/+4`, `1.95/1.30/+4`, `2.25/1.42/+4`, `1.50/1.24/+5`, and `1.55/1.27/+6`. For non-boss stages 13–29, with `progress = stage - 13`, the structured profile is HP `1.55 + progress × 0.035`, ATK `1.22 + progress × 0.012`, and defense `8 + floor(progress / 4)`. These values are a separate difficulty axis and never alter the canonical recruitable troop.
+The hardened eastern elites at stages 7–11 retain HP/ATK/flat-DEF profiles `1.45/1.22/+4`, `1.95/1.30/+4`, `2.25/1.42/+4`, `1.50/1.24/+5`, and `1.55/1.27/+6`; stage 4's Ogre profile is now `1.35/1.12/+2`. Late commanders are selected from already introduced regional troops of grade 1–3 so a legendary base body cannot create an accidental difficulty spike. With `progress = stage - 13`, their common target before position scaling is HP `1,500 + progress × 180`, ATK `60 + progress × 4`, and flat defense `5 + floor(progress / 3)`. Front/middle/rear position scales are ×0.9/×1.0/×1.1 as applicable. The generator converts those targets into explicit multipliers against rank-5 trained stats; it never changes the recruitable definition.
+
+The estimator sums every elite's trained threat with a ×1.2 prepared-position premium. This modest premium accounts for predeployment while avoiding double-counting their already-authored target stats; dispersed lines are normally defeated sequentially rather than simultaneously.
 
 ## 7. Automated difficulty model
 
@@ -443,22 +465,22 @@ The pure estimator in `src/game/difficulty.ts` combines seven axes:
 - objective durability from fortress HP at `HP / 5`, reflecting that every campaign battle—including boss sieges—retains a real fortress damage window;
 - enemy-fortress fire from its damage per second weighted by range, applied only to stages whose fortress can actually shoot;
 - battlefield endurance from half of the virtual distance beyond the stage-1 baseline, representing the extra travel and reinforcement window;
-- scripted-army pressure from trained unit threat, squad expansion, spawn timing, movement domain, attack pattern, and support healing per second;
+- scripted-army pressure from trained unit threat, squad expansion, spawn timing, movement domain, attack pattern, attack windup/recovery commitment, close-range dead zones, and support healing per second;
 - recurring pressure from reinforcement composition, interval, and living-enemy cap;
 - explicit elite HP, attack, and defense modifiers;
 - boss durability, damage, phase pressure, and stage stomp cadence.
 
 Long scripted timelines use the square root of total deployment mass so a sequence that can be defeated piecemeal does not count as if every body arrived simultaneously. The resulting raw totals are normalized from stage 1 = 0 to the final stage = 100 and compared with equal linear targets. The audit requires strict monotonic growth, maximum target deviation ≤16, linear-fit R² ≥0.92, and every adjacent step between 0.3× and 2.2× the ideal step. There is no hand-authored stage difficulty value, preventing the check from proving itself circularly or the UI from merely repeating the stage number.
 
-The map uses the same analyzed threat index for its player-facing tier. Index ≤15 is `낮음`, ≤35 `보통`, ≤60 `높음`, ≤82 `매우 높음`, and anything above is `극한`. Challenge totals are evaluated against the same campaign stage-1-to-stage-30 range, so exceptionally strong beasts naturally remain in `극한`. The map shows only the tier and five-step marker; the numeric index is available as explanatory hover text rather than a fake stage-like fraction.
+The map uses the same analyzed threat index for its player-facing tier. Index ≤15 is `낮음`, ≤32 `보통`, ≤60 `높음`, ≤82 `매우 높음`, and anything above is `극한`. Challenge totals are evaluated against the same campaign stage-1-to-stage-30 range, so exceptionally strong beasts naturally remain in `극한`. The map shows only the tier and five-step marker; the numeric index is available as explanatory hover text rather than a fake stage-like fraction.
 
 Opening waves measure complete deployments including squad-size capstones. Reinforcement pressure instead measures per-body threat because `maxAlive` already limits the number of living bodies; multiplying squad size there would count the same deployment bonus twice.
 
 ### Command-efficiency audit
 
-`scripts/unit-efficiency.test.ts` estimates each base deployment as `estimateUnitThreat(unit) × squadSize`, then divides by its Command cost. The shared threat estimate accounts for effective HP, flat defense, DPS, healing per second, range, movement, flying/charge/anti-large traits, and pierce or cleave reach. Every troop costing at least 150 Command must score at least 1.0 estimated threat per Command, and no base troop may cost more than the unupgraded 200 maximum Command.
+`scripts/unit-efficiency.test.ts` estimates each base deployment as `estimateUnitThreat(unit) × squadSize`, then divides by its Command cost. The shared threat estimate accounts for effective HP, flat defense, DPS, healing per second, range, movement, flying/charge/anti-large traits, single/pierce/cleave/splash reach, windup commitment, and minimum-range exposure. Every troop costing at least 150 Command must score at least 1.0 estimated threat per Command, and no base troop may cost more than the unupgraded 200 maximum Command.
 
-The current 150+ Command range runs from the Ogre Crusher at 1.39 estimated threat per Command to the post-finale Ancient Sky Dragon at 21.15. This is a minimum-value regression guard, not a promise that the estimator perfectly orders every matchup: focus fire, path congestion, active-body limits, aerial counter availability, and real cleave density still require playtesting. Ifrit and Ancient Sky Dragon are gated behind stage 30 challenges 104 and 105, full-base-capacity 200 Command costs, one-body deployments, long cooldowns, and living caps of two and one rather than being treated as ordinary campaign recruits.
+The current 150+ Command range runs from the Ogre Crusher at 1.25 estimated threat per Command to the post-finale Ancient Sky Dragon at 16.33. This is a minimum-value regression guard, not a promise that the estimator perfectly orders every matchup: target motion during windup, dead-zone screening, focus fire, path congestion, active-body limits, aerial counter availability, and real area density still require playtesting. Ifrit and Ancient Sky Dragon are gated behind stage 30 challenges 104 and 105, full-base-capacity 200 Command costs, one-body deployments, long cooldowns, and living caps of two and one rather than being treated as ordinary campaign recruits.
 
 ### Focused-upgrade progression stress report
 
@@ -475,14 +497,14 @@ The map tier and campaign curve measure absolute enemy pressure. They intentiona
 
 | Entering stage | Lifetime budget | Best rush | Bodies | Power vs base | Enemy pressure / rush power |
 |---:|---:|---|---:|---:|---:|
-| 1 | 100 | Militia weapon +1 | 3 | ×1.09 | 282.0 |
-| 2 | 200 | Militia weapon +2 | 3 | ×1.18 | 370.1 |
-| 3 | 400 | Militia weapon +3 | 3 | ×1.27 | 483.2 |
-| 4 | 1,000 | Militia weapon +5 | 4 | ×1.93 | 507.7 |
-| 5 | 1,400 | Militia weapon +5 | 4 | ×1.93 | 554.0 |
-| 6 | 2,400 | Militia weapon +5 | 4 | ×1.93 | 699.8 |
+| 1 | 100 | Militia weapon +1 | 3 | ×1.09 | 290.2 |
+| 2 | 200 | Militia weapon +2 | 3 | ×1.18 | 357.1 |
+| 3 | 400 | Militia weapon +3 | 3 | ×1.27 | 434.4 |
+| 4 | 1,000 | Militia weapon +5 | 4 | ×1.93 | 456.6 |
+| 5 | 1,400 | Militia weapon +5 | 4 | ×1.93 | 519.1 |
+| 6 | 2,400 | Militia weapon +5 | 4 | ×1.93 | 663.0 |
 
-The stress case remains real: before stage 4, the optimized Militia build jumps from weapon +3 to +5 and receives its free fourth body, increasing deployment power to ×1.93 of base. The rebalanced encounter now raises pressure per optimized power from 483.2 to 507.7, a ×1.05 step, instead of allowing the capstone to erase the increase. At +5, weapon stats alone account for ×1.45 base power and the 3→4 body capstone multiplies that by another ×1.33.
+The stress case remains real: before stage 4, the optimized Militia build jumps from weapon +3 to +5 and receives its free fourth body, increasing deployment power to ×1.93 of base. The rebalanced encounter now raises pressure per optimized power from 434.4 to 456.6, a ×1.05 step, instead of allowing the capstone to erase the increase. At +5, weapon stats alone account for ×1.45 base power and the 3→4 body capstone multiplies that by another ×1.33.
 
 This is a conservative finding: seven total stage-1 wins generate 700 battle gold on top of the starting 100, enough to buy the 750-gold Militia branch before entering stage 2. Achievements can accelerate it further. Repeated farming is allowed to make later battles easier, but the current free-body breakpoint is strong enough that the absolute campaign curve must not be presented as a player-relative guarantee.
 

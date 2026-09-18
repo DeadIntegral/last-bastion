@@ -30,7 +30,8 @@ export interface EquipmentGrowth {
 export type AttackPattern =
   | { kind: 'single' }
   | { kind: 'pierce'; maxTargets: 2 | 3; followThroughRange: number; secondaryDamageMultiplier: number }
-  | { kind: 'cleave'; secondaryDamageMultiplier: number };
+  | { kind: 'cleave'; secondaryDamageMultiplier: number }
+  | { kind: 'splash'; radius: number; secondaryDamageMultiplier: number; targetDomain: 'ground' | 'all' };
 export type Side = 'player' | 'enemy';
 export type BattleSpeed = 1 | 1.5;
 export type Screen = 'menu' | 'opening' | 'credits' | 'stages' | 'merchant' | 'training' | 'monument' | 'armory' | 'heroes' | 'fortress' | 'achievements' | 'codex' | 'battle' | 'result';
@@ -45,7 +46,9 @@ export interface UnitDefinition {
   defense?: number;
   attackDamage: number;
   attackRange: number;
+  minimumAttackRange: number;
   attackIntervalMs: number;
+  attackWindupMs: number;
   moveSpeed: number;
   spawnCooldownMs: number;
   color: number;
@@ -100,7 +103,7 @@ export interface StageDefinition {
   enemyUpgrades: EnemyUpgradeProfile;
   waves: WaveEntry[];
   reinforcement?: EnemyReinforcement;
-  eliteGuard?: EliteGuardDefinition;
+  eliteGuards?: EliteGuardDefinition[];
   enemyFaction: EnemyFaction;
   terrain: TerrainEffect;
   boss?: boolean;
@@ -141,6 +144,7 @@ export interface EnemyUpgradeProfile {
 export interface EliteGuardDefinition {
   unitId: EnemyId;
   name: string;
+  positionRatio: number;
   hpMultiplier: number;
   attackMultiplier: number;
   defenseBonus: number;

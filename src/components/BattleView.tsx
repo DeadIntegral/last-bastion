@@ -4,7 +4,7 @@ import { troopDefinitions, unitGradeLabels } from '../data/units';
 import { getStage } from '../data/stages';
 import { BattleEvent, battleEvents } from '../game/EventBus';
 import { isHeroSkillKey } from '../game/controls';
-import { cooldownFillRatio, formatTime, unitDeploymentCapacity, upgradedStats } from '../game/rules';
+import { attackPatternLabel, attackRangeLabel, cooldownFillRatio, formatTime, unitDeploymentCapacity, upgradedStats } from '../game/rules';
 import { PhaserGame } from '../game/PhaserGame';
 import { useGameStore } from '../store/useGameStore';
 import { musicEngine } from '../audio/music';
@@ -191,6 +191,7 @@ export function BattleView({ stageId, onResult }: BattleViewProps) {
                   disabled={disabled}
                   onClick={() => spawn(id)}
                   aria-label={`${unit.name}, ${unit.grade}성 ${unitGradeLabels[unit.grade]}, ${actualDeploymentSize}명 소환, 지휘력 ${cost}${cooldownLabel}${fieldLimitLabel}`}
+                  title={`${attackPatternLabel(unit)} · 유효 사거리 ${attackRangeLabel(unit)}`}
                 >
                   <span className="hotkey">{index + 1}</span>
                   <CharacterSprite id={id} className="unit-icon battle-unit-art" />

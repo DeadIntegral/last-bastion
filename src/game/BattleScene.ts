@@ -24,6 +24,7 @@ import {
   heroAuraBonuses,
   healedHp,
   isBehindLivingFortress,
+  isWithinAttackBand,
   masteryLevelFromXp,
   mobilizedCommandStats,
   regenerateCommand,
@@ -35,6 +36,8 @@ import {
   upgradedStats,
 } from './rules';
 
+type PendingAttackKind = 'none' | 'unit' | 'heal' | 'playerCastle' | 'enemyCastle';
+
 interface CombatUnit {
   id: number;
   definition: UnitDefinition;
@@ -43,6 +46,10 @@ interface CombatUnit {
   maxHp: number;
   shield: number;
   attackTimer: number;
+  attackRecoveryLocked: boolean;
+  attackWindupRemainingMs: number;
+  pendingAttackKind: PendingAttackKind;
+  pendingTargetId: number;
   container: Phaser.GameObjects.Container;
   hpBar: Phaser.GameObjects.Rectangle;
   alive: boolean;
@@ -52,6 +59,7 @@ interface CombatUnit {
   hasCharged: boolean;
   baseScale: number;
   attackMotionMs: number;
+  attackMotionDurationMs: number;
   attackRig: CombatAttackRig;
   attackPose: AttackMotionPose;
   damageFlashMs: number;
@@ -267,7 +275,7 @@ export class BattleScene extends Phaser.Scene {
     }
     this.spawnOrders.sort((a, b) => a.at - b.at);
     this.nextReinforcementAt = this.stageDefinition.reinforcement?.startMs ?? Number.POSITIVE_INFINITY;
-    if (this.stageDefinition.eliteGuard) this.spawnEliteGuard();
+    for (const elite of this.stageDefinition.eliteGuards ?? []) this.spawnEliteGuard(elite);
 
     this.hero = this.createUnit(this.heroDefinition, 'player', fortressRearSpawnX('player', PLAYER_CASTLE_X), GROUND_Y, true, false);
     battleEvents.off(BattleEvent.SPAWN);
@@ -324,6 +332,8 @@ export class BattleScene extends Phaser.Scene {
       this.updateUnitFeedback(unit, safeDelta);
       unit.attackTimer -= safeDelta;
       if (unit.isBoss && !this.bossAwake) continue;
+      this.applyPassiveAuraHealing(unit, safeDelta);
+      if (this.updatePendingAttack(unit, safeDelta)) continue;
       this.updateUnit(unit, safeDelta);
     }
 
@@ -444,8 +454,10 @@ export class BattleScene extends Phaser.Scene {
 
     const unit: CombatUnit = {
       id: this.nextEntityId++, definition, side, hp: definition.maxHp, maxHp: definition.maxHp,
-      shield: 0, attackTimer: Phaser.Math.Between(0, 250), container, hpBar, alive: true, isHero: hero, isBoss: boss, isElite: Boolean(eliteName), hasCharged: false,
-      baseScale: 1, attackMotionMs: 0, attackRig, attackPose: createAttackMotionPose(), damageFlashMs: 0,
+      shield: 0, attackTimer: Phaser.Math.Between(0, 250), attackRecoveryLocked: false,
+      attackWindupRemainingMs: 0, pendingAttackKind: 'none', pendingTargetId: 0,
+      container, hpBar, alive: true, isHero: hero, isBoss: boss, isElite: Boolean(eliteName), hasCharged: false,
+      baseScale: 1, attackMotionMs: 0, attackMotionDurationMs: 0, attackRig, attackPose: createAttackMotionPose(), damageFlashMs: 0,
     };
     this.units.push(unit);
     if (boss) {
@@ -562,9 +574,7 @@ export class BattleScene extends Phaser.Scene {
     return count;
   }
 
-  private spawnEliteGuard(): void {
-    const elite = this.stageDefinition.eliteGuard;
-    if (!elite) return;
+  private spawnEliteGuard(elite: NonNullable<StageDefinition['eliteGuards']>[number]): void {
     this.encounteredEnemies.add(elite.unitId);
     const trained = applyEnemyTerrain(upgradedStats(troopDefinitions[elite.unitId], this.stageDefinition.enemyUpgrades.equipment), this.stageDefinition.terrain);
     const definition: UnitDefinition = {
@@ -575,7 +585,12 @@ export class BattleScene extends Phaser.Scene {
       defense: Math.round(((trained.defense ?? 0) + elite.defenseBonus) * 10) / 10,
       squadSize: 1,
     };
-    this.createUnit(definition, 'enemy', this.enemyCastleX - 170, GROUND_Y, false, false, elite.name);
+    const positionX = Phaser.Math.Clamp(
+      PLAYER_CASTLE_X + this.stageDefinition.fortressDistance * elite.positionRatio,
+      PLAYER_CASTLE_X + 180,
+      this.enemyCastleX - 90,
+    );
+    this.createUnit(definition, 'enemy', positionX, GROUND_Y, false, false, elite.name);
   }
 
   private processHeroRespawn(delta: number): void {
@@ -589,26 +604,27 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private updateUnit(unit: CombatUnit, delta: number): void {
-    const aura = this.heroAuraFor(unit);
-    if (aura.healingPerSecond > 0 && unit.hp < unit.maxHp) {
-      this.healUnit(unit, aura.healingPerSecond * delta / 1000);
+    if (unit.attackRecoveryLocked) {
+      if (unit.attackTimer > 0) return;
+      unit.attackRecoveryLocked = false;
     }
+    const aura = this.heroAuraFor(unit);
     const healTarget = this.findHealTarget(unit);
     if (healTarget && unit.attackTimer <= 0) {
-      unit.attackTimer = unit.definition.attackIntervalMs;
-      this.startAttackMotion(unit);
-      this.healUnit(healTarget, unit.definition.healingPower ?? 0, true);
-      musicEngine.playEffect('skill');
+      this.beginAttack(unit, 'heal', healTarget);
       return;
     }
     const target = this.findTarget(unit);
     if (target) {
       const distance = Math.abs(target.container.x - unit.container.x) - target.definition.size - unit.definition.size;
-      if (distance <= unit.definition.attackRange + aura.rangeBonus) {
+      if (isWithinAttackBand(unit.definition, distance, aura.rangeBonus)) {
         if (unit.attackTimer <= 0) {
-          unit.attackTimer = unit.definition.attackIntervalMs * (unit.isBoss && this.bossPhase === 2 ? bossCombatTuning.phaseTwoAttackIntervalMultiplier : 1);
-          this.attackUnit(unit, target);
+          this.beginAttack(unit, 'unit', target);
         }
+        return;
+      }
+      if (distance < unit.definition.minimumAttackRange) {
+        this.retreatFrom(unit, target.container.x, delta);
         return;
       }
     }
@@ -623,27 +639,31 @@ export class BattleScene extends Phaser.Scene {
 
     const destination = unit.side === 'player' ? this.enemyCastleX : PLAYER_CASTLE_X;
     const distanceToCastle = Math.abs(destination - unit.container.x);
-    if (!this.stageDefinition.challenge && unit.side === 'player' && distanceToCastle <= unit.definition.attackRange + aura.rangeBonus + 65) {
+    const castleEdgeDistance = Math.max(0, distanceToCastle - (unit.side === 'player' ? 65 : 58));
+    if (!this.stageDefinition.challenge && unit.side === 'player' && isWithinAttackBand(unit.definition, castleEdgeDistance, aura.rangeBonus)) {
       if (unit.attackTimer <= 0) {
-        unit.attackTimer = unit.definition.attackIntervalMs;
-        this.startAttackMotion(unit);
-        this.damageCastle('enemy', this.attackDamage(unit));
-        this.showStrike(unit.container.x + 30, unit.container.y, unit.definition.color);
-        musicEngine.playEffect(unit.definition.tags.includes('flying') ? 'air' : unit.definition.tags.includes('ranged') ? 'ranged' : 'melee');
+        this.beginAttack(unit, 'enemyCastle');
       }
       return;
     }
-    if (unit.side === 'enemy' && distanceToCastle <= unit.definition.attackRange + aura.rangeBonus + 58) {
+    if (unit.side === 'enemy' && isWithinAttackBand(unit.definition, castleEdgeDistance, aura.rangeBonus)) {
       if (unit.attackTimer <= 0) {
-        unit.attackTimer = unit.definition.attackIntervalMs;
-        this.startAttackMotion(unit);
-        this.damageCastle('player', this.attackDamage(unit));
-        this.showStrike(unit.container.x - 30, unit.container.y, unit.definition.color);
-        musicEngine.playEffect(unit.definition.tags.includes('flying') ? 'air' : unit.definition.tags.includes('ranged') ? 'ranged' : 'melee');
+        this.beginAttack(unit, 'playerCastle');
       }
+      return;
+    }
+    if (castleEdgeDistance < unit.definition.minimumAttackRange) {
+      this.retreatFrom(unit, destination, delta);
       return;
     }
 
+    this.moveUnitToward(unit, destination, delta);
+  }
+
+  private retreatFrom(unit: CombatUnit, threatX: number, delta: number): void {
+    const fallbackDirection = unit.side === 'player' ? -1 : 1;
+    const direction = Math.sign(unit.container.x - threatX) || fallbackDirection;
+    const destination = Phaser.Math.Clamp(unit.container.x + direction * 120, 20, WORLD_WIDTH - 20);
     this.moveUnitToward(unit, destination, delta);
   }
 
@@ -720,8 +740,87 @@ export class BattleScene extends Phaser.Scene {
     return aura;
   }
 
+  private applyPassiveAuraHealing(unit: CombatUnit, delta: number): void {
+    const healingPerSecond = this.heroAuraFor(unit).healingPerSecond;
+    if (healingPerSecond > 0 && unit.hp < unit.maxHp) {
+      this.healUnit(unit, healingPerSecond * delta / 1000);
+    }
+  }
+
+  private beginAttack(attacker: CombatUnit, kind: Exclude<PendingAttackKind, 'none'>, target?: CombatUnit): void {
+    const cadenceMultiplier = attacker.isBoss && this.bossPhase === 2
+      ? bossCombatTuning.phaseTwoAttackIntervalMultiplier
+      : 1;
+    const cycleMs = attacker.definition.attackIntervalMs * cadenceMultiplier;
+    const windupMs = Math.min(cycleMs, attacker.definition.attackWindupMs * cadenceMultiplier);
+    attacker.attackTimer = cycleMs;
+    attacker.attackRecoveryLocked = true;
+    attacker.attackWindupRemainingMs = windupMs;
+    attacker.pendingAttackKind = kind;
+    attacker.pendingTargetId = target?.id ?? 0;
+    this.startAttackMotion(attacker, Math.max(windupMs, attackMotionDurationMs(attacker.attackRig.style)));
+    if (windupMs <= 0) this.resolvePendingAttack(attacker);
+  }
+
+  private updatePendingAttack(attacker: CombatUnit, delta: number): boolean {
+    if (attacker.pendingAttackKind === 'none') return false;
+    attacker.attackWindupRemainingMs = Math.max(0, attacker.attackWindupRemainingMs - delta);
+    if (attacker.attackWindupRemainingMs <= 0) this.resolvePendingAttack(attacker);
+    return true;
+  }
+
+  private resolvePendingAttack(attacker: CombatUnit): void {
+    const kind = attacker.pendingAttackKind;
+    const targetId = attacker.pendingTargetId;
+    attacker.pendingAttackKind = 'none';
+    attacker.pendingTargetId = 0;
+    attacker.attackWindupRemainingMs = 0;
+
+    if (kind === 'unit') {
+      const target = this.unitById(targetId);
+      if (target && this.canResolveAttackAgainst(attacker, target)) this.attackUnit(attacker, target);
+      return;
+    }
+    if (kind === 'heal') {
+      const target = this.unitById(targetId);
+      const healingRange = attacker.definition.healingRange ?? 0;
+      if (target?.alive && target.side === attacker.side && !target.isBoss && target.hp < target.maxHp
+        && Math.abs(target.container.x - attacker.container.x) <= healingRange) {
+        this.healUnit(target, attacker.definition.healingPower ?? 0, true);
+        musicEngine.playEffect('skill');
+      }
+      return;
+    }
+
+    const targetsEnemyCastle = kind === 'enemyCastle';
+    const castleX = targetsEnemyCastle ? this.enemyCastleX : PLAYER_CASTLE_X;
+    const castleAlive = targetsEnemyCastle ? this.enemyHp > 0 && !this.stageDefinition.challenge : this.playerCastleHp > 0;
+    const edgeOffset = targetsEnemyCastle ? 65 : 58;
+    const edgeDistance = Math.max(0, Math.abs(castleX - attacker.container.x) - edgeOffset);
+    if (!castleAlive || !isWithinAttackBand(attacker.definition, edgeDistance, this.heroAuraFor(attacker).rangeBonus)) return;
+    this.damageCastle(targetsEnemyCastle ? 'enemy' : 'player', this.attackDamage(attacker));
+    this.showStrike(attacker.container.x + (targetsEnemyCastle ? 30 : -30), attacker.container.y, attacker.definition.color);
+    musicEngine.playEffect(attacker.definition.tags.includes('flying') ? 'air' : attacker.definition.tags.includes('ranged') ? 'ranged' : 'melee');
+  }
+
+  private unitById(id: number): CombatUnit | undefined {
+    for (const unit of this.units) {
+      if (unit.id === id) return unit;
+    }
+    return undefined;
+  }
+
+  private canResolveAttackAgainst(attacker: CombatUnit, target: CombatUnit): boolean {
+    if (!target.alive || target.side === attacker.side || !canAttackTarget(attacker.definition, target.definition)) return false;
+    if (target.side === 'player' && isBehindLivingFortress('player', target.container.x, PLAYER_CASTLE_X, this.playerCastleHp)) return false;
+    if (!this.stageDefinition.challenge && target.side === 'enemy' && isBehindLivingFortress('enemy', target.container.x, this.enemyCastleX, this.enemyHp)) return false;
+    const deltaX = target.container.x - attacker.container.x;
+    if (attacker.side === 'player' ? deltaX < -20 : deltaX > 20) return false;
+    const edgeDistance = Math.abs(deltaX) - target.definition.size - attacker.definition.size;
+    return isWithinAttackBand(attacker.definition, edgeDistance, this.heroAuraFor(attacker).rangeBonus);
+  }
+
   private attackUnit(attacker: CombatUnit, target: CombatUnit): void {
-    this.startAttackMotion(attacker);
     const targets = this.attackTargets(attacker, target);
     const primaryDamage = this.attackDamage(attacker, target.definition);
     const secondaryDamageMultiplier = attacker.definition.attackPattern.kind === 'single'
@@ -736,18 +835,11 @@ export class BattleScene extends Phaser.Scene {
       else this.showStrike(hitTarget.container.x, hitTarget.container.y, attacker.definition.color);
       this.damageUnit(hitTarget, damage);
     }
-    if (attacker.isHero && this.heroDefinition.id === 'pyromancer') {
-      for (const nearby of this.units) {
-        if (nearby.alive && nearby.side === 'enemy' && nearby.id !== target.id && Math.abs(nearby.container.x - target.container.x) <= 82) {
-          this.damageUnit(nearby, Math.round(primaryDamage * 0.35));
-          this.showStrike(nearby.container.x, nearby.container.y, 0xff8a55);
-        }
-      }
-    }
   }
 
-  private startAttackMotion(unit: CombatUnit): void {
-    unit.attackMotionMs = attackMotionDurationMs(unit.attackRig.style);
+  private startAttackMotion(unit: CombatUnit, durationMs = attackMotionDurationMs(unit.attackRig.style)): void {
+    unit.attackMotionDurationMs = durationMs;
+    unit.attackMotionMs = durationMs;
     unit.attackRig.root.setAlpha(1);
   }
 
@@ -757,6 +849,14 @@ export class BattleScene extends Phaser.Scene {
     targets.length = 0;
     targets.push(primary);
     if (pattern.kind === 'single') return targets;
+    if (pattern.kind === 'splash') {
+      for (const candidate of this.units) {
+        if (!candidate.alive || candidate.side === attacker.side || candidate.id === primary.id) continue;
+        if (!canAttackTarget(attacker.definition, candidate.definition)) continue;
+        if (Math.abs(candidate.container.x - primary.container.x) <= pattern.radius) targets.push(candidate);
+      }
+      return targets;
+    }
     const direction = attacker.side === 'player' ? 1 : -1;
     for (const candidate of this.units) {
       if (!candidate.alive || candidate.side === attacker.side || candidate.id === primary.id) continue;
@@ -1397,7 +1497,7 @@ export class BattleScene extends Phaser.Scene {
       if (unit.damageFlashMs === 0) unit.container.setAlpha(1);
     }
     if (unit.attackMotionMs > 0) {
-      const duration = attackMotionDurationMs(unit.attackRig.style);
+      const duration = Math.max(1, unit.attackMotionDurationMs);
       unit.attackMotionMs = Math.max(0, unit.attackMotionMs - delta);
       sampleAttackMotion(unit.attackRig.style, 1 - unit.attackMotionMs / duration, unit.attackPose);
       const { attackRig: rig, attackPose: pose } = unit;

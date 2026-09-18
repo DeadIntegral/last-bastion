@@ -16,6 +16,8 @@ This document is the canonical backlog for game systems that have been designed 
 
 Status: **Planned**.
 
+Implemented foundation: the live combat model already has attack windup/recovery, impact-time target revalidation, minimum-range dead zones, and radial `splash` patterns with explicit ground/all-domain targeting. These generic mechanics are documented in `docs/GAME_SPEC.md`; they do not by themselves implement guard interception, directional rear attenuation, a target-point ground eruption, or its pooled telegraph, so the system below remains Planned.
+
 ### Design goal
 
 Add a readable front-line/back-line relationship without making tanks a universal answer. Tanks should protect formations from attacks that physically travel through the lane, while ground-origin magic should punish an army that relies only on a single blocking body.
@@ -78,6 +80,7 @@ type AttackPattern =
   | { kind: 'single' }
   | { kind: 'pierce'; maxTargets: number; followThroughRange: number }
   | { kind: 'cleave'; secondaryMultiplier: number }
+  | { kind: 'splash'; radius: number; targetDomain: 'ground' | 'all' }
   | { kind: 'directionalArea'; length: number; width: number }
   | { kind: 'groundBurst'; radius: number; telegraphMs: number; targetDomains: MovementDomain[] };
 ```

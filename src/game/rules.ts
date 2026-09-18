@@ -9,6 +9,7 @@ export const HERO_RESPAWN_MS = 20_000;
 export const HERO_SKILL_COOLDOWN_MS = 25_000;
 export const EQUIPMENT_CAPSTONE_LEVEL = 5;
 export const STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS = 3;
+export const ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL = 5;
 
 export function scaledBattleDelta(deltaMs: number, speed: BattleSpeed): number {
   return Math.min(Math.max(0, deltaMs), 50) * speed;
@@ -45,14 +46,37 @@ export function calculateDamage(attacker: UnitDefinition, target: UnitDefinition
 }
 
 export function canAttackTarget(attacker: UnitDefinition, target: UnitDefinition): boolean {
-  return !target.tags.includes('flying') || attacker.tags.includes('ranged');
+  if (target.tags.includes('flying') && !attacker.tags.includes('ranged')) return false;
+  if (target.tags.includes('flying') && attacker.attackPattern.kind === 'splash' && attacker.attackPattern.targetDomain === 'ground') return false;
+  return true;
 }
 
 export function attackPatternLabel(definition: UnitDefinition): string {
   const pattern = definition.attackPattern;
   if (pattern.kind === 'pierce') return `${pattern.maxTargets}명 관통`;
   if (pattern.kind === 'cleave') return '근접 범위 전체 공격';
+  if (pattern.kind === 'splash') return `착탄 범위 공격 · 반경 ${pattern.radius}`;
   return '단일 공격';
+}
+
+export function attackRecoveryMs(definition: UnitDefinition): number {
+  return Math.max(0, definition.attackIntervalMs - definition.attackWindupMs);
+}
+
+export function attackRangeLabel(definition: UnitDefinition): string {
+  return definition.minimumAttackRange > 0
+    ? `${definition.minimumAttackRange}–${definition.attackRange}`
+    : `${definition.attackRange}`;
+}
+
+export function attackTimingLabel(definition: UnitDefinition): string {
+  return `선딜 ${(definition.attackWindupMs / 1_000).toFixed(2)}초 · 후딜 ${(attackRecoveryMs(definition) / 1_000).toFixed(2)}초`;
+}
+
+export function isWithinAttackBand(definition: UnitDefinition, edgeDistance: number, rangeBonus = 0): boolean {
+  const resolvedEdgeDistance = Math.max(0, edgeDistance);
+  return resolvedEdgeDistance >= definition.minimumAttackRange
+    && resolvedEdgeDistance <= definition.attackRange + rangeBonus;
 }
 
 export function masteryLevelFromXp(totalXp: number, maxLevel = SOLDIER_MASTERY_MAX_LEVEL): { level: number; currentXp: number; requiredXp: number } {

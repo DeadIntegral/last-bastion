@@ -36,6 +36,7 @@ function patternMultiplier(unit: UnitDefinition): number {
     return 1 + (unit.attackPattern.maxTargets - 1) * unit.attackPattern.secondaryDamageMultiplier * 0.48;
   }
   if (unit.attackPattern.kind === 'cleave') return 1 + unit.attackPattern.secondaryDamageMultiplier * 0.7;
+  if (unit.attackPattern.kind === 'splash') return 1 + unit.attackPattern.secondaryDamageMultiplier * Math.min(1.1, unit.attackPattern.radius / 85);
   return 1;
 }
 
@@ -44,11 +45,13 @@ export function estimateUnitThreat(unit: UnitDefinition): number {
   const damagePerSecond = unit.attackDamage / (unit.attackIntervalMs / 1_000);
   const healingPerSecond = (unit.healingPower ?? 0) / (unit.attackIntervalMs / 1_000);
   const rangeMultiplier = 1 + Math.min(unit.attackRange, 220) / 650;
+  const commitmentMultiplier = 1 - Math.min(0.16, unit.attackWindupMs / unit.attackIntervalMs * 0.22);
+  const deadZoneMultiplier = 1 - Math.min(0.18, unit.minimumAttackRange / Math.max(1, unit.attackRange) * 0.24);
   const traitMultiplier = (unit.tags.includes('flying') ? 1.18 : 1)
     * (unit.tags.includes('charge') ? 1.08 : 1)
     * (unit.tags.includes('anti-large') ? 1.04 : 1);
   return (effectiveHealth / 18 + damagePerSecond * 1.8 + healingPerSecond * 1.35 + unit.moveSpeed / 9)
-    * rangeMultiplier * patternMultiplier(unit) * traitMultiplier;
+    * rangeMultiplier * patternMultiplier(unit) * traitMultiplier * commitmentMultiplier * deadZoneMultiplier;
 }
 
 function enemyDeploymentThreat(id: keyof typeof troopDefinitions, equipment: EquipmentLevels, stage: StageDefinition): number {
@@ -89,16 +92,19 @@ export function analyzeStageDifficulty(stage: StageDefinition): DifficultyBreakd
     : 0;
 
   let elite = 0;
-  if (stage.eliteGuard) {
-    const definition = applyEnemyTerrain(upgradedStats(troopDefinitions[stage.eliteGuard.unitId], equipment), stage.terrain);
+  for (const eliteGuard of stage.eliteGuards ?? []) {
+    const definition = applyEnemyTerrain(upgradedStats(troopDefinitions[eliteGuard.unitId], equipment), stage.terrain);
     const eliteUnit: UnitDefinition = {
       ...definition,
-      maxHp: definition.maxHp * stage.eliteGuard.hpMultiplier,
-      attackDamage: definition.attackDamage * stage.eliteGuard.attackMultiplier,
-      defense: (definition.defense ?? 0) + stage.eliteGuard.defenseBonus,
+      maxHp: definition.maxHp * eliteGuard.hpMultiplier,
+      attackDamage: definition.attackDamage * eliteGuard.attackMultiplier,
+      defense: (definition.defense ?? 0) + eliteGuard.defenseBonus,
       squadSize: 1,
     };
-    elite = estimateUnitThreat(eliteUnit) * 2.1;
+    // Elites begin in prepared field positions, but their complete combat stats
+    // are already represented by estimateUnitThreat; only a modest positional
+    // premium is needed rather than multiplying their authored power twice.
+    elite += estimateUnitThreat(eliteUnit) * 1.2;
   }
 
   let boss = 0;
@@ -168,7 +174,7 @@ export function stageDifficultyPresentation(stage: StageDefinition, campaign: Ca
     Math.max(0, (analyzeStageDifficulty(stage).total - first) / Math.max(1, last - first) * 100),
   );
   if (threatIndex <= 15) return { rank: 1, label: '낮음', threatIndex };
-  if (threatIndex <= 35) return { rank: 2, label: '보통', threatIndex };
+  if (threatIndex <= 32) return { rank: 2, label: '보통', threatIndex };
   if (threatIndex <= 60) return { rank: 3, label: '높음', threatIndex };
   if (threatIndex <= 82) return { rank: 4, label: '매우 높음', threatIndex };
   return { rank: 5, label: '극한', threatIndex };

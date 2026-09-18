@@ -646,7 +646,7 @@ button:disabled { cursor: not-allowed; }
 .hero-traits span { display: block; color: #6fa8b6; font: 700 7px 'Cinzel'; letter-spacing: .16em; }
 .hero-traits strong { font-size: 12px; }
 .hero-traits p { margin: 3px 0 0; color: #798991; font-size: 9px; line-height: 1.45; }
-.hero-stats { display: grid; grid-template-columns: repeat(4, 1fr); margin: 18px 0; }
+.hero-stats { display: grid; grid-template-columns: repeat(3, 1fr); row-gap: 10px; margin: 18px 0; }
 .hero-stats div { display: grid; gap: 4px; text-align: center; border-right: 1px solid var(--line); }
 .hero-stats div:last-child { border: 0; }
 .hero-stats dt { color: #71808a; font-size: 8px; }
@@ -875,7 +875,7 @@ button:disabled { cursor: not-allowed; }
 .codex-card h4 { margin: 2px 0 6px; font-size: 16px; }.codex-card p { margin: 0; color: #8b9aa2; font-size: 9px; }
 .codex-tags { display: flex; flex-wrap: wrap; gap: 5px; margin: -1px 0 7px; }.codex-tags b { padding: 2px 5px; border: 1px solid rgba(110,193,209,.35); color: #89c9d4; font-size: 7px; }.codex-tags b.enemy-tag { border-color: rgba(218,104,91,.35); color: #d98b80; }.codex-tags b.grade-tag { border-color: rgba(207,174,98,.32); }
 .codex-card blockquote { margin: 12px 0; padding-left: 10px; border-left: 1px solid rgba(221,189,112,.35); color: #a69f8d; font-size: 9px; line-height: 1.55; font-style: italic; }
-.codex-card dl { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0; }.codex-card dl div { display: grid; gap: 2px; border-right: 1px solid var(--line); text-align: center; }.codex-card dl div:last-child { border: 0; }
+.codex-card dl { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 0; margin: 0; }.codex-card dl div { display: grid; gap: 2px; border-right: 1px solid var(--line); text-align: center; }.codex-card dl div:nth-child(even), .codex-card dl div:last-child { border: 0; }
 .codex-card dt { color: #667780; font: 600 7px 'Cinzel'; }.codex-card dd { margin: 0; font: 600 11px 'Cinzel'; }
 .hero-entry { background: linear-gradient(145deg, #273746, #181f2a); border-color: rgba(221,189,112,.22); }.hero-entry .codex-icon { color: var(--gold-bright); background: radial-gradient(circle, rgba(215,180,87,.18), transparent 44%), rgba(16,18,22,.45); }
 .enemy-codex-section > header > span { border-color: #a9635e; color: #e9937e; }.enemy-entry { background: linear-gradient(145deg, #39282d, #201a21); border-color: rgba(201,95,85,.2); }.enemy-entry .codex-icon { color: #ef9d86; background: radial-gradient(circle, rgba(211,79,59,.18), transparent 44%), rgba(22,13,17,.5); }
