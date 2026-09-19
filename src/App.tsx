@@ -18,6 +18,8 @@ import { musicEngine, type MusicScene } from './audio/music';
 import { ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL, STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS, attackPatternLabel, attackRangeLabel, attackTimingLabel, equipmentCost, formatTime, guardProtectionLabel, hasEquipmentCapstone, heroAwakeningRank, heroMasteryLevelFromXp, heroRespawnReductionMs, masteryLevelFromXp, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, upgradedStats, usesStatEquipmentCapstone } from './game/rules';
 import { useGameStore } from './store/useGameStore';
 import { CharacterSprite } from './components/CharacterSprite';
+import { Localized } from './shared/i18n/Localized';
+import { changeLanguage, getCurrentLanguage, t, useTranslation, type Language } from './shared/i18n/i18n';
 import type { BattleResult, CastleTechId, EquipmentSlot, FortressTier, HeroId, Screen, UnitDefinition, UnitFamily, UnitId } from './types/game';
 
 const equipmentSlots: Array<{ id: EquipmentSlot; name: string; icon: string }> = [
@@ -65,6 +67,19 @@ function heroSkillPowerSummary(id: HeroId, masteryLevel: number): string {
 }
 
 const BattleView = lazy(() => import('./components/BattleView').then((module) => ({ default: module.BattleView })));
+
+function LanguageToggle() {
+  const { lang } = useTranslation();
+  return (
+    <div className="language-toggle" role="group" aria-label={t('언어 선택')}>
+      {(['ko', 'en'] as Language[]).map((language) => (
+        <button type="button" aria-pressed={lang === language} onClick={() => void changeLanguage(language)} key={language}>
+          {language.toUpperCase()}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function Wallet({ gold, gems }: { gold: number; gems: number }) {
   return <div className="wallet"><div className="gold-pill"><span>●</span><strong>{gold.toLocaleString()}</strong></div><div className="gem-pill"><span>◆</span><strong>{gems.toLocaleString()}</strong></div></div>;
@@ -118,7 +133,7 @@ function GameModal({ eyebrow, title, children, actions, onClose, tone = 'default
     }
   };
 
-  return (
+  return <Localized>{(
     <div className="game-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <section className={`game-modal game-modal-${tone}`} role="dialog" aria-modal="true" aria-labelledby={titleId} ref={panelRef} onKeyDown={trapFocus}>
         <button className="game-modal-close" onClick={onClose} aria-label="대화상자 닫기">×</button>
@@ -128,7 +143,7 @@ function GameModal({ eyebrow, title, children, actions, onClose, tone = 'default
         <footer className="game-modal-actions">{actions}</footer>
       </section>
     </div>
-  );
+  )}</Localized>;
 }
 
 function downloadSaveFile(serialized: string, slotId: SaveSlotId): void {
@@ -148,13 +163,13 @@ function downloadSaveFile(serialized: string, slotId: SaveSlotId): void {
 function ShellHeader({ title, onBack }: { title: string; onBack: () => void }) {
   const gold = useGameStore((state) => state.gold);
   const gems = useGameStore((state) => state.gems);
-  return (
+  return <Localized>{(
     <header className="shell-header">
       <button className="back-button" onClick={onBack} aria-label="뒤로 가기">‹</button>
       <div><span className="eyebrow">LAST BASTION</span><h1>{title}</h1></div>
-      <Wallet gold={gold} gems={gems} />
+      <div className="shell-header-actions"><LanguageToggle /><Wallet gold={gold} gems={gems} /></div>
     </header>
-  );
+  )}</Localized>;
 }
 
 function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
@@ -314,13 +329,13 @@ function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
 
   const importPreview = pendingImport ? saveSlotSummary(1, pendingImport.serialized) : null;
 
-  return (
+  return <Localized>{(
     <main className="menu-screen menu-screen-slots">
       <div className="menu-clouds" />
       <div className="menu-castle" aria-hidden="true">
         <span className="tower left" /><span className="keep" /><span className="tower right" />
       </div>
-      <nav className="menu-top"><span className="version">{GAME_VERSION_LABEL}</span></nav>
+      <nav className="menu-top"><span className="version">{GAME_VERSION_LABEL}</span><LanguageToggle /></nav>
       <section className="title-lockup">
         <span className="title-crest">♜</span>
         <p>THE LAST LINE STANDS</p>
@@ -336,7 +351,7 @@ function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
               {slot.corrupted ? <><h2>손상된 기록</h2><p>저장 데이터를 읽을 수 없습니다.</p></> : <>
                 <h2>{Math.min(slot.unlockedStage, stages.length)}장 원정</h2>
                 <dl><div><dt>클리어</dt><dd>{slot.clearedStages}/{stages.length}</dd></div><div><dt>전투</dt><dd>{slot.battles.toLocaleString()}회</dd></div><div><dt>금화</dt><dd>● {slot.gold.toLocaleString()}</dd></div></dl>
-                <small>{slot.updatedAt ? new Date(slot.updatedAt).toLocaleString('ko-KR') : '기존 자동 저장에서 이전됨'} · {slot.gameVersion ? `v${slot.gameVersion}` : 'LEGACY'}</small>
+                <small>{slot.updatedAt ? new Date(slot.updatedAt).toLocaleString(getCurrentLanguage() === 'ko' ? 'ko-KR' : 'en-US') : '기존 자동 저장에서 이전됨'} · {slot.gameVersion ? `v${slot.gameVersion}` : 'LEGACY'}</small>
               </>}
               <div className="save-slot-actions">
                 <button className="continue" disabled={slot.corrupted} onClick={() => continueGame(slot.id)}>이어하기</button>
@@ -389,7 +404,7 @@ function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
         <p>파일 형식, 비밀번호, SHA-256 체크섬 또는 AES-GCM 인증 정보를 확인해 주세요. 기존 평문 저장은 가져오기 호환만 지원합니다.</p>
       </GameModal>}
     </main>
-  );
+  )}</Localized>;
 }
 
 function Opening({ onComplete }: { onComplete: () => void }) {
@@ -414,7 +429,7 @@ function Opening({ onComplete }: { onComplete: () => void }) {
     return () => window.removeEventListener('keydown', handleKey);
   }, [onComplete]);
 
-  return (
+  return <Localized>{(
     <main className={`opening-screen opening-${scene.art}`} style={{ '--opening-duration': `${OPENING_SCENE_DURATION_MS}ms` } as CSSProperties}>
       <img className="opening-visual" src={scene.image} style={{ objectPosition: scene.imagePosition }} alt="" aria-hidden="true" key={scene.image} />
       <div className="opening-atmosphere" aria-hidden="true" />
@@ -432,11 +447,11 @@ function Opening({ onComplete }: { onComplete: () => void }) {
         <small>자동 재생 · {sceneIndex + 1} / {openingScenes.length}</small>
       </section>
     </main>
-  );
+  )}</Localized>;
 }
 
 function Credits({ onBack }: { onBack: () => void }) {
-  return <main className="panel-screen credits-screen">
+  return <Localized><main className="panel-screen credits-screen">
     <ShellHeader title="크레딧" onBack={onBack} />
     <section className="credits-card">
       <span className="title-crest">♜</span>
@@ -446,7 +461,7 @@ function Credits({ onBack }: { onBack: () => void }) {
       <dl><div><dt>GAME DESIGN & DEVELOPMENT</dt><dd>Player × AI Collaborative Project</dd></div><div><dt>ENGINE</dt><dd>React · Phaser · Vite</dd></div><div><dt>FONT</dt><dd>Pretendard Variable · Runtime CDN</dd></div><div><dt>AUDIO</dt><dd>Procedural Web Audio Soundtrack</dd></div></dl>
       <button className="primary-button" onClick={onBack}>타이틀로 돌아가기</button>
     </section>
-  </main>;
+  </main></Localized>;
 }
 
 const mapHeightPattern = [75, 57, 73, 45, 62, 28, 50, 72, 46, 65, 40, 23];
@@ -501,7 +516,7 @@ function MapCommandCenter({ onNavigate }: { onNavigate: (screen: Screen) => void
     if (!nextMuted) void musicEngine.unlock();
   };
 
-  return <>
+  return <Localized><>
     <section className="map-command-center" aria-label="원정대 관리">
       <header><span>EXPEDITION</span><strong>왕국 운영</strong></header>
       <button onClick={() => onNavigate('armory')}><i>♢</i><span>병영과 강화<small>ARMORY · {allTroopOrder.length}</small></span></button>
@@ -516,7 +531,7 @@ function MapCommandCenter({ onNavigate }: { onNavigate: (screen: Screen) => void
       <button onClick={toggleMusic}><i>{muted ? '♩̸' : '♪'}</i><span>게임 사운드<small>{muted ? 'OFF' : 'ON'}</small></span></button>
     </section>
     {notice && <div className="toast" role="status">{notice}</div>}
-  </>;
+  </></Localized>;
 }
 
 function MysteryMerchant({ onBack }: { onBack: () => void }) {
@@ -546,7 +561,7 @@ function MysteryMerchant({ onBack }: { onBack: () => void }) {
     window.setTimeout(() => setNotice(''), 1_800);
   };
 
-  return (
+  return <Localized>{(
     <main className="panel-screen merchant-screen">
       <ShellHeader title="수수께끼 상인" onBack={onBack} />
       <section className="merchant-intro">
@@ -595,7 +610,7 @@ function MysteryMerchant({ onBack }: { onBack: () => void }) {
       </section>
       {notice && <div className="toast" role="status">{notice}</div>}
     </main>
-  );
+  )}</Localized>;
 }
 
 export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => void; onSelect: (id: number) => void; onNavigate: (screen: Screen) => void }) {
@@ -678,7 +693,7 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
     setSelectedId(id);
   };
 
-  return (
+  return <Localized>{(
     <main className="panel-screen campaign-map-screen">
       <ShellHeader title="왕국 지도" onBack={onBack} />
       <div className="map-shell-layout">
@@ -774,7 +789,7 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
         </div>
       </div>
     </main>
-  );
+  )}</Localized>;
 }
 
 function Armory({ onBack }: { onBack: () => void }) {
@@ -818,7 +833,7 @@ function Armory({ onBack }: { onBack: () => void }) {
     window.setTimeout(() => setNotice(''), 1800);
   };
 
-  return (
+  return <Localized>{(
     <main className="panel-screen armory-screen">
       <ShellHeader title="왕립 병영" onBack={onBack} />
       <section className="armory-intro">
@@ -911,7 +926,7 @@ function Armory({ onBack }: { onBack: () => void }) {
         <p>금화, 보석, 장비, 숙련도, 영웅, 성채 기술과 스테이지 진행이 모두 처음 상태로 돌아갑니다. 이 작업은 되돌릴 수 없습니다.</p>
       </GameModal>}
     </main>
-  );
+  )}</Localized>;
 }
 
 function HeroHall({ onBack }: { onBack: () => void }) {
@@ -943,7 +958,7 @@ function HeroHall({ onBack }: { onBack: () => void }) {
     notify(upgradeHero(id, slot) ? `${heroDefinitions[id].name}의 ${slotName} 장비가 강화되었습니다.` : '금화가 부족하거나 최고 장비 단계입니다.');
   };
 
-  return (
+  return <Localized>{(
     <main className="panel-screen hero-hall-screen">
       <ShellHeader title="영웅의 전당" onBack={onBack} />
       <section className="armory-intro">
@@ -1014,7 +1029,7 @@ function HeroHall({ onBack }: { onBack: () => void }) {
       </div>
       {notice && <div className="toast" role="status">{notice}</div>}
     </main>
-  );
+  )}</Localized>;
 }
 
 function HeroTrainingGround({ onBack }: { onBack: () => void }) {
@@ -1032,7 +1047,7 @@ function HeroTrainingGround({ onBack }: { onBack: () => void }) {
     window.setTimeout(() => setNotice(''), 1_800);
   };
 
-  return (
+  return <Localized>{(
     <main className="panel-screen hero-training-screen">
       <ShellHeader title="영웅 훈련소" onBack={onBack} />
       <section className="armory-intro">
@@ -1073,7 +1088,7 @@ function HeroTrainingGround({ onBack }: { onBack: () => void }) {
       </section>
       {notice && <div className="toast" role="status">{notice}</div>}
     </main>
-  );
+  )}</Localized>;
 }
 
 function TriumphMonument({ onBack }: { onBack: () => void }) {
@@ -1091,7 +1106,7 @@ function TriumphMonument({ onBack }: { onBack: () => void }) {
     window.setTimeout(() => setNotice(''), 1_800);
   };
 
-  return (
+  return <Localized>{(
     <main className="panel-screen monument-screen">
       <ShellHeader title={TRIUMPH_MONUMENT.name} onBack={onBack} />
       <section className="monument-panel">
@@ -1115,7 +1130,7 @@ function TriumphMonument({ onBack }: { onBack: () => void }) {
       </section>
       {notice && <div className="toast" role="status">{notice}</div>}
     </main>
-  );
+  )}</Localized>;
 }
 
 interface FortressTechNodeProps {
@@ -1137,7 +1152,7 @@ function FortressTechNode({ id, levels, fortressTier, gold, onBuy }: FortressTec
   const grandfathered = level > 0 && prerequisite && !prerequisite.met;
   const children = castleTechChildren(id);
 
-  return (
+  return <Localized>{(
     <div className="tech-tree-node" role="treeitem" aria-label={`${definition.name}, ${level}/${definition.maxLevel}단계`} aria-expanded={children.length ? true : undefined}>
       <article className={`tech-node ${level ? 'researched' : ''} ${available ? '' : 'unavailable'}`}>
         <span className="tech-icon">{definition.icon}</span>
@@ -1165,7 +1180,7 @@ function FortressTechNode({ id, levels, fortressTier, gold, onBuy }: FortressTec
         </div>
       )}
     </div>
-  );
+  )}</Localized>;
 }
 
 function DraggableTechTreeViewport({ label, children }: { label: string; children: ReactNode }) {
@@ -1217,7 +1232,7 @@ function DraggableTechTreeViewport({ label, children }: { label: string; childre
     event.stopPropagation();
   };
 
-  return (
+  return <Localized>{(
     <div
       className={`tech-tree-viewport ${dragging ? 'dragging' : ''}`}
       aria-label={`${label} · 좌우로 드래그하여 이동`}
@@ -1230,7 +1245,7 @@ function DraggableTechTreeViewport({ label, children }: { label: string; childre
     >
       {children}
     </div>
-  );
+  )}</Localized>;
 }
 
 export function FortressWorkshop({ onBack }: { onBack: () => void }) {
@@ -1262,7 +1277,7 @@ export function FortressWorkshop({ onBack }: { onBack: () => void }) {
     window.setTimeout(() => setNotice(''), 1800);
   };
 
-  return (
+  return <Localized>{(
     <main className="panel-screen fortress-screen">
       <ShellHeader title="성채 기술" onBack={onBack} />
       <section className="armory-intro">
@@ -1315,7 +1330,7 @@ export function FortressWorkshop({ onBack }: { onBack: () => void }) {
       </div>
       {notice && <div className="toast" role="status">{notice}</div>}
     </main>
-  );
+  )}</Localized>;
 }
 
 function Achievements({ onBack }: { onBack: () => void }) {
@@ -1359,7 +1374,7 @@ function Achievements({ onBack }: { onBack: () => void }) {
     );
   };
 
-  return (
+  return <Localized>{(
     <main className="panel-screen achievements-screen">
       <ShellHeader title="업적 기록" onBack={onBack} />
       <section className="armory-intro">
@@ -1385,7 +1400,7 @@ function Achievements({ onBack }: { onBack: () => void }) {
       </div>
       {notice && <div className="toast" role="status">{notice}</div>}
     </main>
-  );
+  )}</Localized>;
 }
 
 function WarCodex({ onBack }: { onBack: () => void }) {
@@ -1398,7 +1413,7 @@ function WarCodex({ onBack }: { onBack: () => void }) {
   const completion = codexEntryCount(unlockedUnits, unlockedHeroes, discoveredEnemies);
   const percent = Math.round(completion / CODEX_TOTAL * 100);
 
-  return (
+  return <Localized>{(
     <main className="panel-screen codex-screen">
       <ShellHeader title="전쟁 사전" onBack={onBack} />
       <section className="codex-heading">
@@ -1440,11 +1455,11 @@ function WarCodex({ onBack }: { onBack: () => void }) {
       </section>}
       {completion < CODEX_TOTAL && <p className="codex-missing">아직 기록되지 않은 항목 {CODEX_TOTAL - completion}개 · 지도 탐험과 영웅 영입을 계속하세요.</p>}
     </main>
-  );
+  )}</Localized>;
 }
 
 function ResultScreen({ result, onMenu, onRetry }: { result: BattleResult; onMenu: () => void; onRetry: () => void }) {
-  return (
+  return <Localized>{(
     <main className={`result-screen ${result.victory ? 'victory' : 'defeat'}`}>
       <div className="result-rays" />
       <section className="result-card">
@@ -1485,7 +1500,7 @@ function ResultScreen({ result, onMenu, onRetry }: { result: BattleResult; onMen
         </div>
       </section>
     </main>
-  );
+  )}</Localized>;
 }
 
 export default function App() {

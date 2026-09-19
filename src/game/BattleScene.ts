@@ -6,6 +6,7 @@ import { triumphMonumentBonuses } from '../data/endgame';
 import { fortressArtDefinitions, fortressArtLayout } from '../data/fortressArt';
 import { heroAwakeningAuras, heroSkillPower } from '../data/mastery';
 import { allTroopOrder, bossCombatTuning, bossDefinition, heroDefinitions, troopDefinitions } from '../data/units';
+import { t } from '../shared/i18n/i18n';
 import type { BattleHudState, BattleSpeed, CastleBattleStats, CastleTechId, CodexEnemyId, EnemyId, EquipmentLevels, HeroDefinition, HeroId, Side, StageDefinition, UnitDefinition, UnitId } from '../types/game';
 import { BattleEvent, battleEvents } from './EventBus';
 import { attackMotionDurationMs, attackMotionStyle, createAttackMotionPose, projectileVisualStyle, sampleAttackMotion, type AttackMotionPose, type AttackMotionStyle, type ProjectileVisualStyle } from './combatMotion';
@@ -444,7 +445,7 @@ export class BattleScene extends Phaser.Scene {
     const finial = this.add.circle(0, -66, 5, 0xf3dc91).setStrokeStyle(2, 0xffffff, 0.45);
     const pennant = this.add.triangle(17, -50, 0, 0, 36, 8, 0, 20, 0x4aa8bf, 0.96)
       .setStrokeStyle(2, 0xc7f5ff, 0.75);
-    const label = this.add.text(0, 34, '집결', {
+    const label = this.add.text(0, 34, t('집결'), {
       fontFamily: 'Pretendard Variable, system-ui, sans-serif', fontSize: '12px', color: '#d9fbff',
       backgroundColor: '#10232dcc', padding: { x: 7, y: 3 },
     }).setOrigin(0.5, 0);
@@ -499,7 +500,7 @@ export class BattleScene extends Phaser.Scene {
     };
     this.units.push(unit);
     if (boss) {
-      this.add.text(x, container.y + healthBarY * baseScale - 24, '경계 중', {
+      this.add.text(x, container.y + healthBarY * baseScale - 24, t('경계 중'), {
         fontFamily: 'Pretendard Variable, system-ui, sans-serif', fontSize: '14px', color: '#d7c2b5', backgroundColor: '#171521aa', padding: { x: 10, y: 5 },
       }).setOrigin(0.5).setName('boss-status');
     }
@@ -1344,7 +1345,7 @@ export class BattleScene extends Phaser.Scene {
     };
     musicEngine.playEffect('skill');
     this.cameras.main.flash(240, 100, 205, 235, false);
-    const banner = this.add.text(PLAYER_CASTLE_X + 85, GROUND_Y - 135, `${battleMobilizationTuning.name} ${this.mobilizationUses}단계`, {
+    const banner = this.add.text(PLAYER_CASTLE_X + 85, GROUND_Y - 135, t('{name} {level}단계', { name: t(battleMobilizationTuning.name), level: this.mobilizationUses }), {
       fontFamily: 'Pretendard Variable, system-ui, sans-serif', fontSize: '22px', color: '#bcefff', fontStyle: 'bold',
       stroke: '#11232e', strokeThickness: 5,
     }).setOrigin(0.5).setDepth(900);
@@ -1384,7 +1385,7 @@ export class BattleScene extends Phaser.Scene {
     const status = this.children.getByName('boss-status');
     if (status) status.destroy();
     this.cameras.main.shake(420, 0.008);
-    const text = this.add.text(WORLD_WIDTH / 2, 185, `${this.stageDefinition.bossName ?? '마수'}가 달려듭니다`, {
+    const text = this.add.text(WORLD_WIDTH / 2, 185, t('{name}가 달려듭니다', { name: t(this.stageDefinition.bossName ?? '마수') }), {
       fontFamily: 'Pretendard Variable, system-ui, sans-serif', fontSize: '32px', color: '#ffd0b3', fontStyle: 'bold',
       stroke: '#3b1518', strokeThickness: 7,
     }).setOrigin(0.5).setDepth(800).setAlpha(0);
@@ -1402,7 +1403,7 @@ export class BattleScene extends Phaser.Scene {
       if ('setTint' in child && typeof child.setTint === 'function') child.setTint(0xff755c);
     });
     this.cameras.main.flash(350, 145, 35, 30);
-    const text = this.add.text(WORLD_WIDTH / 2, 210, '분노', {
+    const text = this.add.text(WORLD_WIDTH / 2, 210, t('분노'), {
       fontFamily: 'Pretendard Variable, system-ui, sans-serif', fontSize: '38px', color: '#ff8f6b', fontStyle: 'bold', stroke: '#311014', strokeThickness: 8,
     }).setOrigin(0.5).setDepth(800);
     this.tweens.add({ targets: text, alpha: 0, scale: 1.3, duration: 1200, onComplete: () => text.destroy() });
@@ -1754,12 +1755,12 @@ export class BattleScene extends Phaser.Scene {
       command: Math.floor(this.command), maxCommand: this.castleStats.maxCommand,
       playerCastleHp: Math.ceil(this.playerCastleHp), playerCastleMaxHp: this.playerCastleMaxHp,
       enemyHp: Math.ceil(this.enemyHp), enemyMaxHp: this.enemyMaxHp,
-      enemyName: this.stageDefinition.challenge ? (this.stageDefinition.bossName ?? '마수') : this.stageDefinition.boss ? '마수 수비 성채' : '적 성채',
+      enemyName: t(this.stageDefinition.challenge ? (this.stageDefinition.bossName ?? '마수') : this.stageDefinition.boss ? '마수 수비 성채' : '적 성채'),
       heroHp: this.hero?.alive ? Math.ceil(this.hero.hp) : 0, heroMaxHp: this.heroDefinition.maxHp,
       heroRespawnMs: Math.max(0, this.heroRespawn), heroSkillCooldownMs: this.heroSkillCooldown,
       heroSkillMaxCooldownMs: this.heroDefinition.skillCooldownMs,
-      heroName: `${this.heroDefinition.name} · ${this.heroDefinition.title}`,
-      heroSkillName: this.heroDefinition.skillName,
+      heroName: `${t(this.heroDefinition.name)} · ${t(this.heroDefinition.title)}`,
+      heroSkillName: t(this.heroDefinition.skillName),
       heroIcon: this.heroDefinition.icon,
       castleSkillCooldownMs: this.castleSkillCooldown,
       castleSkillMaxCooldownMs: this.castleStats.bombardCooldownMs,

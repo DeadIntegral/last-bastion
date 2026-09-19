@@ -9,6 +9,7 @@ import { PhaserGame } from '../game/PhaserGame';
 import { useGameStore } from '../store/useGameStore';
 import { musicEngine } from '../audio/music';
 import type { BattleHudState, BattleResult, UnitId } from '../types/game';
+import { Localized } from '../shared/i18n/Localized';
 import { CharacterSprite } from './CharacterSprite';
 
 interface BattleViewProps {
@@ -101,7 +102,7 @@ export function BattleView({ stageId, onResult }: BattleViewProps) {
   const canMobilize = hud.command >= nextMobilizationCost && !mobilizationComplete && !hud.paused;
   const rallyScope = ['1~4성 병사', hud.rallyHeroControl ? '영웅' : '', hud.rallyTranscendentControl ? '5성 초월 병종' : ''].filter(Boolean).join(' · ');
 
-  return (
+  return <Localized>{(
     <main className="battle-shell">
       <PhaserGame
         stageId={stageId}
@@ -247,5 +248,5 @@ export function BattleView({ stageId, onResult }: BattleViewProps) {
         영웅 스킬 재사용 대기 {Math.ceil(hud.heroSkillCooldownMs / 1000)}초
       </div>
     </main>
-  );
+  )}</Localized>;
 }

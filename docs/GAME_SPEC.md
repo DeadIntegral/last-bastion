@@ -311,6 +311,7 @@ Status: **Implemented**.
 
 Status: **Implemented** for menu, daily attendance, dual-currency wallet, mysterious merchant, permanent battle-speed and formation-slot entitlements, kingdom map, recruitment and formation armory, hero hall, fortress tree, achievements, war codex, results, settings, and local saving.
 
+- Korean/English localization infrastructure is **Implemented** across the title/archive, opening, map hub, progression screens, battle HUD, Phaser-authored battle labels, results, canonical combatant names, campaign/challenge names, achievements, and accessibility labels. Long-form codex lore and newly added copy without a resource entry have **Partial** English coverage and visibly fall back to Korean instead of becoming blank. On the first visit, `ko-*` browser locales select Korean and all other locales select English. `KO / EN` controls appear on the title and in-game shell header; the global `last-bastion-language` localStorage preference is intentionally independent from all three campaign slots, portable saves, and save-schema migration. Switching language updates `<html lang>`, the document title, and its description. English resources are dynamically imported.
 - The title screen is a three-slot campaign archive rather than separate Continue/New Game/Save Management actions. Each occupied slot shows chapter, clears, battles, Gold, last write time, game version, and Continue/Export/Delete actions. Each empty slot is itself a New Game action. Global Import and Credits remain below the slots.
 - New Game plays an approximately 21-second, four-scene illustrated counteroffensive cinematic after reset. Its project-owned 16:9 backgrounds show the fallen continent, refugees reaching the Last Bastion, the restored kingdom banner, and the march toward the Demon King's citadel. Each 5.2-second scene automatically advances with synchronized copy fades, a slow CSS camera push and light drift, and an animated progress segment; the final scene enters the map without requiring an advance action. The visible skip action or Escape ends it immediately. Continue and a successful Import go directly to the kingdom map so a saved player is never forced through the opening again.
 - Continue activates and hydrates the selected browser-local slot before opening the kingdom map. New Game activates only the selected empty slot, writes defaults, and starts the opening. Deleting a slot uses the shared destructive-action modal, never affects another slot, and clears the active marker when necessary. Credits opens a dedicated project-credit screen.
@@ -357,6 +358,7 @@ Status: **Implemented** for menu, daily attendance, dual-currency wallet, myster
 - Pretendard Variable is loaded at runtime from the official Pretendard jsDelivr dynamic-subset stylesheet (`v1.3.9`). It is not installed as a package or bundled into the repository.
 - Cinzel remains the display face for selected English labels and numerals.
 - The interface falls back to Apple SD Gothic Neo and sans-serif if the runtime font cannot load.
+- The language control is a compact two-button segmented control. The title places it in the top navigation; progression screens place it beside the wallet without obscuring the centered screen title. React screen roots pass through `Localized`, and Phaser-created labels call the same `t` function directly, so both rendering owners share one language preference without coupling it to progression state.
 - Dense supporting labels use a practical 9–11 px range, while descriptive copy is generally 11–13 px or larger. Map details, mission rewards, equipment, hero traits, fortress research, achievements, codex entries, battle HUD, and result summaries receive explicit readability sizing on desktop and mobile rather than relying on sub-9 px text.
 
 ### Music and sound
@@ -379,6 +381,7 @@ Status: **Implemented** for menu, daily attendance, dual-currency wallet, myster
 - Language: TypeScript 7.0.2; TypeScript 8 is not published as of this date
 - Lint: Oxlint 1.82; ESLint is intentionally excluded
 - Test: Vitest 5 with jsdom
+- Localization: project-local Korean-source-key translator with dynamically imported `ko`/`en` message modules and a small Zustand notification store; no third-party i18n runtime
 
 Production chunks:
 
@@ -398,6 +401,9 @@ Important paths:
 - `src/game/controls.ts`: pure keyboard-control mappings
 - `src/game/combatMotion.ts`: pure attack-style selection, durations, and allocation-free localized pose sampling
 - `src/game/rules.ts`: pure calculations
+- `src/shared/i18n/i18n.ts`: language detection, global preference, message loading, interpolation, patterned dynamic-copy translation, and document metadata synchronization
+- `src/shared/i18n/Localized.tsx`: recursive React text and accessible-string translation boundary
+- `src/shared/i18n/en/messages.ts`: English resource keyed by canonical Korean source copy
 - `src/game/difficulty.ts`: pure unit-threat and campaign-curve estimator shared by the map's five-tier combat evaluation and the separate balance audit
 - `src/data/units.ts`: canonical faction-neutral troop definitions plus hero and boss definitions
 - `src/data/characterArt.ts`: canonical troop/hero atlas sheet/frame mapping and Phaser frame dimensions
@@ -460,6 +466,7 @@ Regression tests follow a minimum-sufficient strategy: protect formulas, combat 
 
 ## 17. Changelog
 
+- 2026-09-19: Added Korean/English localization modeled after the sibling Bayes and Blades project: browser-language detection, global KO/EN persistence outside save slots, lazy English resources, React-tree and Phaser-text translation, localized document metadata, Korean fallback for missing keys, compact title/header controls, and focused language tests.
 - 2026-09-19: Enlarged every beast-only challenge boss to 1.5× its ordinary battlefield presentation, preserved additional phase-two growth and 5-star art stature, and moved boss health/status UI above the enlarged art without changing combat geometry or difficulty.
 - 2026-09-18: Expanded beast-only challenges from five to seven and distributed them across stages 6/12/18/24/27/30/30; added challenge-only Direwolf and Rune Golem recruits so intermediate campaign milestones now grant 2–4-star options while only the two finale rifts grant 5-star transcendents.
 - 2026-09-18: Implemented faction-neutral guard protection, deterministic pierce interception, directional rear-wave attenuation, pooled guard feedback, cluster-aware telegraphed ground-burst magic, armory/codex disclosure, and difficulty valuation; converted four ground casters plus Archmage to the new patterns and raised the stage-30 campaign beast HP modifier to preserve the audited finale step.
