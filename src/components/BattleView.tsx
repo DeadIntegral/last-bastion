@@ -11,10 +11,12 @@ import { musicEngine } from '../audio/music';
 import type { BattleHudState, BattleResult, UnitId } from '../types/game';
 import { Localized } from '../shared/i18n/Localized';
 import { CharacterSprite } from './CharacterSprite';
+import { GameModal } from './GameModal';
 
 interface BattleViewProps {
   stageId: number;
   onResult: (result: BattleResult) => void;
+  onExit: () => void;
 }
 
 const initialHud: BattleHudState = {
@@ -40,7 +42,7 @@ function PercentBar({ value, max, tone }: { value: number; max: number; tone: 'b
   );
 }
 
-export function BattleView({ stageId, onResult }: BattleViewProps) {
+export function BattleView({ stageId, onResult, onExit }: BattleViewProps) {
   const equipmentLevels = useGameStore((state) => state.equipmentLevels);
   const equippedUnits = useGameStore((state) => state.equippedUnits);
   const unitMasteryXp = useGameStore((state) => state.unitMasteryXp);
@@ -61,6 +63,7 @@ export function BattleView({ stageId, onResult }: BattleViewProps) {
     if (!nextMuted) void musicEngine.unlock();
   };
   const [hud, setHud] = useState(initialHud);
+  const [exitConfirmationOpen, setExitConfirmationOpen] = useState(false);
   const stage = getStage(stageId);
   const battleCastleStats = castleBattleStats(castleTechLevels);
 
@@ -81,6 +84,13 @@ export function BattleView({ stageId, onResult }: BattleViewProps) {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.repeat) return;
+      if (exitConfirmationOpen) {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          setExitConfirmationOpen(false);
+        }
+        return;
+      }
       const index = Number(event.key) - 1;
       if (index >= 0 && index < equippedUnits.length) battleEvents.emit(BattleEvent.SPAWN, equippedUnits[index]);
       if (isHeroSkillKey(event.code)) {
@@ -93,10 +103,13 @@ export function BattleView({ stageId, onResult }: BattleViewProps) {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [equippedUnits]);
+  }, [equippedUnits, exitConfirmationOpen]);
 
   const spawn = (id: UnitId) => battleEvents.emit(BattleEvent.SPAWN, id);
-  const pause = () => battleEvents.emit(BattleEvent.PAUSE);
+  const pause = () => {
+    setExitConfirmationOpen(false);
+    battleEvents.emit(BattleEvent.PAUSE);
+  };
   const mobilizationComplete = hud.mobilizationUses >= hud.mobilizationMaxUses;
   const nextMobilizationCost = mobilizationCommandCost(Math.min(hud.mobilizationUses, hud.mobilizationMaxUses - 1));
   const canMobilize = hud.command >= nextMobilizationCost && !mobilizationComplete && !hud.paused;
@@ -240,9 +253,21 @@ export function BattleView({ stageId, onResult }: BattleViewProps) {
       {hud.paused && (
         <div className="pause-overlay">
           <span>전투 일시정지</span>
-          <button className="primary-button" onClick={pause}>계속하기</button>
+          <div className="pause-actions">
+            <button className="primary-button" onClick={pause}>계속하기</button>
+            <button className="battle-exit-button" onClick={() => setExitConfirmationOpen(true)}>전투 이탈</button>
+          </div>
         </div>
       )}
+      {exitConfirmationOpen && <GameModal
+        eyebrow="LEAVE BATTLE"
+        title="전투에서 이탈할까요?"
+        tone="danger"
+        onClose={() => setExitConfirmationOpen(false)}
+        actions={<><button className="modal-button secondary" data-autofocus onClick={() => setExitConfirmationOpen(false)}>전투로 돌아가기</button><button className="modal-button danger" onClick={onExit}>이탈하고 지도로</button></>}
+      >
+        <p>현재 전투는 전적, 업적, 조우 기록, 보상과 숙련 경험치에 반영되지 않습니다.</p>
+      </GameModal>}
       {hud.rallyTargeting && <div className="rally-target-prompt" role="status"><b>⚑ 집결 위치 지정</b><span>전장 위 원하는 위치를 클릭하세요 · R 또는 Esc로 취소</span></div>}
       <div className="sr-only" aria-live="polite">
         영웅 스킬 재사용 대기 {Math.ceil(hud.heroSkillCooldownMs / 1000)}초

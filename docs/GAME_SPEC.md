@@ -292,6 +292,7 @@ Status: **Implemented**.
 - `왕국의 기록관` unlocks at 30 of 59 codex entries (50%) and rewards 180 gold plus 12 Royal Gems.
 - `살아 있는 연대기` unlocks at 59 of 59 codex entries (100%) and rewards 600 gold plus 40 Royal Gems.
 - Achievements unlock automatically when a recorded battle reaches their target.
+- Leaving from the pause menu is not a recorded battle. It changes no career statistic or win streak, reveals no codex encounter, unlocks no achievement, and grants no reward or mastery XP.
 - Newly unlocked achievements appear in the battle result.
 - Gold and Royal Gem rewards are manually claimed together from the achievement screen and cannot be claimed twice.
 
@@ -327,6 +328,7 @@ Status: **Implemented** for menu, daily attendance, dual-currency wallet, myster
 - The password is never persisted or recoverable. Import caps files at 2 MB and accepts KDF iteration counts only from 100,000 through 1,000,000 before attempting work. After decryption, the existing untrusted-import boundary rejects malformed or unrelated JSON, whitelists fields, clamps resources and upgrade ranks, removes unknown IDs, repairs formations and fortress tiers, and cannot replace store actions. Import selects one of the three target slots and requires explicit confirmation before overwriting an occupied slot.
 - Browser-local automatic slot snapshots remain origin-scoped plaintext. A bundled or locally stored automatic key would be recoverable by the same client and would not provide meaningful secrecy; password encryption is therefore reserved for portable files crossing the browser boundary.
 - All blocking confirmations and errors use the shared React game modal instead of browser `alert`, `confirm`, or `prompt`. The modal traps Tab focus, initially focuses the safe action for destructive choices, restores prior focus on close, supports Escape, and adapts to phone-width screens.
+- The paused battle overlay offers Resume and `전투 이탈`. Exit opens the shared destructive confirmation modal and, when confirmed, unmounts the battle and returns directly to the continent map through a dedicated non-result callback. It never constructs a loss result, opens the defeat report, records the encounter, or mutates progression.
 - The hero hall provides lore, passive, skill, unlock, select, and upgrade actions.
 - New saves separately store gold, Royal Gems, the last daily claim date, battle-speed entitlement and preference, the sequential formation-slot purchase count, the Victory Monument level, per-slot equipment levels for all shared troops, acquired troops, the one-to-four-through-seven troop battle formation, cleared stages, mastery XP, recruited heroes, fortress research, career statistics, encountered troops and boss, unlocked achievements, and claimed rewards.
 - Fortress tier persists independently from research ranks. Older profiles preserve all existing research and already-recruited troops; existing ranks count toward promotion, already-started nodes remain grandfathered as unlocked, and researched high-tier nodes repair the saved tier to their minimum required tier.
@@ -341,7 +343,7 @@ Status: **Implemented** for menu, daily attendance, dual-currency wallet, myster
 - `Space`: compatibility shortcut for the hero active skill.
 - Click/tap the castle ability: fortress bombardment.
 - When the next mobilization cost is available, click/tap `동원` or press `E`: spend 300, then 400, then 500 Command to add 100 maximum Command each time, up to three uses in the current battle. Expedition research may add regeneration to each activation.
-- `P` or `Escape`: pause/resume.
+- `P` or `Escape`: pause/resume. While paused, `전투 이탈` opens a confirmation; confirming returns to the map without recording the session or granting battle-derived progress.
 - After purchasing the stage-6, 200-Gem battle-speed license, click/tap the battle speed control to toggle `1×` and `1.5×`. The selected speed persists between battles.
 
 ## 13. Presentation and typography
@@ -396,6 +398,7 @@ Important paths:
 - `src/App.tsx`: title, kingdom-map hub, navigation, credits, and persistent progression screens
 - `src/components/BattleView.tsx`: React battle HUD and input forwarding
 - `src/components/CharacterSprite.tsx`: shared React atlas-frame renderer
+- `src/components/GameModal.tsx`: shared accessible confirmation/error modal used by save management and battle exit
 - `src/game/BattleScene.ts`: Phaser simulation and visuals
 - `src/game/EventBus.ts`: React–Phaser event boundary
 - `src/game/controls.ts`: pure keyboard-control mappings
@@ -466,6 +469,7 @@ Regression tests follow a minimum-sufficient strategy: protect formulas, combat 
 
 ## 17. Changelog
 
+- 2026-09-19: Added confirmed battle exit to the pause menu, returning directly to the continent map through a non-result path so abandoned sessions do not count as battles or defeats and grant no statistics, encounters, rewards, achievements, or mastery XP; moved the reusable accessible game modal into a shared component and added focused regression coverage.
 - 2026-09-19: Added Korean/English localization modeled after the sibling Bayes and Blades project: browser-language detection, global KO/EN persistence outside save slots, lazy English resources, React-tree and Phaser-text translation, localized document metadata, Korean fallback for missing keys, compact title/header controls, and focused language tests.
 - 2026-09-19: Enlarged every beast-only challenge boss to 1.5× its ordinary battlefield presentation, preserved additional phase-two growth and 5-star art stature, and moved boss health/status UI above the enlarged art without changing combat geometry or difficulty.
 - 2026-09-18: Expanded beast-only challenges from five to seven and distributed them across stages 6/12/18/24/27/30/30; added challenge-only Direwolf and Rune Golem recruits so intermediate campaign milestones now grant 2–4-star options while only the two finale rifts grant 5-star transcendents.

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useId, useRef, useState, type ChangeEvent, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { allTroopOrder, bossDefinition, heroDefinitions, heroOrder, troopDefinitions, unitFamilyById, unitFamilyLabels, unitGradeLabels, unitGradeStars } from './data/units';
 import { bossCodex, CODEX_TOTAL, codexEntryCount, heroCodex, troopCodex } from './data/codex';
 import { achievementById, achievementGroups, achievementProgress, achievements, featuredAchievement } from './data/achievements';
@@ -18,6 +18,7 @@ import { musicEngine, type MusicScene } from './audio/music';
 import { ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL, STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS, attackPatternLabel, attackRangeLabel, attackTimingLabel, equipmentCost, formatTime, guardProtectionLabel, hasEquipmentCapstone, heroAwakeningRank, heroMasteryLevelFromXp, heroRespawnReductionMs, masteryLevelFromXp, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, upgradedStats, usesStatEquipmentCapstone } from './game/rules';
 import { useGameStore } from './store/useGameStore';
 import { CharacterSprite } from './components/CharacterSprite';
+import { GameModal } from './components/GameModal';
 import { Localized } from './shared/i18n/Localized';
 import { changeLanguage, getCurrentLanguage, t, useTranslation, type Language } from './shared/i18n/i18n';
 import type { BattleResult, CastleTechId, EquipmentSlot, FortressTier, HeroId, Screen, UnitDefinition, UnitFamily, UnitId } from './types/game';
@@ -89,61 +90,6 @@ function GrowthStat({ current, base }: { current: number; base: number }) {
   const delta = Math.round((current - base) * 10) / 10;
   const deltaLabel = delta > 0 ? `+${delta}` : delta < 0 ? String(delta) : '+0';
   return <span className="growth-stat" title={`기본 ${base}`} aria-label={`현재 ${current}, 기본 대비 ${deltaLabel}`}><span>{current}</span><small>{deltaLabel}</small></span>;
-}
-
-function GameModal({ eyebrow, title, children, actions, onClose, tone = 'default' }: {
-  eyebrow: string;
-  title: string;
-  children: ReactNode;
-  actions: ReactNode;
-  onClose: () => void;
-  tone?: 'default' | 'danger';
-}) {
-  const titleId = useId();
-  const panelRef = useRef<HTMLElement>(null);
-  const closeRef = useRef(onClose);
-  closeRef.current = onClose;
-
-  useEffect(() => {
-    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const panel = panelRef.current;
-    (panel?.querySelector<HTMLElement>('[data-autofocus]') ?? panel?.querySelector<HTMLElement>('button:not(:disabled)'))?.focus();
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeRef.current();
-    };
-    document.addEventListener('keydown', closeOnEscape);
-    return () => {
-      document.removeEventListener('keydown', closeOnEscape);
-      previousFocus?.focus();
-    };
-  }, []);
-
-  const trapFocus = (event: ReactKeyboardEvent<HTMLElement>) => {
-    if (event.key !== 'Tab') return;
-    const focusable = [...event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), [href], input:not(:disabled), [tabindex]:not([tabindex="-1"])')];
-    if (!focusable.length) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
-  };
-
-  return <Localized>{(
-    <div className="game-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <section className={`game-modal game-modal-${tone}`} role="dialog" aria-modal="true" aria-labelledby={titleId} ref={panelRef} onKeyDown={trapFocus}>
-        <button className="game-modal-close" onClick={onClose} aria-label="대화상자 닫기">×</button>
-        <div className="game-modal-crest" aria-hidden="true"><span>♜</span></div>
-        <header><span className="eyebrow">{eyebrow}</span><h2 id={titleId}>{title}</h2></header>
-        <div className="game-modal-content">{children}</div>
-        <footer className="game-modal-actions">{actions}</footer>
-      </section>
-    </div>
-  )}</Localized>;
 }
 
 function downloadSaveFile(serialized: string, slotId: SaveSlotId): void {
@@ -1553,6 +1499,11 @@ export default function App() {
     setScreen('result');
   }, [addReward, completeChallenge, completeStage, recordBattle]);
 
+  const exitBattle = useCallback(() => {
+    setResult(null);
+    setScreen('stages');
+  }, []);
+
   if (screen === 'menu') return <MainMenu onNavigate={setScreen} />;
   if (screen === 'opening') return <Opening onComplete={() => setScreen('stages')} />;
   if (screen === 'credits') return <Credits onBack={() => setScreen('menu')} />;
@@ -1568,7 +1519,7 @@ export default function App() {
   if (screen === 'battle') {
     return (
       <Suspense fallback={<main className="loading-screen"><span>♜</span><p>전장을 준비하고 있습니다…</p></main>}>
-        <BattleView stageId={stageId} onResult={handleResult} />
+        <BattleView stageId={stageId} onResult={handleResult} onExit={exitBattle} />
       </Suspense>
     );
   }

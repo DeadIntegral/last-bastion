@@ -967,6 +967,9 @@ button:disabled { cursor: not-allowed; }
 .castle-skill-button:disabled { filter: grayscale(.8) brightness(.6); }
 .pause-overlay { position: absolute; z-index: 40; inset: 0; display: grid; place-content: center; gap: 24px; text-align: center; background: rgba(7,12,18,.68); backdrop-filter: blur(4px); }
 .pause-overlay span { font: 600 28px 'Cinzel','Pretendard Variable',sans-serif; }
+.pause-actions { display: grid; gap: 8px; }
+.battle-exit-button { min-width: 160px; padding: 11px 22px; border: 1px solid rgba(205,112,94,.68); background: rgba(83,35,34,.88); color: #f0bbb1; font-weight: 700; cursor: pointer; }
+.battle-exit-button:hover { border-color: #e58f7d; background: #713b36; color: #fff0eb; }
 .primary-button { min-width: 160px; padding: 13px 22px; border: 1px solid #d0ae61; background: #87682f; color: white; cursor: pointer; }
 
 /* Result */
