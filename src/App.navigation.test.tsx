@@ -27,6 +27,16 @@ describe('title and kingdom-map navigation', () => {
   });
 
   it('keeps the title focused and exposes progression from the map hub', () => {
+    const languageTrigger = host.querySelector<HTMLButtonElement>('.language-trigger')!;
+    expect(languageTrigger.getAttribute('aria-expanded')).toBe('false');
+    act(() => languageTrigger.click());
+    expect(host.querySelector('[role="listbox"]')).not.toBeNull();
+    expect(host.querySelectorAll('[role="option"]')).toHaveLength(3);
+    expect(document.activeElement?.getAttribute('aria-selected')).toBe('true');
+    act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+    expect(host.querySelector('[role="listbox"]')).toBeNull();
+    expect(document.activeElement).toBe(languageTrigger);
+
     const emptySlots = [...host.querySelectorAll<HTMLButtonElement>('.save-slot-card.empty')];
     expect(emptySlots).toHaveLength(3);
     expect(emptySlots.map((button) => button.textContent)).toEqual([

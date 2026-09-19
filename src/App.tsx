@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { allTroopOrder, bossDefinition, heroDefinitions, heroOrder, troopDefinitions, unitFamilyById, unitFamilyLabels, unitGradeLabels, unitGradeStars } from './data/units';
 import { bossCodex, CODEX_TOTAL, codexEntryCount, heroCodex, troopCodex } from './data/codex';
 import { achievementById, achievementGroups, achievementProgress, achievements, featuredAchievement } from './data/achievements';
@@ -71,13 +71,74 @@ const BattleView = lazy(() => import('./components/BattleView').then((module) =>
 
 function LanguageSelect() {
   const { lang } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const activeLanguage = supportedLanguages.find((language) => language.id === lang) ?? supportedLanguages[0];
+
+  useEffect(() => {
+    if (!open) return;
+    menuRef.current?.querySelector<HTMLButtonElement>('[aria-selected="true"]')?.focus();
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setOpen(false);
+        triggerRef.current?.focus();
+      } else if (event.key === 'Tab') setOpen(false);
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [open]);
+
+  const chooseLanguage = (language: Language) => {
+    setOpen(false);
+    triggerRef.current?.focus();
+    void changeLanguage(language);
+  };
+
+  const handleMenuKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    const options = [...(menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') ?? [])];
+    const currentIndex = options.indexOf(document.activeElement as HTMLButtonElement);
+    let nextIndex = currentIndex;
+    if (event.key === 'ArrowDown') nextIndex = (currentIndex + 1) % options.length;
+    else if (event.key === 'ArrowUp') nextIndex = (currentIndex - 1 + options.length) % options.length;
+    else if (event.key === 'Home') nextIndex = 0;
+    else if (event.key === 'End') nextIndex = options.length - 1;
+    else return;
+    event.preventDefault();
+    options[nextIndex]?.focus();
+  };
+
   return (
-    <label className="language-select">
-      <span aria-hidden="true">文</span>
-      <select aria-label={t('언어 선택')} value={lang} onChange={(event) => void changeLanguage(event.target.value as Language)}>
-        {supportedLanguages.map((language) => <option value={language.id} key={language.id}>{language.label}</option>)}
-      </select>
-    </label>
+    <div className={`language-picker ${open ? 'open' : ''}`} ref={rootRef}>
+      <button className="language-trigger" type="button" ref={triggerRef} aria-label={`${t('언어 선택')}: ${activeLanguage.label}`} aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((value) => !value)} onKeyDown={(event) => {
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+          event.preventDefault();
+          setOpen(true);
+        }
+      }}>
+        <span className="language-glyph" aria-hidden="true">文</span>
+        <span className="language-trigger-copy"><b>{activeLanguage.label}</b><small>{activeLanguage.id.toUpperCase()}</small></span>
+        <i aria-hidden="true">⌄</i>
+      </button>
+      {open && <div className="language-dropdown-menu" role="listbox" aria-label={t('언어 선택')} ref={menuRef} onKeyDown={handleMenuKeyDown}>
+        <span className="language-menu-caption">LANGUAGE</span>
+        {supportedLanguages.map((language) => (
+          <button type="button" role="option" aria-selected={lang === language.id} className={lang === language.id ? 'active' : ''} onClick={() => chooseLanguage(language.id)} key={language.id}>
+            <span>{language.id.toUpperCase()}</span><b>{language.label}</b><i aria-hidden="true">{lang === language.id ? '✓' : ''}</i>
+          </button>
+        ))}
+      </div>}
+    </div>
   );
 }
 
