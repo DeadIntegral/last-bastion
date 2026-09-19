@@ -15,7 +15,7 @@ import { localDateKey } from './game/daily';
 import { analyzeCampaignDifficulty, stageDifficultyPresentation } from './game/difficulty';
 import { decryptSave, encryptSave, isEncryptedSave, MAX_SAVE_FILE_BYTES } from './game/saveCrypto';
 import { activeSaveSlot, deleteSaveSlot, readSaveSlot, saveSlotSummaries, saveSlotSummary, setActiveSaveSlot, type SaveSlotId } from './game/saveSlots';
-import { screenTransitionDecision } from './game/screenTransitions';
+import { shouldUseScreenTransition } from './game/screenTransitions';
 import { musicEngine, type MusicScene } from './audio/music';
 import { ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL, STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS, attackPatternLabel, attackRangeLabel, attackTimingLabel, equipmentCost, formatTime, guardProtectionLabel, hasEquipmentCapstone, heroAwakeningRank, heroMasteryLevelFromXp, heroRespawnReductionMs, masteryLevelFromXp, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, upgradedStats, usesStatEquipmentCapstone } from './game/rules';
 import { useGameStore } from './store/useGameStore';
@@ -1476,7 +1476,6 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>('menu');
   const [stageId, setStageId] = useState(1);
   const [result, setResult] = useState<BattleResult | null>(null);
-  const screenTransitionSequence = useRef(0);
   const addReward = useGameStore((state) => state.addReward);
   const recordBattle = useGameStore((state) => state.recordBattle);
   const completeStage = useGameStore((state) => state.completeStage);
@@ -1508,26 +1507,16 @@ export default function App() {
   const navigate = useCallback((nextScreen: Screen) => {
     const startViewTransition = document.startViewTransition?.bind(document);
     const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-    const decision = screenTransitionDecision(screen, nextScreen, prefersReducedMotion);
+    const shouldTransition = shouldUseScreenTransition(screen, nextScreen, prefersReducedMotion);
 
-    if (!decision.enabled || !startViewTransition) {
-      screenTransitionSequence.current += 1;
-      delete document.documentElement.dataset.viewTransitionDirection;
+    if (!shouldTransition || !startViewTransition) {
       setScreen(nextScreen);
       return;
     }
 
-    const sequence = ++screenTransitionSequence.current;
-    document.documentElement.dataset.viewTransitionDirection = decision.direction;
-    const transition = startViewTransition(() => {
+    startViewTransition(() => {
       flushSync(() => setScreen(nextScreen));
     });
-    const cleanup = () => {
-      if (screenTransitionSequence.current === sequence) {
-        delete document.documentElement.dataset.viewTransitionDirection;
-      }
-    };
-    void transition.finished.then(cleanup, cleanup);
   }, [screen]);
 
   const startStage = (id: number) => {
