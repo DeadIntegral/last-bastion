@@ -1,6 +1,6 @@
 # Last Bastion — Living Game Specification
 
-Last updated: 2026-09-18
+Last updated: 2026-09-19
 
 This is the canonical specification for the game currently present in this repository. Future developers and AI agents must keep it synchronized with the code.
 
@@ -328,6 +328,7 @@ Status: **Implemented** for menu, daily attendance, dual-currency wallet, myster
 - The password is never persisted or recoverable. Import caps files at 2 MB and accepts KDF iteration counts only from 100,000 through 1,000,000 before attempting work. After decryption, the existing untrusted-import boundary rejects malformed or unrelated JSON, whitelists fields, clamps resources and upgrade ranks, removes unknown IDs, repairs formations and fortress tiers, and cannot replace store actions. Import selects one of the three target slots and requires explicit confirmation before overwriting an occupied slot.
 - Browser-local automatic slot snapshots remain origin-scoped plaintext. A bundled or locally stored automatic key would be recoverable by the same client and would not provide meaningful secrecy; password encryption is therefore reserved for portable files crossing the browser boundary.
 - All blocking confirmations and errors use the shared React game modal instead of browser `alert`, `confirm`, or `prompt`. The modal traps Tab focus, initially focuses the safe action for destructive choices, restores prior focus on close, supports Escape, and adapts to phone-width screens.
+- Navigation between React-owned screens uses the browser View Transition API as progressive enhancement, with a short directional fade/slide that distinguishes entering a deeper facility from returning to its parent. The feature is runtime-detected and disabled when the user requests reduced motion. The cinematic opening and all transitions into or out of the lazy Phaser battle remain immediate so snapshot capture never overlaps opening animation or Phaser creation/destruction; unsupported browsers retain the same navigation behavior without animation.
 - The paused battle overlay offers Resume and `전투 이탈`. Exit opens the shared destructive confirmation modal and, when confirmed, unmounts the battle and returns directly to the continent map through a dedicated non-result callback. It never constructs a loss result, opens the defeat report, records the encounter, or mutates progression.
 - The hero hall provides lore, passive, skill, unlock, select, and upgrade actions.
 - New saves separately store gold, Royal Gems, the last daily claim date, battle-speed entitlement and preference, the sequential formation-slot purchase count, the Victory Monument level, per-slot equipment levels for all shared troops, acquired troops, the one-to-four-through-seven troop battle formation, cleared stages, mastery XP, recruited heroes, fortress research, career statistics, encountered troops and boss, unlocked achievements, and claimed rewards.
@@ -474,6 +475,7 @@ Regression tests follow a minimum-sufficient strategy: protect formulas, combat 
 
 ## 17. Changelog
 
+- 2026-09-19: Added progressive directional View Transitions between React-owned title, map, facility, and result screens, with reduced-motion and unsupported-browser fallbacks while explicitly excluding the cinematic opening and every Phaser battle boundary.
 - 2026-09-19: Removed the redundant symbol from the language trigger; desktop now shows only the native name and locale code, while compact headers show only `KO`, `EN`, or `JA`.
 - 2026-09-19: Bottom-aligned Hero Hall statistics and management controls across each desktop card row so guard-capable heroes with an extra trait panel no longer push equipment and training out of alignment with neighboring heroes.
 - 2026-09-19: Replaced the browser-native language select with a game-styled dark-glass dropdown showing native language names, locale badges, active state, and responsive compact mode; added outside-click, Escape, Tab, and Arrow/Home/End keyboard behavior with focused navigation coverage.

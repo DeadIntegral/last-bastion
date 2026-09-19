@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { flushSync } from 'react-dom';
 import { allTroopOrder, bossDefinition, heroDefinitions, heroOrder, troopDefinitions, unitFamilyById, unitFamilyLabels, unitGradeLabels, unitGradeStars } from './data/units';
 import { bossCodex, CODEX_TOTAL, codexEntryCount, heroCodex, troopCodex } from './data/codex';
 import { achievementById, achievementGroups, achievementProgress, achievements, featuredAchievement } from './data/achievements';
@@ -14,6 +15,7 @@ import { localDateKey } from './game/daily';
 import { analyzeCampaignDifficulty, stageDifficultyPresentation } from './game/difficulty';
 import { decryptSave, encryptSave, isEncryptedSave, MAX_SAVE_FILE_BYTES } from './game/saveCrypto';
 import { activeSaveSlot, deleteSaveSlot, readSaveSlot, saveSlotSummaries, saveSlotSummary, setActiveSaveSlot, type SaveSlotId } from './game/saveSlots';
+import { screenTransitionDecision } from './game/screenTransitions';
 import { musicEngine, type MusicScene } from './audio/music';
 import { ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL, STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS, attackPatternLabel, attackRangeLabel, attackTimingLabel, equipmentCost, formatTime, guardProtectionLabel, hasEquipmentCapstone, heroAwakeningRank, heroMasteryLevelFromXp, heroRespawnReductionMs, masteryLevelFromXp, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, upgradedStats, usesStatEquipmentCapstone } from './game/rules';
 import { useGameStore } from './store/useGameStore';
@@ -1474,6 +1476,7 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>('menu');
   const [stageId, setStageId] = useState(1);
   const [result, setResult] = useState<BattleResult | null>(null);
+  const screenTransitionSequence = useRef(0);
   const addReward = useGameStore((state) => state.addReward);
   const recordBattle = useGameStore((state) => state.recordBattle);
   const completeStage = useGameStore((state) => state.completeStage);
@@ -1502,6 +1505,31 @@ export default function App() {
     };
   }, []);
 
+  const navigate = useCallback((nextScreen: Screen) => {
+    const startViewTransition = document.startViewTransition?.bind(document);
+    const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    const decision = screenTransitionDecision(screen, nextScreen, prefersReducedMotion);
+
+    if (!decision.enabled || !startViewTransition) {
+      screenTransitionSequence.current += 1;
+      delete document.documentElement.dataset.viewTransitionDirection;
+      setScreen(nextScreen);
+      return;
+    }
+
+    const sequence = ++screenTransitionSequence.current;
+    document.documentElement.dataset.viewTransitionDirection = decision.direction;
+    const transition = startViewTransition(() => {
+      flushSync(() => setScreen(nextScreen));
+    });
+    const cleanup = () => {
+      if (screenTransitionSequence.current === sequence) {
+        delete document.documentElement.dataset.viewTransitionDirection;
+      }
+    };
+    void transition.finished.then(cleanup, cleanup);
+  }, [screen]);
+
   const startStage = (id: number) => {
     setStageId(id);
     setResult(null);
@@ -1525,17 +1553,17 @@ export default function App() {
     setScreen('stages');
   }, []);
 
-  if (screen === 'menu') return <MainMenu onNavigate={setScreen} />;
+  if (screen === 'menu') return <MainMenu onNavigate={navigate} />;
   if (screen === 'opening') return <Opening onComplete={() => setScreen('stages')} />;
-  if (screen === 'credits') return <Credits onBack={() => setScreen('menu')} />;
-  if (screen === 'stages') return <StageSelect onBack={() => setScreen('menu')} onSelect={startStage} onNavigate={setScreen} />;
-  if (screen === 'merchant') return <MysteryMerchant onBack={() => setScreen('stages')} />;
-  if (screen === 'monument') return <TriumphMonument onBack={() => setScreen('stages')} />;
-  if (screen === 'armory') return <Armory onBack={() => setScreen('stages')} />;
-  if (screen === 'heroes') return <HeroHall onBack={() => setScreen('stages')} />;
-  if (screen === 'fortress') return <FortressWorkshop onBack={() => setScreen('stages')} />;
-  if (screen === 'achievements') return <Achievements onBack={() => setScreen('stages')} />;
-  if (screen === 'codex') return <WarCodex onBack={() => setScreen('stages')} />;
+  if (screen === 'credits') return <Credits onBack={() => navigate('menu')} />;
+  if (screen === 'stages') return <StageSelect onBack={() => navigate('menu')} onSelect={startStage} onNavigate={navigate} />;
+  if (screen === 'merchant') return <MysteryMerchant onBack={() => navigate('stages')} />;
+  if (screen === 'monument') return <TriumphMonument onBack={() => navigate('stages')} />;
+  if (screen === 'armory') return <Armory onBack={() => navigate('stages')} />;
+  if (screen === 'heroes') return <HeroHall onBack={() => navigate('stages')} />;
+  if (screen === 'fortress') return <FortressWorkshop onBack={() => navigate('stages')} />;
+  if (screen === 'achievements') return <Achievements onBack={() => navigate('stages')} />;
+  if (screen === 'codex') return <WarCodex onBack={() => navigate('stages')} />;
   if (screen === 'battle') {
     return (
       <Suspense fallback={<main className="loading-screen"><span>♜</span><p>전장을 준비하고 있습니다…</p></main>}>
@@ -1544,7 +1572,7 @@ export default function App() {
     );
   }
   if (screen === 'result' && result) {
-    return <ResultScreen result={result} onMenu={() => setScreen('stages')} onRetry={() => startStage(stageId)} />;
+    return <ResultScreen result={result} onMenu={() => navigate('stages')} onRetry={() => startStage(stageId)} />;
   }
   return null;
 }
