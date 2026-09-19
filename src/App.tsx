@@ -20,7 +20,7 @@ import { useGameStore } from './store/useGameStore';
 import { CharacterSprite } from './components/CharacterSprite';
 import { GameModal } from './components/GameModal';
 import { Localized } from './shared/i18n/Localized';
-import { changeLanguage, getCurrentLanguage, t, useTranslation, type Language } from './shared/i18n/i18n';
+import { changeLanguage, getLanguageLocale, supportedLanguages, t, useTranslation, type Language } from './shared/i18n/i18n';
 import type { BattleResult, CastleTechId, EquipmentSlot, FortressTier, HeroId, Screen, UnitDefinition, UnitFamily, UnitId } from './types/game';
 
 const equipmentSlots: Array<{ id: EquipmentSlot; name: string; icon: string }> = [
@@ -69,16 +69,15 @@ function heroSkillPowerSummary(id: HeroId, masteryLevel: number): string {
 
 const BattleView = lazy(() => import('./components/BattleView').then((module) => ({ default: module.BattleView })));
 
-function LanguageToggle() {
+function LanguageSelect() {
   const { lang } = useTranslation();
   return (
-    <div className="language-toggle" role="group" aria-label={t('언어 선택')}>
-      {(['ko', 'en'] as Language[]).map((language) => (
-        <button type="button" aria-pressed={lang === language} onClick={() => void changeLanguage(language)} key={language}>
-          {language.toUpperCase()}
-        </button>
-      ))}
-    </div>
+    <label className="language-select">
+      <span aria-hidden="true">文</span>
+      <select aria-label={t('언어 선택')} value={lang} onChange={(event) => void changeLanguage(event.target.value as Language)}>
+        {supportedLanguages.map((language) => <option value={language.id} key={language.id}>{language.label}</option>)}
+      </select>
+    </label>
   );
 }
 
@@ -113,7 +112,7 @@ function ShellHeader({ title, onBack }: { title: string; onBack: () => void }) {
     <header className="shell-header">
       <button className="back-button" onClick={onBack} aria-label="뒤로 가기">‹</button>
       <div><span className="eyebrow">LAST BASTION</span><h1>{title}</h1></div>
-      <div className="shell-header-actions"><LanguageToggle /><Wallet gold={gold} gems={gems} /></div>
+      <div className="shell-header-actions"><LanguageSelect /><Wallet gold={gold} gems={gems} /></div>
     </header>
   )}</Localized>;
 }
@@ -202,7 +201,7 @@ function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
     try {
       downloadSaveFile(await encryptSave(serialized, password), selectedSlotId);
       setNotice(`슬롯 ${selectedSlotId}을 암호화된 저장 파일로 내보냈습니다.`);
-      window.setTimeout(() => setNotice(''), 2_400);
+      window.setTimeout(() => setNotice(''), 1_800);
       setActiveModal(null);
       setSelectedSlotId(null);
       setPassword('');
@@ -281,7 +280,7 @@ function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
       <div className="menu-castle" aria-hidden="true">
         <span className="tower left" /><span className="keep" /><span className="tower right" />
       </div>
-      <nav className="menu-top"><span className="version">{GAME_VERSION_LABEL}</span><LanguageToggle /></nav>
+      <nav className="menu-top"><span className="version">{GAME_VERSION_LABEL}</span><LanguageSelect /></nav>
       <section className="title-lockup">
         <span className="title-crest">♜</span>
         <p>THE LAST LINE STANDS</p>
@@ -297,7 +296,7 @@ function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
               {slot.corrupted ? <><h2>손상된 기록</h2><p>저장 데이터를 읽을 수 없습니다.</p></> : <>
                 <h2>{Math.min(slot.unlockedStage, stages.length)}장 원정</h2>
                 <dl><div><dt>클리어</dt><dd>{slot.clearedStages}/{stages.length}</dd></div><div><dt>전투</dt><dd>{slot.battles.toLocaleString()}회</dd></div><div><dt>금화</dt><dd>● {slot.gold.toLocaleString()}</dd></div></dl>
-                <small>{slot.updatedAt ? new Date(slot.updatedAt).toLocaleString(getCurrentLanguage() === 'ko' ? 'ko-KR' : 'en-US') : '기존 자동 저장에서 이전됨'} · {slot.gameVersion ? `v${slot.gameVersion}` : 'LEGACY'}</small>
+                <small>{slot.updatedAt ? new Date(slot.updatedAt).toLocaleString(getLanguageLocale()) : '기존 자동 저장에서 이전됨'} · {slot.gameVersion ? `v${slot.gameVersion}` : 'LEGACY'}</small>
               </>}
               <div className="save-slot-actions">
                 <button className="continue" disabled={slot.corrupted} onClick={() => continueGame(slot.id)}>이어하기</button>
@@ -828,8 +827,10 @@ function Armory({ onBack }: { onBack: () => void }) {
               <div className="unit-card-portrait">{known ? <CharacterSprite id={id} className="character-sprite-card" /> : <span>?</span>}<small>{unlocked ? `숙련 LV.${mastery.level}` : canRecruit ? tierLocked ? `성채 ${requiredTier}티어 필요` : '영입 가능' : knownReward ? '지도에서 해금' : '미조우'}</small></div>
               <div className="unit-card-copy">
                 <span className="eyebrow">{known ? `${unitFamilyLabels[unitFamilyById[id]]} · ${unit.tags.includes('flying') ? 'AIRBORNE' : unit.tags.includes('mounted') ? 'CAVALRY' : unit.tags.includes('ranged') ? 'RANGED' : unit.tags.includes('armored') ? 'VANGUARD' : 'INFANTRY'}` : 'UNKNOWN'}</span>
-                <h3>{known ? unit.name : '미확인 병종'}</h3>
-                {known && <div className={`unit-grade grade-${unit.grade}`} aria-label={`${unit.grade}성 ${unitGradeLabels[unit.grade]} 병종`}><b>{unitGradeStars(unit.grade)}</b><span>{unit.grade}성 · {unitGradeLabels[unit.grade]}</span></div>}
+                <div className="unit-card-title-row">
+                  <h3>{known ? unit.name : '미확인 병종'}</h3>
+                  {known && <div className={`unit-grade grade-${unit.grade}`} aria-label={`${unit.grade}성 ${unitGradeLabels[unit.grade]} 병종`}><b>{unitGradeStars(unit.grade)}</b><span>{unit.grade}성 · {unitGradeLabels[unit.grade]}</span></div>}
+                </div>
                 {unlocked ? <>
                   <div className="mastery-line"><b>숙련 LV.{mastery.level}</b><span>{mastery.requiredXp ? `${mastery.currentXp}/${mastery.requiredXp} XP` : 'MAX'}</span></div>
                   <div className="mastery-track"><i style={{ width: mastery.requiredXp ? `${mastery.currentXp / mastery.requiredXp * 100}%` : '100%' }} /></div>

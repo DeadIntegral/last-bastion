@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 
-export type Language = 'ko' | 'en';
+export type Language = 'ko' | 'en' | 'ja';
+
+export const supportedLanguages: ReadonlyArray<{ id: Language; label: string; locale: string }> = [
+  { id: 'ko', label: '한국어', locale: 'ko-KR' },
+  { id: 'en', label: 'English', locale: 'en-US' },
+  { id: 'ja', label: '日本語', locale: 'ja-JP' },
+];
 
 const STORAGE_KEY = 'last-bastion-language';
 
@@ -103,9 +109,56 @@ function translateEnglishPattern(source: string): string | undefined {
   return undefined;
 }
 
+function translateJapanesePattern(source: string): string | undefined {
+  const patterns: Array<[RegExp, (...matches: string[]) => string]> = [
+    [/^슬롯 (\d+)을 삭제할까요\?$/, (slot) => `スロット${slot}を削除しますか？`],
+    [/^슬롯 (\d+) 암호화 내보내기$/, (slot) => `スロット${slot}を暗号化してエクスポート`],
+    [/^(\d+)장 원정$/, (stage) => `第${stage}章 遠征`],
+    [/^(\d+)장 클리어 시 해금$/, (stage) => `第${stage}章クリアで解放`],
+    [/^(\d+)장 클리어 필요$/, (stage) => `第${stage}章のクリアが必要`],
+    [/^전투 (\d+)회$/, (count) => `戦闘 ${count}回`],
+    [/^(\d+)회$/, (count) => `${count}回`],
+    [/^(\d+)개$/, (count) => `${count}個`],
+    [/^(\d+)단계$/, (level) => `ランク${level}`],
+    [/^(\d+)티어$/, (tier) => `ティア${tier}`],
+    [/^(\d+)티어 성채 필요$/, (tier) => `ティア${tier}の要塞が必要`],
+    [/^(.+)까지 원정로가 개방되었습니다\.$/, (region) => `${t(region)}までの遠征路が開かれました。`],
+    [/^(해금) (\d+)\/(\d+) · 마수 영역 (\d+)\/(\d+) · 지도를 잡아 드래그$/, (_label, a, b, c, d) => `解放 ${a}/${b} · 魔獣領域 ${c}/${d} · ドラッグで移動`],
+    [/^기본 (.+)$/, (value) => `基礎 ${value}`],
+    [/^공격력 \+(.+)$/, (value) => `攻撃力 +${value}`],
+    [/^체력 \+(.+) · 방어 \+(.+)$/, (hp, defense) => `HP +${hp} · 防御 +${defense}`],
+    [/^이동 속도 \+(.+)$/, (value) => `移動速度 +${value}`],
+    [/^(\d+)성 (.+)$/, (grade, label) => `${grade}★・${t(label)}`],
+    [/^(\d+)명 관통$/, (count) => `${count}体貫通`],
+    [/^선딜 (.+)초 · 후딜 (.+)초$/, (windup, recovery) => `発生 ${windup}秒 · 硬直 ${recovery}秒`],
+    [/^마수 도전 (.+)$/, (name) => `魔獣挑戦：${t(name)}`],
+    [/^(\d+)장 (.+?)( 잠김)?$/, (stage, name, locked) => `第${stage}章：${t(name)}${locked ? ' ロック' : ''}`],
+    [/^(.+) 기술 트리$/, (name) => `${t(name)}技術ツリー`],
+    [/^숙련 LV\.(\d+)$/, (level) => `熟練 LV.${level}`],
+    [/^전장 (\d+)\/(\d+)$/, (count, max) => `戦場 ${count}/${max}`],
+    [/^\{name\}가 달려듭니다$/, () => '{name}が突進する！'],
+    [/^\{name\} \{level\}단계$/, () => '{name} ランク{level}'],
+  ];
+  for (const [pattern, format] of patterns) {
+    const match = source.match(pattern);
+    if (match) return format(...match.slice(1));
+  }
+  return undefined;
+}
+
+function isLanguage(value: string | null): value is Language {
+  return supportedLanguages.some(({ id }) => id === value);
+}
+
 async function loadMessages(lang: Language): Promise<void> {
-  const module = lang === 'en' ? await import('./en/messages') : await import('./ko/messages');
-  currentMessages = module.messages;
+  if (lang === 'ko') {
+    currentMessages = (await import('./ko/messages')).messages;
+  } else if (lang === 'en') {
+    currentMessages = (await import('./en/messages')).messages;
+  } else {
+    const [english, japanese] = await Promise.all([import('./en/messages'), import('./ja/messages')]);
+    currentMessages = { ...english.messages, ...japanese.messages };
+  }
   document.documentElement.lang = lang;
   document.title = t('Last Bastion — 최후의 성채');
   document.querySelector('meta[name="description"]')?.setAttribute('content', t('병력을 지휘해 최후의 성채를 지키는 웹 공성 전략 게임'));
@@ -113,18 +166,25 @@ async function loadMessages(lang: Language): Promise<void> {
 }
 
 export function detectLanguage(language = typeof navigator === 'undefined' ? 'ko' : navigator.language): Language {
-  return language.toLowerCase().startsWith('ko') ? 'ko' : 'en';
+  const normalized = language.toLowerCase();
+  if (normalized.startsWith('ko')) return 'ko';
+  if (normalized.startsWith('ja')) return 'ja';
+  return 'en';
 }
 
 export function setupLanguage(): void {
   const saved = typeof localStorage === 'undefined' ? null : localStorage.getItem(STORAGE_KEY);
-  currentLanguage = saved === 'ko' || saved === 'en' ? saved : detectLanguage();
+  currentLanguage = isLanguage(saved) ? saved : detectLanguage();
   useLanguageStore.setState({ lang: currentLanguage });
   void loadMessages(currentLanguage);
 }
 
 export function getCurrentLanguage(): Language {
   return currentLanguage;
+}
+
+export function getLanguageLocale(lang = currentLanguage): string {
+  return supportedLanguages.find(({ id }) => id === lang)?.locale ?? 'en-US';
 }
 
 export async function changeLanguage(lang: Language): Promise<void> {
@@ -137,7 +197,9 @@ export function t(key: string, values?: Record<string, unknown>): string {
   if (currentLanguage === 'ko') return interpolate(key, values);
   const core = key.trim();
   if (!core) return key;
-  const translated = currentMessages[core] ?? translateEnglishPattern(core) ?? core;
+  const translated = currentMessages[core]
+    ?? (currentLanguage === 'ja' ? translateJapanesePattern(core) ?? translateEnglishPattern(core) : translateEnglishPattern(core))
+    ?? core;
   return preserveWhitespace(key, interpolate(translated, values));
 }
 
