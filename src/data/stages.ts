@@ -149,7 +149,7 @@ const campaignStageBlueprints: Array<Omit<StageDefinition, 'fortressDistance' | 
   {
     id: 9, name: '무너진 수도', subtitle: '왕국의 옛 병종으로 이루어진 수비선을 돌파하세요', reward: 900, enemyCastleHp: 9800,
     enemyUpgrades: { equipment: { weapon: 5, armor: 5, boots: 5 } },
-    firstClearReward: { label: '왕실 훈련소 복구', description: '금화 900개를 획득하고, 금화로 영웅 숙련 경험치를 훈련하는 기능을 해금합니다.', icon: '♛', gold: 900, featureId: 'hero-training' },
+    firstClearReward: { label: '왕실 교관단 복귀', description: '금화 900개를 획득하고, 영웅의 전당에서 금화로 영웅 숙련 경험치를 훈련하는 기능을 해금합니다.', icon: '♛', gold: 900, featureId: 'hero-training' },
     waves: [
       { timeMs: 800, unitId: 'guardian', count: 3, intervalMs: 2700 },
       { timeMs: 5500, unitId: 'cavalry', count: 3, intervalMs: 2500 },

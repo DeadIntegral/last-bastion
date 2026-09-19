@@ -42,15 +42,19 @@ describe('title and kingdom-map navigation', () => {
 
     expect(host.querySelector('.shell-header h1')?.textContent).toBe('왕국 지도');
     const hubButtons = [...host.querySelectorAll<HTMLButtonElement>('.map-command-center button')];
-    expect(hubButtons).toHaveLength(10);
+    expect(hubButtons).toHaveLength(9);
     expect(hubButtons.some((button) => button.textContent?.includes('마수 도전'))).toBe(false);
-    const trainingButton = hubButtons.find((button) => button.textContent?.includes('영웅 훈련소'))!;
-    expect(trainingButton.disabled).toBe(true);
-    expect(trainingButton.textContent).toContain('9장 클리어 시 해금');
-    const monumentButton = hubButtons.find((button) => button.textContent?.includes('승전 기념비'))!;
+    expect(hubButtons.some((button) => button.textContent?.includes('영웅 훈련소'))).toBe(false);
+    const heroHallButton = hubButtons.find((button) => button.textContent?.includes('영웅의 전당'))!;
+    act(() => heroHallButton.click());
+    expect(host.querySelector('.shell-header h1')?.textContent).toBe('영웅의 전당');
+    expect(host.querySelector('.hero-training-panel.locked')?.textContent).toContain('9장 클리어 시 해금');
+    act(() => host.querySelector<HTMLButtonElement>('.back-button')!.click());
+    const refreshedHubButtons = [...host.querySelectorAll<HTMLButtonElement>('.map-command-center button')];
+    const monumentButton = refreshedHubButtons.find((button) => button.textContent?.includes('승전 기념비'))!;
     expect(monumentButton.disabled).toBe(true);
     expect(monumentButton.textContent).toContain('30장 클리어 시 건립');
-    const merchantButton = hubButtons.find((button) => button.textContent?.includes('수수께끼 상인'))!;
+    const merchantButton = refreshedHubButtons.find((button) => button.textContent?.includes('수수께끼 상인'))!;
     expect(merchantButton.disabled).toBe(true);
     expect(merchantButton.textContent).toContain('6장 보스 격파 시 출현');
 
@@ -81,12 +85,16 @@ describe('title and kingdom-map navigation', () => {
     expect(host.querySelector('.map-mission h2')?.textContent).toBe('오우거 대족장');
     expect(host.querySelector('.map-mission')?.classList.contains('challenge-mission')).toBe(true);
 
-    act(() => useGameStore.setState({ clearedStages: [6, 9] }));
-    const updatedTrainingButton = [...host.querySelectorAll<HTMLButtonElement>('.map-command-center button')]
-      .find((button) => button.textContent?.includes('영웅 훈련소'))!;
-    expect(updatedTrainingButton.disabled).toBe(false);
-    act(() => updatedTrainingButton.click());
-    expect(host.querySelector('.shell-header h1')?.textContent).toBe('영웅 훈련소');
+    act(() => useGameStore.setState({ clearedStages: [6, 9], gold: 1_000 }));
+    const updatedHeroHallButton = [...host.querySelectorAll<HTMLButtonElement>('.map-command-center button')]
+      .find((button) => button.textContent?.includes('영웅의 전당'))!;
+    act(() => updatedHeroHallButton.click());
+    expect(host.querySelector('.hero-training-panel.locked')).toBeNull();
+    const fieldDrill = host.querySelector<HTMLButtonElement>('.hero-training-panel .training-packages button')!;
+    expect(fieldDrill.textContent).toContain('야전 훈련');
+    act(() => fieldDrill.click());
+    expect(useGameStore.getState().gold).toBe(750);
+    expect(useGameStore.getState().heroMasteryXp.warden).toBe(100);
   });
 
   it('shows Continue, Export, and Delete on an occupied slot', () => {

@@ -42,7 +42,7 @@ export type AttackPattern =
   | { kind: 'groundBurst'; radius: number; secondaryDamageMultiplier: number; targetDomain: 'ground' | 'all'; telegraphMs: number };
 export type Side = 'player' | 'enemy';
 export type BattleSpeed = 1 | 1.5;
-export type Screen = 'menu' | 'opening' | 'credits' | 'stages' | 'merchant' | 'training' | 'monument' | 'armory' | 'heroes' | 'fortress' | 'achievements' | 'codex' | 'battle' | 'result';
+export type Screen = 'menu' | 'opening' | 'credits' | 'stages' | 'merchant' | 'monument' | 'armory' | 'heroes' | 'fortress' | 'achievements' | 'codex' | 'battle' | 'result';
 export type GameFeatureId = 'hero-training';
 export type HeroTrainingPackageId = 'field-drill' | 'tactical-lesson' | 'royal-tutoring';
 

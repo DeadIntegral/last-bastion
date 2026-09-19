@@ -440,7 +440,6 @@ function MapCommandCenter({ onNavigate }: { onNavigate: (screen: Screen) => void
   const [notice, setNotice] = useState('');
   const claimable = unlockedAchievements.filter((id) => !claimedAchievements.includes(id)).length;
   const dailyAvailable = lastDailyClaimDate !== localDateKey();
-  const trainingUnlocked = isGameFeatureUnlocked('hero-training', clearedStages);
   const monumentUnlocked = clearedStages.includes(TRIUMPH_MONUMENT.unlockStage);
   const speedLicenseRevealed = clearedStages.includes(BATTLE_SPEED_LICENSE.unlockStage);
   const formationCapacity = battleFormationCapacity(formationSlotPurchases);
@@ -467,7 +466,6 @@ function MapCommandCenter({ onNavigate }: { onNavigate: (screen: Screen) => void
       <button onClick={() => onNavigate('armory')}><i>♢</i><span>병영과 강화<small>ARMORY · {allTroopOrder.length}</small></span></button>
       <button onClick={() => onNavigate('heroes')}><i>{heroDefinitions[selectedHero].icon}</i><span>영웅의 전당<small>{heroDefinitions[selectedHero].name}</small></span></button>
       <button onClick={() => onNavigate('fortress')}><i>♜</i><span>성채 기술<small>5 BRANCHES</small></span></button>
-      <button className={trainingUnlocked ? '' : 'feature-locked'} disabled={!trainingUnlocked} onClick={() => onNavigate('training')}><i>♛</i><span>영웅 훈련소<small>{trainingUnlocked ? 'GOLD → HERO XP' : `${gameFeatures['hero-training'].unlockStage}장 클리어 시 해금`}</small></span></button>
       <button className={monumentUnlocked ? 'monument-ready' : 'feature-locked'} disabled={!monumentUnlocked} onClick={() => onNavigate('monument')}><i>♜</i><span>{TRIUMPH_MONUMENT.name}<small>{monumentUnlocked ? `${triumphMonumentLevel}/${TRIUMPH_MONUMENT.maxLevel}단계` : `${TRIUMPH_MONUMENT.unlockStage}장 클리어 시 건립`}</small></span></button>
       <button onClick={() => onNavigate('achievements')}><i>✦</i><span>업적 기록<small>{claimable ? `${claimable} 보상 대기` : `${unlockedAchievements.length}/${achievements.length}`}</small></span></button>
       <button onClick={() => onNavigate('codex')}><i>▤</i><span>전쟁 사전<small>{codexEntries}/{CODEX_TOTAL}</small></span></button>
@@ -878,6 +876,7 @@ function Armory({ onBack }: { onBack: () => void }) {
 
 function HeroHall({ onBack }: { onBack: () => void }) {
   const gold = useGameStore((state) => state.gold);
+  const clearedStages = useGameStore((state) => state.clearedStages);
   const selectedHero = useGameStore((state) => state.selectedHero);
   const unlockedHeroes = useGameStore((state) => state.unlockedHeroes);
   const heroEquipmentLevels = useGameStore((state) => state.heroEquipmentLevels);
@@ -885,7 +884,9 @@ function HeroHall({ onBack }: { onBack: () => void }) {
   const unlockHero = useGameStore((state) => state.unlockHero);
   const selectHero = useGameStore((state) => state.selectHero);
   const upgradeHero = useGameStore((state) => state.upgradeHeroEquipment);
+  const trainHeroMastery = useGameStore((state) => state.trainHeroMastery);
   const [notice, setNotice] = useState('');
+  const trainingUnlocked = isGameFeatureUnlocked('hero-training', clearedStages);
 
   const notify = (message: string) => {
     setNotice(message);
@@ -900,9 +901,16 @@ function HeroHall({ onBack }: { onBack: () => void }) {
     } else notify('영웅을 해금할 금화가 부족합니다.');
   };
 
-  const train = (id: HeroId, slot: EquipmentSlot) => {
+  const upgradeEquipment = (id: HeroId, slot: EquipmentSlot) => {
     const slotName = equipmentSlots.find((item) => item.id === slot)?.name ?? '장비';
     notify(upgradeHero(id, slot) ? `${heroDefinitions[id].name}의 ${slotName} 장비가 강화되었습니다.` : '금화가 부족하거나 최고 장비 단계입니다.');
+  };
+
+  const trainMastery = (id: HeroId, packageId: typeof heroTrainingPackages[number]['id']) => {
+    const trainingPackage = heroTrainingPackages.find((item) => item.id === packageId)!;
+    notify(trainHeroMastery(id, packageId)
+      ? `${heroDefinitions[id].name}이(가) ${trainingPackage.xp} XP를 획득했습니다.`
+      : '금화가 부족하거나 이미 최고 숙련도입니다.');
   };
 
   return <Localized>{(
@@ -910,7 +918,7 @@ function HeroHall({ onBack }: { onBack: () => void }) {
       <ShellHeader title="영웅의 전당" onBack={onBack} />
       <section className="armory-intro">
         <div><span className="eyebrow">HERO HALL</span><h2>원정대 지휘관</h2></div>
-        <p>영웅은 무료로 출전하고 경험치로 숙련이 성장합니다. 금화는 장비 강화와 새로운 영웅 영입에 사용합니다.</p>
+        <p>영웅은 무료로 출전하고 경험치로 숙련이 성장합니다. 영입·장비 강화와 9장 이후의 숙련까지 한곳에서 관리합니다.</p>
       </section>
       <div className="hero-roster">
         {heroOrder.map((id) => {
@@ -955,7 +963,7 @@ function HeroHall({ onBack }: { onBack: () => void }) {
                   {equipmentSlots.map((slot) => {
                     const level = equipment[slot.id];
                     const cost = equipmentCost(hero, level);
-                    return <button key={slot.id} disabled={level >= 5 || gold < cost} onClick={() => train(id, slot.id)}>
+                    return <button key={slot.id} disabled={level >= 5 || gold < cost} onClick={() => upgradeEquipment(id, slot.id)}>
                       <i>{slot.icon}</i><span><b>{slot.name} +{level}</b><small>{equipmentEffect(hero, slot.id)}</small></span><em>{level >= 5 ? 'MAX' : `● ${cost}`}</em>
                     </button>;
                   })}
@@ -969,70 +977,22 @@ function HeroHall({ onBack }: { onBack: () => void }) {
                     </>
                   )}
                 </div>
+                {unlocked && <section className={`hero-training-panel ${trainingUnlocked ? '' : 'locked'}`}>
+                  <header><span>ROYAL TRAINING</span><strong>{gameFeatures['hero-training'].name}</strong><small>{trainingUnlocked ? '금화를 영웅 숙련 XP로 전환' : `${gameFeatures['hero-training'].unlockStage}장 클리어 시 해금`}</small></header>
+                  {trainingUnlocked ? <div className="training-packages">
+                    {heroTrainingPackages.map((trainingPackage) => (
+                      <button key={trainingPackage.id} disabled={mastery.level >= HERO_MASTERY_MAX_LEVEL || gold < trainingPackage.goldCost} onClick={() => trainMastery(id, trainingPackage.id)}>
+                        <span><b>{trainingPackage.name}</b><small>{trainingPackage.description}</small></span>
+                        <em>+{trainingPackage.xp} XP</em><strong>● {trainingPackage.goldCost.toLocaleString()}</strong>
+                      </button>
+                    ))}
+                  </div> : <p>왕실 교관단을 복귀시키면 금화로 보유 영웅을 훈련할 수 있습니다.</p>}
+                </section>}
               </div>
             </article>
           );
         })}
       </div>
-      {notice && <div className="toast" role="status">{notice}</div>}
-    </main>
-  )}</Localized>;
-}
-
-function HeroTrainingGround({ onBack }: { onBack: () => void }) {
-  const gold = useGameStore((state) => state.gold);
-  const selectedHero = useGameStore((state) => state.selectedHero);
-  const unlockedHeroes = useGameStore((state) => state.unlockedHeroes);
-  const heroMasteryXp = useGameStore((state) => state.heroMasteryXp);
-  const trainHeroMastery = useGameStore((state) => state.trainHeroMastery);
-  const [notice, setNotice] = useState('');
-
-  const train = (id: HeroId, packageId: typeof heroTrainingPackages[number]['id']) => {
-    const trainingPackage = heroTrainingPackages.find((item) => item.id === packageId)!;
-    const success = trainHeroMastery(id, packageId);
-    setNotice(success ? `${heroDefinitions[id].name}이(가) ${trainingPackage.xp} XP를 획득했습니다.` : '금화가 부족하거나 이미 최고 숙련도입니다.');
-    window.setTimeout(() => setNotice(''), 1_800);
-  };
-
-  return <Localized>{(
-    <main className="panel-screen hero-training-screen">
-      <ShellHeader title="영웅 훈련소" onBack={onBack} />
-      <section className="armory-intro">
-        <div><span className="eyebrow">ROYAL TRAINING GROUND</span><h2>전승과 모의전</h2></div>
-        <p>9장에서 복구한 왕실 시설입니다. 남는 금화를 보유 영웅의 숙련 경험치로 전환하며, 전투로 얻는 경험치는 그대로 유지됩니다.</p>
-      </section>
-      <section className="training-roster">
-        {unlockedHeroes.map((id) => {
-          const hero = heroDefinitions[id];
-          const mastery = heroMasteryLevelFromXp(heroMasteryXp[id]);
-          const maxed = mastery.level >= HERO_MASTERY_MAX_LEVEL;
-          const awakeningRank = heroAwakeningRank(mastery.level);
-          return (
-            <article className={`training-hero-card ${selectedHero === id ? 'selected' : ''}`} key={id}>
-              <div className="training-hero-portrait" aria-label={`${hero.name} 초상`}>
-                <CharacterSprite id={id} className="training-character-art" />
-                <div className="training-portrait-status">
-                  <span>{selectedHero === id ? '출전 영웅' : hero.title}</span>
-                  <b>{awakeningRank > 0 ? `각성 ${['', 'I', 'II', 'III'][awakeningRank]}` : '각성 전'}</b>
-                </div>
-              </div>
-              <div className="training-hero-copy">
-                <small>{hero.title}</small><h3>{hero.name}</h3>
-                <div className="training-level"><strong>숙련 {mastery.level}/{HERO_MASTERY_MAX_LEVEL}</strong><span>{maxed ? 'MAX' : `${mastery.currentXp}/${mastery.requiredXp} XP`}</span></div>
-                <div className="mastery-track"><i style={{ width: maxed ? '100%' : `${mastery.currentXp / mastery.requiredXp * 100}%` }} /></div>
-                <div className="training-packages">
-                  {heroTrainingPackages.map((trainingPackage) => (
-                    <button key={trainingPackage.id} disabled={maxed || gold < trainingPackage.goldCost} onClick={() => train(id, trainingPackage.id)}>
-                      <span><b>{trainingPackage.name}</b><small>{trainingPackage.description}</small></span>
-                      <em>+{trainingPackage.xp} XP</em><strong>● {trainingPackage.goldCost.toLocaleString()}</strong>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </article>
-          );
-        })}
-      </section>
       {notice && <div className="toast" role="status">{notice}</div>}
     </main>
   )}</Localized>;
@@ -1510,7 +1470,6 @@ export default function App() {
   if (screen === 'credits') return <Credits onBack={() => setScreen('menu')} />;
   if (screen === 'stages') return <StageSelect onBack={() => setScreen('menu')} onSelect={startStage} onNavigate={setScreen} />;
   if (screen === 'merchant') return <MysteryMerchant onBack={() => setScreen('stages')} />;
-  if (screen === 'training') return <HeroTrainingGround onBack={() => setScreen('stages')} />;
   if (screen === 'monument') return <TriumphMonument onBack={() => setScreen('stages')} />;
   if (screen === 'armory') return <Armory onBack={() => setScreen('stages')} />;
   if (screen === 'heroes') return <HeroHall onBack={() => setScreen('stages')} />;

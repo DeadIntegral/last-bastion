@@ -671,24 +671,16 @@ button:disabled { cursor: not-allowed; }
 .hero-actions > button:only-child { grid-column: 1 / 3; }
 .hero-actions button span { color: var(--gold-bright); }
 
-/* Hero training */
-.hero-training-screen { background: radial-gradient(circle at 50% 8%, rgba(116,89,42,.22), transparent 34%), #101824; }
-.training-roster { width: min(1080px, calc(100% - 40px)); margin: 0 auto; padding-bottom: 70px; display: grid; gap: 14px; }
-.training-hero-card { min-height: 245px; display: grid; grid-template-columns: 220px minmax(0, 1fr); overflow: hidden; background: linear-gradient(145deg, rgba(34,48,62,.97), rgba(18,27,39,.98)); border: 1px solid var(--line); }
-.training-hero-card.selected { border-color: rgba(221,189,112,.55); }
-.training-hero-portrait { position: relative; display: grid; place-items: center; isolation: isolate; background: radial-gradient(circle at 50% 45%, rgba(191,155,74,.28), transparent 48%), linear-gradient(155deg, #202c3b, #111923); border-right: 1px solid var(--line); }
-.training-hero-portrait::before { content: ''; position: absolute; z-index: -1; width: 138px; height: 138px; border: 1px solid rgba(221,189,112,.18); transform: rotate(45deg); box-shadow: 0 0 34px rgba(191,155,74,.08); }
-.training-hero-portrait .training-character-art { width: 190px; filter: drop-shadow(0 14px 14px rgba(0,0,0,.5)); }
-.training-portrait-status { position: absolute; inset: auto 14px 13px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; background: rgba(8,14,20,.86); border: 1px solid rgba(221,189,112,.24); }
-.training-portrait-status span { color: #d8bd7f; font-size: 10px; }
-.training-portrait-status b { color: #8fcbd5; font: 700 9px 'Cinzel','Pretendard Variable',sans-serif; }
-.training-hero-copy { min-width: 0; padding: 24px; }
-.training-hero-copy > small { color: var(--gold); font: 700 9px 'Cinzel'; letter-spacing: .12em; }
-.training-hero-copy h3 { margin: 3px 0 14px; font-size: 24px; }
-.training-level { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; }
-.training-level span { color: #8db4be; font-family: 'Cinzel'; }
-.training-packages { margin-top: 18px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
-.training-packages button { min-width: 0; min-height: 92px; padding: 11px; display: grid; gap: 4px; text-align: left; border: 1px solid rgba(119,177,189,.28); background: rgba(26,47,59,.76); color: #e7e8df; cursor: pointer; }
+/* Hero mastery training is integrated into each recruited Hero Hall card. */
+.hero-training-panel { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(221,189,112,.2); }
+.hero-training-panel > header { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 2px 10px; }
+.hero-training-panel > header span { color: var(--gold); font: 700 8px 'Cinzel'; letter-spacing: .14em; }
+.hero-training-panel > header strong { grid-row: 2; color: #e7e8df; font-size: 12px; }
+.hero-training-panel > header small { grid-column: 2; grid-row: 1 / 3; align-self: center; color: #82959e; font-size: 9px; text-align: right; }
+.hero-training-panel > p { margin: 9px 0 0; padding: 9px 10px; border: 1px dashed rgba(137,158,166,.24); color: #7f9098; background: rgba(8,14,20,.2); font-size: 10px; line-height: 1.5; }
+.hero-training-panel.locked { filter: grayscale(.35); }
+.training-packages { margin-top: 9px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+.training-packages button { min-width: 0; min-height: 82px; padding: 9px; display: grid; gap: 3px; text-align: left; border: 1px solid rgba(119,177,189,.28); background: rgba(26,47,59,.76); color: #e7e8df; cursor: pointer; }
 .training-packages button:hover:not(:disabled) { border-color: var(--gold); background: rgba(52,62,58,.9); }
 .training-packages button:disabled { opacity: .42; filter: grayscale(.65); }
 .training-packages button > span { display: grid; gap: 2px; }
@@ -1133,8 +1125,6 @@ button:disabled { cursor: not-allowed; }
   .achievement-view-toggle button { flex: 1; }
   .codex-grid { grid-template-columns: 1fr; }
   .boss-entry { grid-column: auto; }
-  .training-hero-card { grid-template-columns: 180px minmax(0, 1fr); }
-  .training-hero-portrait .training-character-art { width: 165px; }
   .merchant-item { grid-template-columns: 150px minmax(0, 1fr); }
   .merchant-item-action { grid-column: 1 / 3; border-left: 0; border-top: 1px solid var(--line); }
   .monument-panel { grid-template-columns: 220px minmax(0, 1fr); }
@@ -1242,11 +1232,6 @@ button:disabled { cursor: not-allowed; }
   .hero-card { display: block; }
   .hero-art { min-height: 150px; height: 150px; }
   .hero-rune { font-size: 58px; }
-  .training-roster { width: calc(100% - 24px); }
-  .training-hero-card { display: block; }
-  .training-hero-portrait { height: 165px; border-right: 0; border-bottom: 1px solid var(--line); }
-  .training-hero-portrait .training-character-art { width: 160px; max-height: 160px; }
-  .training-hero-copy { padding: 18px; }
   .training-packages { grid-template-columns: 1fr; }
   .training-packages button { min-height: 67px; grid-template-columns: 1fr auto; align-items: center; }
   .training-packages button > strong { grid-column: 2; }

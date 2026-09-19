@@ -18,8 +18,8 @@ export interface HeroTrainingPackage {
 export const gameFeatures: Record<GameFeatureId, GameFeatureDefinition> = {
   'hero-training': {
     id: 'hero-training',
-    name: '영웅 훈련소',
-    description: '축적한 금화를 사용해 보유 영웅의 숙련 경험치를 획득합니다.',
+    name: '영웅 숙련 훈련',
+    description: '영웅의 전당에서 축적한 금화를 보유 영웅의 숙련 경험치로 전환합니다.',
     unlockStage: 9,
   },
 };
