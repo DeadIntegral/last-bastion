@@ -337,6 +337,7 @@ Status: **Implemented** for menu, daily attendance, dual-currency wallet, myster
 
 ## 12. Controls
 
+- All battle shortcuts resolve from physical `KeyboardEvent.code` rather than the character produced by the active IME. Number-row/numpad deployment and `Q`, `E`, `R`, `P`, `Space`, and `Escape` therefore behave identically in Korean and English input modes without requiring an input-language switch.
 - Click/tap a soldier card to summon it.
 - `1`–`4`: summon the corresponding troop in the default formation; `5`–`7` summon successively licensed expanded slots.
 - Click/tap the hero portrait or press `Q`: hero active skill. The portrait displays the `Q` key hint.
@@ -469,6 +470,7 @@ Regression tests follow a minimum-sufficient strategy: protect formulas, combat 
 
 ## 17. Changelog
 
+- 2026-09-19: Centralized battle shortcuts on physical keyboard codes so formation keys and Q/E/R/P/Space/Escape work without switching away from the Korean IME, with explicit Korean-key-event and numpad regression coverage.
 - 2026-09-19: Added confirmed battle exit to the pause menu, returning directly to the continent map through a non-result path so abandoned sessions do not count as battles or defeats and grant no statistics, encounters, rewards, achievements, or mastery XP; moved the reusable accessible game modal into a shared component and added focused regression coverage.
 - 2026-09-19: Added Korean/English localization modeled after the sibling Bayes and Blades project: browser-language detection, global KO/EN persistence outside save slots, lazy English resources, React-tree and Phaser-text translation, localized document metadata, Korean fallback for missing keys, compact title/header controls, and focused language tests.
 - 2026-09-19: Enlarged every beast-only challenge boss to 1.5× its ordinary battlefield presentation, preserved additional phase-two growth and 5-star art stature, and moved boss health/status UI above the enlarged art without changing combat geometry or difficulty.

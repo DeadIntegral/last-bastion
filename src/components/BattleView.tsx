@@ -3,7 +3,7 @@ import { battleMobilizationTuning, castleBattleStats, mobilizationCommandCost, r
 import { troopDefinitions, unitGradeLabels } from '../data/units';
 import { getStage } from '../data/stages';
 import { BattleEvent, battleEvents } from '../game/EventBus';
-import { isHeroSkillKey } from '../game/controls';
+import { battleHotkeyAction } from '../game/controls';
 import { attackPatternLabel, attackRangeLabel, cooldownFillRatio, formatTime, unitDeploymentCapacity, upgradedStats } from '../game/rules';
 import { PhaserGame } from '../game/PhaserGame';
 import { useGameStore } from '../store/useGameStore';
@@ -91,15 +91,15 @@ export function BattleView({ stageId, onResult, onExit }: BattleViewProps) {
         }
         return;
       }
-      const index = Number(event.key) - 1;
-      if (index >= 0 && index < equippedUnits.length) battleEvents.emit(BattleEvent.SPAWN, equippedUnits[index]);
-      if (isHeroSkillKey(event.code)) {
-        event.preventDefault();
-        battleEvents.emit(BattleEvent.SKILL);
-      }
-      if (event.key.toLowerCase() === 'e') battleEvents.emit(BattleEvent.MOBILIZE);
-      if (event.key.toLowerCase() === 'r') battleEvents.emit(BattleEvent.RALLY_MODE);
-      if (event.key.toLowerCase() === 'p' || event.key === 'Escape') battleEvents.emit(BattleEvent.PAUSE);
+      const action = battleHotkeyAction(event.code);
+      if (!action) return;
+      event.preventDefault();
+      if (action.type === 'spawn') {
+        if (action.index < equippedUnits.length) battleEvents.emit(BattleEvent.SPAWN, equippedUnits[action.index]);
+      } else if (action.type === 'heroSkill') battleEvents.emit(BattleEvent.SKILL);
+      else if (action.type === 'mobilize') battleEvents.emit(BattleEvent.MOBILIZE);
+      else if (action.type === 'rally') battleEvents.emit(BattleEvent.RALLY_MODE);
+      else battleEvents.emit(BattleEvent.PAUSE);
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
