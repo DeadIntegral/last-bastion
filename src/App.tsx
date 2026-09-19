@@ -126,7 +126,6 @@ function LanguageSelect() {
           setOpen(true);
         }
       }}>
-        <span className="language-glyph" aria-hidden="true"><i className="language-globe" /></span>
         <span className="language-trigger-copy"><b>{activeLanguage.label}</b><small>{activeLanguage.id.toUpperCase()}</small></span>
         <i aria-hidden="true">⌄</i>
       </button>
