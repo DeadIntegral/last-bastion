@@ -53,6 +53,8 @@ interface CombatUnit {
   pendingTargetId: number;
   pendingTargetX: number;
   container: Phaser.GameObjects.Container;
+  shadow: Phaser.GameObjects.Ellipse;
+  shadowGroundOffset: number;
   hpBar: Phaser.GameObjects.Rectangle;
   alive: boolean;
   isHero: boolean;
@@ -455,8 +457,10 @@ export class BattleScene extends Phaser.Scene {
     const size = definition.size;
     const flying = definition.tags.includes('flying');
     const flightHeight = flying ? 112 : 0;
-    const container = this.add.container(x, y - flightHeight + Phaser.Math.Between(-5, 5));
-    const shadow = this.add.ellipse(0, flightHeight + size * 0.8, size * 2.3, size * 0.7, 0x000000, flying ? 0.14 : 0.25);
+    const baseScale = boss && this.stageDefinition.challenge ? bossCombatTuning.challengeVisualScale : 1;
+    const container = this.add.container(x, y - flightHeight + Phaser.Math.Between(-5, 5)).setScale(baseScale);
+    const shadowGroundOffset = flightHeight + size * 0.8;
+    const shadow = this.add.ellipse(0, shadowGroundOffset / baseScale, size * 2.3, size * 0.7, 0x000000, flying ? 0.14 : 0.25);
     const aura = this.add.circle(0, 0, size * 1.25, definition.color, hero || eliteName ? 0.18 : 0);
     const awakeningRank = hero && side === 'player' ? heroAwakeningRank(this.heroMasteryLevel) : 0;
     const awakeningAura = hero && awakeningRank > 0 ? heroAwakeningAuras[this.heroId] : undefined;
@@ -478,8 +482,10 @@ export class BattleScene extends Phaser.Scene {
       : this.add.text(0, -1, definition.icon, {
         fontFamily: 'Georgia, serif', fontSize: `${Math.max(15, size)}px`, color: '#f8f1df', fontStyle: 'bold',
       }).setOrigin(0.5);
-    const hpBg = this.add.rectangle(-size, -size - 11, size * 2, 4, 0x111111, 0.8).setOrigin(0, 0.5);
-    const hpBar = this.add.rectangle(-size, -size - 11, size * 2, 4, side === 'player' ? 0x75d5ee : 0xef6b6b).setOrigin(0, 0.5);
+    const portraitHalfHeight = artId && frame && sheet ? size * 1.7 * artScale : size;
+    const healthBarY = boss ? -Math.max(size + 11, portraitHalfHeight + 8) : -size - 11;
+    const hpBg = this.add.rectangle(-size, healthBarY, size * 2, 4, 0x111111, 0.8).setOrigin(0, 0.5);
+    const hpBar = this.add.rectangle(-size, healthBarY, size * 2, 4, side === 'player' ? 0x75d5ee : 0xef6b6b).setOrigin(0, 0.5);
     const attackRig = this.createAttackRig(definition, side, size);
     container.add([shadow, ...(auraRange ? [auraRange] : []), aura, ...fallbackBackdrop, portrait, attackRig.root, hpBg, hpBar]);
     container.setDepth(flying ? 650 : Math.round(container.y));
@@ -488,12 +494,12 @@ export class BattleScene extends Phaser.Scene {
       id: this.nextEntityId++, definition, side, hp: definition.maxHp, maxHp: definition.maxHp,
       shield: 0, attackTimer: Phaser.Math.Between(0, 250), attackRecoveryLocked: false,
       attackWindupRemainingMs: 0, pendingAttackKind: 'none', pendingTargetId: 0, pendingTargetX: 0,
-      container, hpBar, alive: true, isHero: hero, isBoss: boss, isElite: Boolean(eliteName), hasCharged: false,
-      baseScale: 1, attackMotionMs: 0, attackMotionDurationMs: 0, attackRig, attackPose: createAttackMotionPose(), damageFlashMs: 0,
+      container, shadow, shadowGroundOffset, hpBar, alive: true, isHero: hero, isBoss: boss, isElite: Boolean(eliteName), hasCharged: false,
+      baseScale, attackMotionMs: 0, attackMotionDurationMs: 0, attackRig, attackPose: createAttackMotionPose(), damageFlashMs: 0,
     };
     this.units.push(unit);
     if (boss) {
-      this.add.text(x, y - 92, '경계 중', {
+      this.add.text(x, container.y + healthBarY * baseScale - 24, '경계 중', {
         fontFamily: 'Pretendard Variable, system-ui, sans-serif', fontSize: '14px', color: '#d7c2b5', backgroundColor: '#171521aa', padding: { x: 10, y: 5 },
       }).setOrigin(0.5).setName('boss-status');
     }
@@ -1388,8 +1394,10 @@ export class BattleScene extends Phaser.Scene {
   private enterBossPhaseTwo(): void {
     this.bossPhase = 2;
     if (!this.boss) return;
-    this.boss.baseScale = 1.08;
+    const encounterScale = this.stageDefinition.challenge ? bossCombatTuning.challengeVisualScale : 1;
+    this.boss.baseScale = encounterScale * bossCombatTuning.phaseTwoVisualScaleMultiplier;
     this.boss.container.setScale(this.boss.baseScale);
+    this.boss.shadow.y = this.boss.shadowGroundOffset / this.boss.baseScale;
     this.boss.container.iterate((child: Phaser.GameObjects.GameObject) => {
       if ('setTint' in child && typeof child.setTint === 'function') child.setTint(0xff755c);
     });

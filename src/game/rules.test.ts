@@ -108,6 +108,8 @@ describe('combat rules', () => {
     expect(regionalBoss.attackDamage).toBe(112);
     expect(finalBoss.maxHp).toBe(5_550);
     expect(finalBoss.attackDamage).toBe(112);
+    expect(bossCombatTuning.challengeVisualScale).toBeGreaterThan(1);
+    expect(bossCombatTuning.phaseTwoVisualScaleMultiplier).toBeGreaterThan(1);
     expect(bossCombatTuning.phaseTwoStompDamageMultiplier).toBeGreaterThan(bossCombatTuning.phaseOneStompDamageMultiplier);
   });
 

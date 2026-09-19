@@ -257,6 +257,8 @@ export const bossDefinition: UnitDefinition = {
 
 export const bossCombatTuning = {
   phaseTwoHpRatio: 0.55,
+  challengeVisualScale: 1.5,
+  phaseTwoVisualScaleMultiplier: 1.08,
   initialStompDelayMs: 3_600,
   phaseOneStompIntervalMs: 5_200,
   phaseTwoStompIntervalMs: 3_400,
