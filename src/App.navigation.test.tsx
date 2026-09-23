@@ -15,6 +15,9 @@ describe('title and kingdom-map navigation', () => {
     useGameStore.getState().resetProgress();
     localStorage.clear();
     Object.defineProperty(HTMLElement.prototype, 'scrollTo', { configurable: true, value: vi.fn() });
+    Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: vi.fn(() => 'blob:last-bastion-save') });
+    Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: vi.fn() });
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
     host = document.createElement('div');
     document.body.append(host);
     root = createRoot(host);
@@ -24,6 +27,7 @@ describe('title and kingdom-map navigation', () => {
   afterEach(() => {
     act(() => root.unmount());
     host.remove();
+    vi.restoreAllMocks();
   });
 
   it('keeps the title focused and exposes progression from the map hub', () => {
@@ -146,20 +150,21 @@ describe('title and kingdom-map navigation', () => {
     expect(useGameStore.getState().equippedUnits).toEqual(['militia']);
   });
 
-  it('uses password and destructive-confirmation modals for slot management', () => {
+  it('exports without a password prompt and confirms destructive slot deletion', async () => {
     act(() => {
       setActiveSaveSlot(1);
       useGameStore.setState({ unlockedStage: 4, clearedStages: [1, 2, 3] });
       root.render(<App />);
     });
     const occupiedSlot = host.querySelector<HTMLElement>('.save-slot-card.occupied')!;
-    act(() => [...occupiedSlot.querySelectorAll<HTMLButtonElement>('button')].find((button) => button.textContent === '내보내기')!.click());
+    await act(async () => {
+      [...occupiedSlot.querySelectorAll<HTMLButtonElement>('button')].find((button) => button.textContent === '내보내기')!.click();
+      await vi.waitFor(() => expect(URL.createObjectURL).toHaveBeenCalledOnce());
+    });
 
-    expect(host.querySelector('[role="dialog"] h2')?.textContent).toBe('슬롯 1 암호화 내보내기');
-    expect(host.querySelector('.crypto-spec')?.textContent).toContain('AES-GCM 256');
-    expect(host.querySelector('.crypto-spec')?.textContent).toContain('PBKDF2 · SHA-256');
-    expect(document.activeElement).toBe(host.querySelector<HTMLInputElement>('.save-password-fields input'));
-    act(() => host.querySelector<HTMLButtonElement>('.game-modal-close')!.click());
+    expect(host.querySelector('[role="dialog"]')).toBeNull();
+    expect(host.querySelector('.save-password-fields')).toBeNull();
+    expect(host.querySelector('[role="status"]')?.textContent).toBe('슬롯 1을 저장 파일로 내보냈습니다.');
 
     act(() => [...occupiedSlot.querySelectorAll<HTMLButtonElement>('button')].find((button) => button.textContent === '삭제')!.click());
     expect(host.querySelector('[role="dialog"] h2')?.textContent).toBe('슬롯 1을 삭제할까요?');

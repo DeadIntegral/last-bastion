@@ -13,7 +13,7 @@ import { challengeStages, enemyFactionLabels, getStage, stages } from './data/st
 import { GAME_VERSION_LABEL } from './data/version';
 import { localDateKey } from './game/daily';
 import { analyzeCampaignDifficulty, stageDifficultyPresentation } from './game/difficulty';
-import { decryptSave, encryptSave, isEncryptedSave, MAX_SAVE_FILE_BYTES } from './game/saveCrypto';
+import { decryptSave, encryptSave, isEncryptedSave, MAX_SAVE_FILE_BYTES, requiresSavePassword } from './game/saveCrypto';
 import { activeSaveSlot, deleteSaveSlot, readSaveSlot, saveSlotSummaries, saveSlotSummary, setActiveSaveSlot, type SaveSlotId } from './game/saveSlots';
 import { shouldUseScreenTransition } from './game/screenTransitions';
 import { musicEngine, type MusicScene } from './audio/music';
@@ -183,13 +183,13 @@ function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
   const resetProgress = useGameStore((state) => state.resetProgress);
   const importSave = useGameStore((state) => state.importSave);
   const [, refreshSlots] = useState(0);
-  const [activeModal, setActiveModal] = useState<'delete-slot' | 'export-password' | 'import-password' | 'import-target' | 'import-confirm' | 'invalid-save' | null>(null);
+  const [activeModal, setActiveModal] = useState<'delete-slot' | 'import-password' | 'import-target' | 'import-confirm' | 'invalid-save' | null>(null);
   const [selectedSlotId, setSelectedSlotId] = useState<SaveSlotId | null>(null);
   const [pendingImport, setPendingImport] = useState<{ name: string; serialized: string } | null>(null);
   const [password, setPassword] = useState('');
-  const [passwordConfirm, setPasswordConfirm] = useState('');
   const [cryptoError, setCryptoError] = useState('');
   const [cryptoBusy, setCryptoBusy] = useState(false);
+  const [exportingSlotId, setExportingSlotId] = useState<SaveSlotId | null>(null);
   const [notice, setNotice] = useState('');
   const importRef = useRef<HTMLInputElement>(null);
   const slots = saveSlotSummaries();
@@ -200,7 +200,6 @@ function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
     setActiveModal(null);
     setSelectedSlotId(null);
     setPassword('');
-    setPasswordConfirm('');
     setCryptoError('');
   };
 
@@ -238,40 +237,20 @@ function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
     closeModal();
   };
 
-  const requestExport = (slotId: SaveSlotId) => {
-    setSelectedSlotId(slotId);
-    setPassword('');
-    setPasswordConfirm('');
-    setCryptoError('');
-    setActiveModal('export-password');
-  };
-
-  const exportEncryptedSave = async () => {
-    if (selectedSlotId === null) return;
-    if (password.length < 8) {
-      setCryptoError('비밀번호는 8자 이상 입력해 주세요.');
-      return;
-    }
-    if (password !== passwordConfirm) {
-      setCryptoError('비밀번호 확인이 일치하지 않습니다.');
-      return;
-    }
-    const serialized = readSaveSlot(selectedSlotId);
+  const exportSave = async (slotId: SaveSlotId) => {
+    if (exportingSlotId !== null) return;
+    const serialized = readSaveSlot(slotId);
     if (!serialized) return;
-    setCryptoBusy(true);
-    setCryptoError('');
+    setExportingSlotId(slotId);
     try {
-      downloadSaveFile(await encryptSave(serialized, password), selectedSlotId);
-      setNotice(`슬롯 ${selectedSlotId}을 암호화된 저장 파일로 내보냈습니다.`);
+      downloadSaveFile(await encryptSave(serialized), slotId);
+      setNotice(`슬롯 ${slotId}을 저장 파일로 내보냈습니다.`);
       window.setTimeout(() => setNotice(''), 1_800);
-      setActiveModal(null);
-      setSelectedSlotId(null);
-      setPassword('');
-      setPasswordConfirm('');
     } catch {
-      setCryptoError('암호화 저장 파일을 만들지 못했습니다. 다시 시도해 주세요.');
+      setNotice('저장 파일을 만들지 못했습니다. 다시 시도해 주세요.');
+      window.setTimeout(() => setNotice(''), 2_400);
     } finally {
-      setCryptoBusy(false);
+      setExportingSlotId(null);
     }
   };
 
@@ -285,20 +264,23 @@ function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
     }
     try {
       const serialized = await file.text();
-      setPendingImport({ name: file.name, serialized });
       setPassword('');
       setCryptoError('');
-      setActiveModal(isEncryptedSave(serialized) ? 'import-password' : 'import-target');
+      if (isEncryptedSave(serialized) && requiresSavePassword(serialized)) {
+        setPendingImport({ name: file.name, serialized });
+        setActiveModal('import-password');
+      } else {
+        const prepared = isEncryptedSave(serialized) ? await decryptSave(serialized) : serialized;
+        setPendingImport({ name: file.name, serialized: prepared });
+        setActiveModal('import-target');
+      }
     } catch {
       setActiveModal('invalid-save');
     }
   };
 
   const decryptImport = async () => {
-    if (!pendingImport || !password) {
-      setCryptoError('저장 파일의 비밀번호를 입력해 주세요.');
-      return;
-    }
+    if (!pendingImport) return;
     setCryptoBusy(true);
     setCryptoError('');
     try {
@@ -307,7 +289,7 @@ function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
       setPassword('');
       setActiveModal('import-target');
     } catch {
-      setCryptoError('비밀번호가 틀렸거나 파일의 체크섬·인증 정보가 손상되었습니다.');
+      setCryptoError('비밀번호가 틀렸거나 구형 파일의 체크섬·인증 정보가 손상되었습니다.');
     } finally {
       setCryptoBusy(false);
     }
@@ -362,7 +344,7 @@ function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
               </>}
               <div className="save-slot-actions">
                 <button className="continue" disabled={slot.corrupted} onClick={() => continueGame(slot.id)}>이어하기</button>
-                <button disabled={slot.corrupted} onClick={() => requestExport(slot.id)}>내보내기</button>
+                <button disabled={slot.corrupted || exportingSlotId !== null} aria-busy={exportingSlotId === slot.id} title="비밀번호 없이 암호화된 저장 파일 다운로드" onClick={() => void exportSave(slot.id)}>내보내기</button>
                 <button className="delete" onClick={() => requestDelete(slot.id)}>삭제</button>
               </div>
             </article>
@@ -373,7 +355,7 @@ function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
           ))}
         </div>
         <div className="save-slot-footer">
-          <button onClick={() => importRef.current?.click()}><span>↓</span> 암호화 저장 가져오기</button>
+          <button onClick={() => importRef.current?.click()}><span>↓</span> 저장 파일 가져오기</button>
           <button onClick={() => onNavigate('credits')}>크레딧</button>
         </div>
         <input ref={importRef} type="file" accept="application/json,.json" hidden onChange={loadFile} />
@@ -382,18 +364,11 @@ function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
       {notice && <div className="toast" role="status">{notice}</div>}
 
       {activeModal === 'delete-slot' && selectedSlotId !== null && <GameModal eyebrow="DELETE CAMPAIGN" title={`슬롯 ${selectedSlotId}을 삭제할까요?`} tone="danger" onClose={closeModal} actions={<><button className="modal-button secondary" data-autofocus onClick={closeModal}>취소</button><button className="modal-button danger" onClick={confirmDelete}>원정 기록 삭제</button></>}>
-        <p>이 슬롯의 진행도는 브라우저에서 완전히 삭제됩니다. 필요하다면 먼저 암호화 저장 파일로 내보내세요.</p>
+        <p>이 슬롯의 진행도는 브라우저에서 완전히 삭제됩니다. 필요하다면 먼저 저장 파일로 내보내세요.</p>
       </GameModal>}
 
-      {activeModal === 'export-password' && selectedSlotId !== null && <GameModal eyebrow="ENCRYPT SAVE" title={`슬롯 ${selectedSlotId} 암호화 내보내기`} onClose={closeModal} actions={<><button className="modal-button secondary" onClick={closeModal} disabled={cryptoBusy}>취소</button><button className="modal-button primary" onClick={() => void exportEncryptedSave()} disabled={cryptoBusy}>{cryptoBusy ? '암호화 중…' : '암호화하여 다운로드'}</button></>}>
-        <p>AES-256-GCM으로 저장 파일을 암호화합니다. 비밀번호는 저장되지 않으며 잊어버리면 복구할 수 없습니다.</p>
-        <div className="save-password-fields"><label>비밀번호<input data-autofocus type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={8} /></label><label>비밀번호 확인<input type="password" autoComplete="new-password" value={passwordConfirm} onChange={(event) => setPasswordConfirm(event.target.value)} minLength={8} /></label></div>
-        <div className="crypto-spec"><span>AES-GCM 256</span><span>PBKDF2 · SHA-256</span><span>210,000회</span><span>CHECKSUM</span></div>
-        {cryptoError && <p className="modal-error" role="alert">{cryptoError}</p>}
-      </GameModal>}
-
-      {activeModal === 'import-password' && pendingImport && <GameModal eyebrow="DECRYPT SAVE" title="암호화 저장 불러오기" onClose={closeModal} actions={<><button className="modal-button secondary" onClick={closeModal} disabled={cryptoBusy}>취소</button><button className="modal-button primary" onClick={() => void decryptImport()} disabled={cryptoBusy}>{cryptoBusy ? '검증 중…' : '복호화하고 검증'}</button></>}>
-        <p><strong>{pendingImport.name}</strong>의 비밀번호를 입력하세요. 체크섬과 AES-GCM 인증을 모두 통과해야 불러올 수 있습니다.</p>
+      {activeModal === 'import-password' && pendingImport && <GameModal eyebrow="LEGACY SAVE" title="기존 암호화 저장 불러오기" onClose={closeModal} actions={<><button className="modal-button secondary" onClick={closeModal} disabled={cryptoBusy}>취소</button><button className="modal-button primary" onClick={() => void decryptImport()} disabled={cryptoBusy}>{cryptoBusy ? '검증 중…' : '복호화하고 검증'}</button></>}>
+        <p>{t('{name}은 이전 버전에서 비밀번호로 암호화된 파일입니다. 당시 사용한 비밀번호를 입력하세요. 입력 길이 제한은 없습니다.', { name: pendingImport.name })}</p>
         <div className="save-password-fields"><label>비밀번호<input data-autofocus type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} /></label></div>
         {cryptoError && <p className="modal-error" role="alert">{cryptoError}</p>}
       </GameModal>}
@@ -408,7 +383,7 @@ function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
       </GameModal>}
 
       {activeModal === 'invalid-save' && <GameModal eyebrow="IMPORT FAILED" title="저장 파일을 읽을 수 없습니다" onClose={closeModal} actions={<button className="modal-button primary" data-autofocus onClick={closeModal}>확인</button>}>
-        <p>파일 형식, 비밀번호, SHA-256 체크섬 또는 AES-GCM 인증 정보를 확인해 주세요. 기존 평문 저장은 가져오기 호환만 지원합니다.</p>
+        <p>파일 형식, SHA-256 체크섬 또는 AES-GCM 인증 정보를 확인해 주세요. 구형 암호화 파일이라면 당시 비밀번호도 필요합니다.</p>
       </GameModal>}
     </main>
   )}</Localized>;

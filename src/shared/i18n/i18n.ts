@@ -34,9 +34,8 @@ function preserveWhitespace(source: string, translated: string): string {
 function translateEnglishPattern(source: string): string | undefined {
   const patterns: Array<[RegExp, (...matches: string[]) => string]> = [
     [/^슬롯 (\d+)을 삭제할까요\?$/, (slot) => `Delete slot ${slot}?`],
-    [/^슬롯 (\d+) 암호화 내보내기$/, (slot) => `Export encrypted slot ${slot}`],
     [/^슬롯 (\d+)을 교체할까요\?$/, (slot) => `Replace slot ${slot}?`],
-    [/^슬롯 (\d+)을 암호화된 저장 파일로 내보냈습니다\.$/, (slot) => `Slot ${slot} was exported as an encrypted save.`],
+    [/^슬롯 (\d+)을 저장 파일로 내보냈습니다\.$/, (slot) => `Slot ${slot} was exported as a save file.`],
     [/^(\d+)장 원정$/, (stage) => `Chapter ${stage} expedition`],
     [/^(\d+)장 기록 교체$/, (stage) => `Replace chapter ${stage} record`],
     [/^(\d+)장 클리어 시 해금$/, (stage) => `Unlock after chapter ${stage}`],
@@ -112,7 +111,7 @@ function translateEnglishPattern(source: string): string | undefined {
 function translateJapanesePattern(source: string): string | undefined {
   const patterns: Array<[RegExp, (...matches: string[]) => string]> = [
     [/^슬롯 (\d+)을 삭제할까요\?$/, (slot) => `スロット${slot}を削除しますか？`],
-    [/^슬롯 (\d+) 암호화 내보내기$/, (slot) => `スロット${slot}を暗号化してエクスポート`],
+    [/^슬롯 (\d+)을 저장 파일로 내보냈습니다\.$/, (slot) => `スロット${slot}を保存ファイルとしてエクスポートしました。`],
     [/^(\d+)장 원정$/, (stage) => `第${stage}章 遠征`],
     [/^(\d+)장 클리어 시 해금$/, (stage) => `第${stage}章クリアで解放`],
     [/^(\d+)장 클리어 필요$/, (stage) => `第${stage}章のクリアが必要`],
