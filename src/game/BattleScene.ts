@@ -31,6 +31,7 @@ import {
   masteryLevelFromXp,
   mobilizedCommandStats,
   regenerateCommand,
+  retreatsFromDeadZone,
   scaledBattleDelta,
   scaledHeroRespawnMs,
   scaledHeroSkillCooldownMs,
@@ -676,7 +677,7 @@ export class BattleScene extends Phaser.Scene {
         return;
       }
       if (distance < unit.definition.minimumAttackRange) {
-        this.retreatFrom(unit, target.container.x, delta);
+        if (retreatsFromDeadZone(unit.definition)) this.retreatFrom(unit, target.container.x, delta);
         return;
       }
     }
@@ -705,7 +706,7 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
     if (castleEdgeDistance < unit.definition.minimumAttackRange) {
-      this.retreatFrom(unit, destination, delta);
+      if (retreatsFromDeadZone(unit.definition)) this.retreatFrom(unit, destination, delta);
       return;
     }
 

@@ -48,7 +48,8 @@ export function estimateUnitThreat(unit: UnitDefinition): number {
   const healingPerSecond = (unit.healingPower ?? 0) / (unit.attackIntervalMs / 1_000);
   const rangeMultiplier = 1 + Math.min(unit.attackRange, 220) / 650;
   const commitmentMultiplier = 1 - Math.min(0.16, unit.attackWindupMs / unit.attackIntervalMs * 0.22);
-  const deadZoneMultiplier = 1 - Math.min(0.18, unit.minimumAttackRange / Math.max(1, unit.attackRange) * 0.24);
+  const deadZonePenalty = Math.min(0.18, unit.minimumAttackRange / Math.max(1, unit.attackRange) * 0.24);
+  const deadZoneMultiplier = 1 - deadZonePenalty * (unit.retreatsInsideMinimumRange ? 0.35 : 1);
   const traitMultiplier = (unit.tags.includes('flying') ? 1.18 : 1)
     * (unit.tags.includes('charge') ? 1.08 : 1)
     * (unit.tags.includes('anti-large') ? 1.04 : 1)

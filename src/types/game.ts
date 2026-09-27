@@ -78,6 +78,7 @@ export interface UnitDefinition {
   healingPower?: number;
   healingRange?: number;
   grade?: UnitGrade;
+  retreatsInsideMinimumRange?: boolean;
 }
 
 export type TroopDefinition = UnitDefinition & { id: UnitId; grade: UnitGrade };

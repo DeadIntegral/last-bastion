@@ -81,6 +81,14 @@ export function attackRangeLabel(definition: UnitDefinition): string {
     : `${definition.attackRange}`;
 }
 
+export function retreatsFromDeadZone(definition: Pick<UnitDefinition, 'minimumAttackRange' | 'retreatsInsideMinimumRange'>): boolean {
+  return definition.minimumAttackRange > 0 && definition.retreatsInsideMinimumRange === true;
+}
+
+export function spacingTraitLabel(definition: Pick<UnitDefinition, 'minimumAttackRange' | 'retreatsInsideMinimumRange'>): string | undefined {
+  return retreatsFromDeadZone(definition) ? '후퇴 사격 · 사각 진입 시 거리 확보' : undefined;
+}
+
 export function attackTimingLabel(definition: UnitDefinition): string {
   return `선딜 ${(definition.attackWindupMs / 1_000).toFixed(2)}초 · 후딜 ${(attackRecoveryMs(definition) / 1_000).toFixed(2)}초`;
 }

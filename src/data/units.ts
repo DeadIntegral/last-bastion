@@ -1,7 +1,7 @@
 import type { HeroDefinition, HeroId, TroopDefinition, UnitDefinition, UnitFamily, UnitGrade, UnitId } from '../types/game';
 
 type TroopTemplate = Pick<UnitDefinition, 'name' | 'cost' | 'maxHp' | 'attackDamage' | 'icon' | 'color' | 'accent'>
-  & Partial<Pick<UnitDefinition, 'defense' | 'attackRange' | 'minimumAttackRange' | 'attackIntervalMs' | 'attackWindupMs' | 'moveSpeed' | 'spawnCooldownMs' | 'size' | 'tags' | 'squadSize' | 'attackPattern' | 'equipmentCostBase' | 'equipmentGrowth' | 'recruitCost' | 'requiredFortressTier' | 'requiresEncounter' | 'recruitSource' | 'maxActivePerSide' | 'healingPower' | 'healingRange' | 'guardProtection'>>;
+  & Partial<Pick<UnitDefinition, 'defense' | 'attackRange' | 'minimumAttackRange' | 'attackIntervalMs' | 'attackWindupMs' | 'moveSpeed' | 'spawnCooldownMs' | 'size' | 'tags' | 'squadSize' | 'attackPattern' | 'equipmentCostBase' | 'equipmentGrowth' | 'recruitCost' | 'requiredFortressTier' | 'requiresEncounter' | 'recruitSource' | 'maxActivePerSide' | 'healingPower' | 'healingRange' | 'guardProtection' | 'retreatsInsideMinimumRange'>>;
 
 export const unitGradeLabels: Record<UnitGrade, string> = {
   1: '일반',
@@ -131,7 +131,7 @@ export const troopDefinitions: Record<UnitId, TroopDefinition> = {
     attackRange: 185, minimumAttackRange: 50, attackIntervalMs: 1_150, attackWindupMs: 430, moveSpeed: 58, spawnCooldownMs: 4_500,
     color: 0x6fbad4, accent: 0xe8fbff, size: 20, tags: ['flying', 'ranged', 'elemental'], icon: '✦', squadSize: 1,
     attackPattern: { kind: 'pierce', maxTargets: 2, followThroughRange: 105, secondaryDamageMultiplier: 0.7 },
-    equipmentCostBase: 200, equipmentGrowth: { attack: 6, hp: 60, defense: 1.2, moveSpeed: 2 }, recruitCost: 0, requiredFortressTier: 3, recruitSource: 'challenge', maxActivePerSide: 3, grade: unitGradeById.spirit,
+    equipmentCostBase: 200, equipmentGrowth: { attack: 6, hp: 60, defense: 1.2, moveSpeed: 2 }, recruitCost: 0, requiredFortressTier: 3, recruitSource: 'challenge', maxActivePerSide: 3, retreatsInsideMinimumRange: true, grade: unitGradeById.spirit,
   },
   hellhound: {
     id: 'hellhound', name: '마염견', cost: 170, maxHp: 850, defense: 4, attackDamage: 70,
@@ -142,12 +142,12 @@ export const troopDefinitions: Record<UnitId, TroopDefinition> = {
   },
   swordsman: makeTroop('swordsman', { name: '왕국 검병', cost: 75, maxHp: 180, defense: 2, attackDamage: 28, attackRange: 38, attackIntervalMs: 950, attackWindupMs: 220, moveSpeed: 48, spawnCooldownMs: 2_900, squadSize: 2, icon: '⚔', color: 0x527eae, accent: 0xd8ecff }),
   pikeman: makeTroop('pikeman', { name: '장창병', cost: 95, maxHp: 195, defense: 1, attackDamage: 35, attackRange: 72, attackIntervalMs: 1_200, attackWindupMs: 340, moveSpeed: 40, tags: ['ground', 'anti-large'], attackPattern: { kind: 'pierce', maxTargets: 2, followThroughRange: 82, secondaryDamageMultiplier: 0.8 }, icon: '♢', color: 0xb89745, accent: 0xffe7a1 }),
-  scout: makeTroop('scout', { name: '변경 척후병', cost: 65, maxHp: 82, attackDamage: 18, attackRange: 200, minimumAttackRange: 40, attackIntervalMs: 900, attackWindupMs: 240, moveSpeed: 68, squadSize: 2, tags: ['ground', 'ranged'], icon: '➶', color: 0x4e9f78, accent: 0xd8ffe9 }),
+  scout: makeTroop('scout', { name: '변경 척후병', cost: 65, maxHp: 82, attackDamage: 18, attackRange: 200, minimumAttackRange: 40, attackIntervalMs: 900, attackWindupMs: 240, moveSpeed: 68, squadSize: 2, tags: ['ground', 'ranged'], retreatsInsideMinimumRange: true, icon: '➶', color: 0x4e9f78, accent: 0xd8ffe9 }),
   priest: makeTroop('priest', { name: '전장 사제', cost: 105, maxHp: 145, defense: 1, attackDamage: 20, attackRange: 175, minimumAttackRange: 55, attackIntervalMs: 1_250, attackWindupMs: 450, moveSpeed: 36, tags: ['ground', 'ranged', 'holy', 'support'], healingPower: 34, healingRange: 190, icon: '✚', color: 0xd6c78b, accent: 0xfff7d1 }),
   mage: makeTroop('mage', { name: '왕국 마법사', cost: 115, maxHp: 110, attackDamage: 36, attackRange: 195, minimumAttackRange: 65, attackIntervalMs: 1_300, attackWindupMs: 520, moveSpeed: 37, tags: ['ground', 'ranged', 'magic'], attackPattern: { kind: 'groundBurst', radius: 72, secondaryDamageMultiplier: 0.7, targetDomain: 'ground', telegraphMs: 520 }, icon: '✧', color: 0x6d69b8, accent: 0xe2dfff }),
   archmage: makeTroop('archmage', { name: '대마법사', cost: 190, maxHp: 700, defense: 4, attackDamage: 110, attackRange: 245, minimumAttackRange: 100, attackIntervalMs: 1_600, attackWindupMs: 780, moveSpeed: 31, spawnCooldownMs: 5_500, tags: ['ground', 'ranged', 'magic'], attackPattern: { kind: 'directional', length: 245, secondaryDamageMultiplier: 0.7, targetDomain: 'all' }, icon: '✺', color: 0x574f9e, accent: 0xf0dcff }),
   assassin: makeTroop('assassin', { name: '그림자 암살자', cost: 110, maxHp: 120, attackDamage: 51, attackRange: 30, attackIntervalMs: 780, attackWindupMs: 120, moveSpeed: 74, spawnCooldownMs: 4_100, tags: ['ground', 'charge'], icon: '†', color: 0x3f4455, accent: 0xc8cee5 }),
-  goblinArcher: makeTroop('goblinArcher', { name: '고블린 독궁수', cost: 65, maxHp: 70, attackDamage: 21, attackRange: 180, attackIntervalMs: 1_000, moveSpeed: 49, squadSize: 2, tags: ['ground', 'ranged'], icon: '➹', color: 0x668b3d, accent: 0xd9efa8 }),
+  goblinArcher: makeTroop('goblinArcher', { name: '고블린 독궁수', cost: 65, maxHp: 70, attackDamage: 21, attackRange: 180, attackIntervalMs: 1_000, moveSpeed: 49, squadSize: 2, tags: ['ground', 'ranged'], retreatsInsideMinimumRange: true, icon: '➹', color: 0x668b3d, accent: 0xd9efa8 }),
   goblinBomber: makeTroop('goblinBomber', { name: '고블린 폭탄병', cost: 90, maxHp: 78, attackDamage: 38, attackRange: 145, minimumAttackRange: 80, attackIntervalMs: 1_600, attackWindupMs: 720, moveSpeed: 44, squadSize: 2, tags: ['ground', 'ranged'], attackPattern: { kind: 'splash', radius: 82, secondaryDamageMultiplier: 0.8, targetDomain: 'ground' }, icon: '●', color: 0x7c7139, accent: 0xffdb69 }),
   orcBerserker: makeTroop('orcBerserker', { name: '오크 광전사', cost: 105, maxHp: 260, defense: 1, attackDamage: 44, attackRange: 44, attackIntervalMs: 850, moveSpeed: 52, tags: ['ground', 'large'], attackPattern: { kind: 'cleave', secondaryDamageMultiplier: 0.65 }, icon: '⚒', color: 0x60773c, accent: 0xd3e58b }),
   orcShaman: makeTroop('orcShaman', { name: '오크 주술사', cost: 125, maxHp: 150, attackDamage: 40, attackRange: 185, minimumAttackRange: 65, attackIntervalMs: 1_350, attackWindupMs: 520, moveSpeed: 34, tags: ['ground', 'ranged', 'magic'], attackPattern: { kind: 'groundBurst', radius: 78, secondaryDamageMultiplier: 0.65, targetDomain: 'ground', telegraphMs: 520 }, icon: '☽', color: 0x55705b, accent: 0xaef2be }),
@@ -203,7 +203,7 @@ export const heroDefinitions: Record<HeroId, HeroDefinition> = {
   huntress: {
     id: 'huntress', name: '리아', title: '마수 사냥꾼', cost: 0, maxHp: 350, attackDamage: 48,
     attackRange: 230, minimumAttackRange: 55, attackIntervalMs: 1050, attackWindupMs: 320, moveSpeed: 47, spawnCooldownMs: 0,
-    color: 0x5d9d6f, accent: 0xe3f5b1, size: 25, tags: ['ground', 'hero', 'ranged', 'anti-large'], icon: '➹', squadSize: 1, attackPattern: { kind: 'pierce', maxTargets: 3, followThroughRange: 145, secondaryDamageMultiplier: 0.8 }, equipmentCostBase: 125, equipmentGrowth: { attack: 5, hp: 28, defense: 1.2, moveSpeed: 1.8 },
+    color: 0x5d9d6f, accent: 0xe3f5b1, size: 25, tags: ['ground', 'hero', 'ranged', 'anti-large'], icon: '➹', squadSize: 1, attackPattern: { kind: 'pierce', maxTargets: 3, followThroughRange: 145, secondaryDamageMultiplier: 0.8 }, equipmentCostBase: 125, equipmentGrowth: { attack: 5, hp: 28, defense: 1.2, moveSpeed: 1.8 }, retreatsInsideMinimumRange: true,
     description: '거대한 적의 약점을 노리고 전장을 빠르게 누비는 사냥꾼입니다.',
     passiveName: '마수의 약점', passiveDescription: '대형 적과 보스에게 75% 추가 피해를 줍니다.',
     skillName: '천공의 화살비', skillDescription: '전장의 모든 적에게 기본 105 피해의 화살을 퍼부으며 숙련에 따라 강화됩니다.',
@@ -239,7 +239,7 @@ export const heroDefinitions: Record<HeroId, HeroDefinition> = {
   windSpirit: {
     id: 'windSpirit', name: '네리스', title: '해방된 바람 정령', cost: 0, maxHp: 420, defense: 3, attackDamage: 58,
     attackRange: 230, minimumAttackRange: 70, attackIntervalMs: 1_050, attackWindupMs: 500, moveSpeed: 72, spawnCooldownMs: 0,
-    color: 0x62c9db, accent: 0xe9fbff, size: 27, tags: ['flying', 'hero', 'ranged', 'magic', 'elemental'], icon: '✧', squadSize: 1, attackPattern: { kind: 'pierce', maxTargets: 2, followThroughRange: 125, secondaryDamageMultiplier: 0.8 }, equipmentCostBase: 200, equipmentGrowth: { attack: 7, hp: 32, defense: 1.3, moveSpeed: 2.2 },
+    color: 0x62c9db, accent: 0xe9fbff, size: 27, tags: ['flying', 'hero', 'ranged', 'magic', 'elemental'], icon: '✧', squadSize: 1, attackPattern: { kind: 'pierce', maxTargets: 2, followThroughRange: 125, secondaryDamageMultiplier: 0.8 }, equipmentCostBase: 200, equipmentGrowth: { attack: 7, hp: 32, defense: 1.3, moveSpeed: 2.2 }, retreatsInsideMinimumRange: true,
     description: '속박의 핵을 깨뜨린 뒤 스스로 해방군과 계약한 고대 바람 정령입니다.',
     passiveName: '자유의 기류', passiveDescription: '지상 공격을 받지 않는 공중 영웅이며 기본 공격이 적 두 명을 관통합니다.',
     skillName: '해방의 폭풍', skillDescription: '전방에 거대한 폭풍을 일으켜 지상과 공중의 적을 함께 휩쓸고 성채를 타격합니다.',

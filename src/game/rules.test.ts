@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { heroMasteryGrowth, heroSkillPower, soldierMasteryGrowth } from '../data/mastery';
 import { allTroopOrder, bossCombatTuning, bossDefinition, heroDefinitions, troopDefinitions } from '../data/units';
 import { challengeStages, stages } from '../data/stages';
-import { ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL, STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS, applyEnemyTerrain, applyTriumphMonumentStats, attackPatternLabel, attackRangeLabel, attackRecoveryMs, attackTimingLabel, calculateDamage, canActivateMobilization, canAttackTarget, canReceiveRallyOrder, cooldownFillRatio, enemyFortressCanReinforce, enemyObjectiveDefeated, equipmentCost, fortressRearSpawnX, guardProtectionLabel, hasEquipmentCapstone, healedHp, heroAuraBonuses, heroAwakeningRank, heroMasteryLevelFromXp, isBehindLivingFortress, isWithinAttackBand, masteryLevelFromXp, mobilizedCommandStats, regenerateCommand, scaledBattleDelta, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, unitDeploymentCapacity, upgradedStats, upgradeCost, usesStatEquipmentCapstone } from './rules';
+import { ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL, STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS, applyEnemyTerrain, applyTriumphMonumentStats, attackPatternLabel, attackRangeLabel, attackRecoveryMs, attackTimingLabel, calculateDamage, canActivateMobilization, canAttackTarget, canReceiveRallyOrder, cooldownFillRatio, enemyFortressCanReinforce, enemyObjectiveDefeated, equipmentCost, fortressRearSpawnX, guardProtectionLabel, hasEquipmentCapstone, healedHp, heroAuraBonuses, heroAwakeningRank, heroMasteryLevelFromXp, isBehindLivingFortress, isWithinAttackBand, masteryLevelFromXp, mobilizedCommandStats, regenerateCommand, retreatsFromDeadZone, scaledBattleDelta, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, spacingTraitLabel, unitDeploymentCapacity, upgradedStats, upgradeCost, usesStatEquipmentCapstone } from './rules';
 
 describe('combat rules', () => {
   it('applies anti-large damage bonus', () => {
@@ -78,6 +78,15 @@ describe('combat rules', () => {
     expect(isWithinAttackBand(troopDefinitions.militia, -5)).toBe(true);
     expect(attackRangeLabel(crossbow)).toBe('75–160');
     expect(attackTimingLabel(crossbow)).toBe('선딜 0.65초 · 후딜 0.80초');
+  });
+
+  it('limits automatic dead-zone retreat to authored skirmishers', () => {
+    const skirmishers = [troopDefinitions.scout, troopDefinitions.goblinArcher, troopDefinitions.spirit, heroDefinitions.huntress, heroDefinitions.windSpirit];
+    const stationaryRanged = [troopDefinitions.archer, troopDefinitions.crossbow, troopDefinitions.priest, troopDefinitions.mage, troopDefinitions.archmage, troopDefinitions.goblinBomber, troopDefinitions.ifrit, troopDefinitions.dragon, heroDefinitions.pyromancer, heroDefinitions.saint];
+    expect(skirmishers.every(retreatsFromDeadZone)).toBe(true);
+    expect(stationaryRanged.every((definition) => !retreatsFromDeadZone(definition))).toBe(true);
+    expect(spacingTraitLabel(troopDefinitions.scout)).toContain('후퇴 사격');
+    expect(spacingTraitLabel(troopDefinitions.archer)).toBeUndefined();
   });
 
   it('keeps archers superior at range and single-target deployment damage', () => {
