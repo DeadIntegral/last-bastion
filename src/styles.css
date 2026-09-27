@@ -527,6 +527,8 @@ button:disabled { cursor: not-allowed; }
 .campaign-road .road-segment { stroke: rgba(87,72,55,.58); stroke-width: 2; stroke-dasharray: 4 9; stroke-linecap: round; vector-effect: non-scaling-stroke; }
 .campaign-road .road-segment.frontline { stroke: rgba(215,137,99,.72); stroke-width: 3; stroke-dasharray: 8 7; }
 .campaign-road .road-segment.liberated { stroke: rgba(238,207,125,.8); stroke-width: 4; stroke-dasharray: none; filter: drop-shadow(0 0 3px rgba(221,189,112,.42)); }
+.campaign-road .treasure-route { stroke: rgba(245,196,77,.82); stroke-width: 3; stroke-dasharray: 3 7; stroke-linecap: round; vector-effect: non-scaling-stroke; filter: drop-shadow(0 0 4px rgba(233,179,55,.5)); }
+.campaign-road .treasure-route.claimed { stroke: rgba(156,176,111,.62); stroke-dasharray: none; filter: none; }
 .map-node { position: absolute; z-index: 5; width: 108px; padding: 0; transform: translate(-50%, -50%); border: 0; background: transparent; color: #eef0e8; text-align: center; cursor: pointer; filter: drop-shadow(0 7px 6px rgba(0,0,0,.58)); }
 .node-beacon { width: 48px; height: 48px; margin: 0 auto 7px; display: grid; place-items: center; transform: rotate(45deg); background: linear-gradient(135deg, #38566a, #1b2c39); border: 2px solid #9ac8d1; color: white; font: 700 14px 'Cinzel'; transition: .2s ease; }
 .map-node .fortress-beacon { position: relative; width: 60px; height: 53px; overflow: visible; transform: none; border: 0; background: transparent; filter: drop-shadow(0 5px 4px rgba(0,0,0,.5)); }

@@ -3,6 +3,7 @@ import { UNIT_IDS } from '../types/game';
 import { upgradedStats } from '../game/rules';
 import { advancedEnemyIntroductionStages, challengeStages, ENEMY_EQUIPMENT_MAX_LEVEL, MAX_FORTRESS_DISTANCE, MIN_FORTRESS_DISTANCE, stages, treasureStages } from './stages';
 import { mapTreasures } from './mapTreasures';
+import { campaignMapStagePosition } from './campaignMapArt';
 import { allTroopOrder, troopDefinitions, unitFamilyById } from './units';
 
 describe('campaign rewards', () => {
@@ -272,6 +273,9 @@ describe('campaign rewards', () => {
       expect(stage.reinforcement).toBeDefined();
       expect(stage.treasureId).toBe(mapTreasures[index].id);
       expect(stage.firstClearReward.gold).toBe(mapTreasures[index].gold);
+      const bossPosition = campaignMapStagePosition(mapTreasures[index].requiredStage);
+      expect(mapTreasures[index].x).toBeGreaterThan(bossPosition.x);
+      expect(Math.hypot(mapTreasures[index].x - bossPosition.x, mapTreasures[index].y - bossPosition.y)).toBeLessThan(220);
     }
   });
 });

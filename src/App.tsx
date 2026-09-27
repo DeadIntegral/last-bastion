@@ -746,6 +746,10 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
           <svg className="campaign-road" viewBox={`0 0 ${mapWidth} ${mapHeight}`} preserveAspectRatio="none" aria-hidden="true">
             <path d={roadPath} />
             {roadSegments.map((segment) => <line className={`road-segment ${segment.state}`} x1={segment.from.x} y1={segment.from.y} x2={segment.to.x} y2={segment.to.y} key={segment.id} />)}
+            {mapTreasures.filter((treasure) => clearedStages.includes(treasure.requiredStage)).map((treasure) => {
+              const boss = mapPositions[treasure.requiredStage - 1];
+              return <line className={`treasure-route ${claimedMapTreasureIds.includes(treasure.id) ? 'claimed' : ''}`} x1={boss.x} y1={boss.y} x2={treasure.x} y2={treasure.y} key={`route-${treasure.id}`} />;
+            })}
           </svg>
           {visibleStages.map((stage) => {
             const nodeLocked = stage.id > unlocked;
