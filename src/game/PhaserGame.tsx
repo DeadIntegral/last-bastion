@@ -25,7 +25,7 @@ export function PhaserGame({ stageId, equipmentLevels, equippedUnits, unitMaster
   useEffect(() => {
     if (!parentRef.current || gameRef.current) return;
     gameRef.current = new Phaser.Game({
-      type: Phaser.AUTO,
+      type: Phaser.WEBGL,
       parent: parentRef.current,
       width: WORLD_WIDTH,
       height: WORLD_HEIGHT,
@@ -34,7 +34,7 @@ export function PhaserGame({ stageId, equipmentLevels, equippedUnits, unitMaster
         getStage(stageId), equipmentLevels, equippedUnits, unitMasteryXp, heroId,
         heroEquipmentLevel, heroMasteryXp, castleTechLevels, triumphMonumentLevel, initialBattleSpeedRef.current,
       )],
-      render: { antialias: true, pixelArt: false },
+      render: { antialias: true, pixelArt: false, roundPixels: true },
       scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
       banner: false,
       audio: { noAudio: true },

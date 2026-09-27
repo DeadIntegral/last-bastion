@@ -30,6 +30,7 @@ The documentation must always describe the game that actually exists in the repo
 - Use Node.js 22.22.2 or newer. Keep the repository-root `.node-version` pinned to `22.22.2` because Cloudflare Pages v3 defaults to Node 22.16.0, which cannot install jsdom 30.0.1; Pages does not infer Node from `package.json#engines` in that build system.
 - Do not create `package-lock.json` or use npm for project workflows.
 - Use Vite 8.
+- Use Phaser 4.2.1 with the WebGL renderer. Keep `roundPixels: true` explicit to preserve the Phaser 3 presentation baseline unless a deliberate visual revision is browser-verified. Do not restore Phaser 3 pipelines, pre/post FX, Canvas-only masks, or direct renderer internals; use Phaser 4 render nodes and filters for future renderer extensions.
 - TypeScript 8 was requested, but it does not exist in the registry as of 2026-09-12. The project therefore uses the latest stable TypeScript 7.0.2. Upgrade to TypeScript 8 only after an official stable package is available and the full verification suite passes.
 - Use Oxlint. Do not add ESLint or ESLint configuration.
 - Use `apply_patch` for source and documentation edits.
