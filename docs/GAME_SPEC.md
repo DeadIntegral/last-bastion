@@ -388,7 +388,7 @@ Status: **Implemented** for menu, daily attendance, dual-currency wallet, myster
 - Package manager: Yarn Classic 1.22.22
 - Runtime/tooling Node: minimum 22.22.2; repository `.node-version` pins 22.22.2 for Cloudflare Pages compatibility with jsdom 30.0.1
 - Application: React 19
-- Battle: Phaser 3
+- Battle: Phaser 4.2.1, explicit WebGL renderer
 - State and persistence: Zustand 5
 - Build: Vite 8.3
 - Language: TypeScript 7.0.2; TypeScript 8 is not published as of this date
@@ -455,6 +455,8 @@ Important paths:
 
 The battle bundle is lazy-loaded so Phaser does not delay the initial menu.
 
+The battle runtime migrated from Phaser 3.90 to Phaser 4.2.1 on a dedicated branch without changing simulation data or save schema. The scene uses only standard Images, Spritesheets, Text, Graphics, Shapes, Containers, TileSprite, Tweens, Timers, Cameras, Scale, and Pointer APIs; it has no v3 custom pipelines, shaders, masks, FX, Dynamic/RenderTextures, Mesh/Plane, compressed textures, removed Struct collections, or direct camera/renderer internals. The game requests WebGL explicitly because Phaser 4 deprecates Canvas for advanced rendering, keeps audio disabled under the application Web Audio owner, and explicitly sets `roundPixels: true` to preserve the former v3 default during visual comparison. Production Phaser output increased from approximately 1,197KB/319KB gzip to 1,375KB/357KB gzip and remains isolated from the initial app chunk.
+
 Repository automation status: **Implemented**. Newly opened or reopened pull requests run a least-privilege `pull_request_target` workflow with only pull-request write access. The workflow calls the GitHub API through a full-SHA-pinned official action to assign the pull-request author and deliberately has no checkout or untrusted-code execution step.
 
 The battle scene keeps only active combatants in its targeting collection. Deaths are queued during combat iteration and compacted at the frame boundary, so removing a unit cannot skip the next acting unit and long reinforcement battles do not retain every historical casualty. Cleave, pierce, bombardment, hero targeting, and watchtower selection scan the bounded active collection without sorting the full battlefield roster on each attack.
@@ -491,6 +493,7 @@ Regression tests follow a minimum-sufficient strategy: protect formulas, combat 
 - 2026-09-28: Pinned Node 22.22.2 through the repository `.node-version` and declared the matching package engine floor so Cloudflare Pages no longer attempts to install jsdom 30.0.1 under its incompatible Node 22.16.0 default.
 - 2026-09-27: Restricted automatic dead-zone retreat to five data-authored skirmishers—Scout, Goblin Poison Archer, Storm Spirit, Ria, and Neris—while every other ranged combatant now holds position without attacking when screened; added symmetric combat integration, UI/codex disclosure, pure regression coverage, and difficulty valuation.
 - 2026-09-27: Fixed skirmishers endlessly retreating without firing by storing one bounded step-back destination and adding a 1.6-second retrigger cooldown; a pursuer can no longer move the retreat goal backward every frame.
+- 2026-09-27: Migrated the isolated battle runtime from Phaser 3.90 to Phaser 4.2.1, selected WebGL explicitly, preserved the previous round-pixel behavior, retained all standard scene APIs without renderer-specific rewrites, and documented the approximately 39KB gzip Phaser-chunk increase.
 - 2026-09-27: Decoupled treasures from story bosses: clearing each region's first ordinary stage now reveals an independently placed near-boss-strength guardian, guardian victory opens a short route to a separate rear chest, and schema 5 persists guardian defeat and one-time chest collection independently while preserving repeat side battles and validated schema-4 claims.
 - 2026-09-27: Expanded the illustrated continent into a 4,900×1,850 two-axis world, replaced reused battle castles with three dedicated map miniatures, gave all seven beast rifts terrain-specific silhouettes, and added five boss-clear-revealed fortress side missions whose distinct formation gimmicks must be defeated before their schema-4 one-time Gold treasures are awarded; added repeat rewards, import normalization, result feedback, and milestone-relative balance audits.
 - 2026-09-27: Rebuilt the continent map around five illustrated coast-to-rift terrain panels, compact region-based node placement, quick region navigation, and canonical painted fortress markers; reduced the formerly near-linear 5,800-unit route to a denser roughly 5,260-unit world while preserving drag, scrollbar, node selection, liberation state, and hidden-rift rules.

@@ -88,14 +88,14 @@ PR이 열리거나 다시 열리면 `.github/workflows/auto-assign-pr-author.yml
 ## 기술 구성
 
 - React: 메뉴, 왕국 지도, 병영, 영웅의 전당, 전쟁 사전, 전투 HUD
-- Phaser 3: 전투 시뮬레이션과 렌더링
+- Phaser 4.2.1 WebGL: 전투 시뮬레이션과 렌더링
 - Web Audio API: 외부 음원 없이 생성되는 메뉴·전투·결과 BGM과 전투 효과음
 - Zustand: 병종 영입과 편성, 장비, 숙련 경험치, 성채 기술, 업적 통계, 전투 가속 권리와 선호 속도, 3슬롯 localStorage 자동 저장과 암호화 JSON 임포트·익스포트
 - 자체 i18n 계층: 한국어 원문 키, 지연 로드되는 영어·일본어 메시지, React 화면 트리 번역, Phaser 런타임 문구 번역, 브라우저 언어 감지와 저장 슬롯 외부의 전역 언어 설정
 - Web Crypto API: AES-256-GCM 저장 암호화와 인증, PBKDF2-SHA-256 키 유도, SHA-256 파일 체크섬
 - Vitest: 전투 규칙 단위 테스트와 빌드에서 분리된 캠페인 난이도·병종 지휘 효율 분석
 
-프로덕션 빌드는 초기 앱, React/Zustand, 지연 로딩되는 전투 UI, Phaser 런타임을 별도 청크로 출력해 메인 메뉴 진입 시 Phaser를 내려받지 않습니다.
+프로덕션 빌드는 초기 앱, React/Zustand, 지연 로딩되는 전투 UI, Phaser 4 런타임을 별도 청크로 출력해 메인 메뉴 진입 시 Phaser를 내려받지 않습니다. Phaser 4 전환 후 전용 청크는 약 1,375KB, gzip 약 357KB이며 기존 Phaser 3.90 대비 gzip 약 39KB 증가했습니다.
 
 개발 도구는 Yarn Classic, Vite 8, TypeScript 7.0.2, Oxlint를 사용합니다. TypeScript 8은 2026-09-12 기준 공식 패키지가 아직 없어 최신 안정판인 7.0.2를 사용합니다. Pretendard Variable은 패키지로 설치하지 않고 런타임 CDN에서 불러옵니다. AI 에이전트 작업 규칙, 게임 명세, 수치 밸런스 기준은 각각 `AGENTS.md`, `docs/GAME_SPEC.md`, `docs/BALANCE.md`에 있습니다.
 
