@@ -1,6 +1,6 @@
 # Last Bastion — Balance Reference
 
-Last updated: 2026-09-18
+Last updated: 2026-09-27
 
 This is the canonical reference for implemented economy, progression, combat, and campaign numbers. Change this file in the same commit as any balance value. Product behavior and architecture remain canonical in `docs/GAME_SPEC.md`.
 
@@ -8,7 +8,7 @@ This is the canonical reference for implemented economy, progression, combat, an
 
 | Currency | Initial | Sources | Current sinks |
 |---|---:|---|---|
-| Gold | 100 | battles, first-clear rewards, achievement claims | troop recruitment, equipment, heroes, hero training, fortress research, post-finale Victory Monument |
+| Gold | 100 | battles, first-clear rewards, regional map treasures, achievement claims | troop recruitment, equipment, heroes, hero training, fortress research, post-finale Victory Monument |
 | Royal Gems | 0 | daily attendance, achievement claims | permanent 1.5× battle-speed license; three permanent formation-slot licenses |
 
 - Royal Gems are currently non-purchasable with real money. There is no recharge, payment, or currency-exchange path.
@@ -16,11 +16,22 @@ This is the canonical reference for implemented economy, progression, combat, an
 - The claimed date persists as `YYYY-MM-DD`. Changing the device clock is not prevented because progression is local-only.
 - The `수수께끼 상인` shop is revealed after the stage-6 campaign boss clear. It sells `전투 가속 허가` for 200 Royal Gems once; the map operations button only enters the shop. The license permanently unlocks a persisted 1×/1.5× battle toggle. The purchase is idempotent and the speed applies to simulation time, timer events, and combat tweens; BGM tempo is not changed.
 - Formation licenses are sequential: stage 12 reveals slot 5 for 150 Royal Gems, stage 18 reveals slot 6 for 250, and stage 24 reveals slot 7 for 350. They persist as a clamped `formationSlotPurchases` count and expose matching battle cards and numeric hotkeys. The full formation expansion costs 750 Gems, or 75 daily claims before achievement income; buying it together with battle speed costs 950 Gems. Legacy `formationSlotUnlocked: true` saves migrate to one purchase.
+- Each six-stage region has one map treasure revealed only after its boss siege is cleared. Treasure Gold is claimed once, persisted independently, and is not multiplied by `전리품 회계` because it is exploration loot rather than a battle reward.
+
+| Region treasure | Required clear | Gold |
+|---|---:|---:|
+| 변경 수복 궤짝 | 6 | 600 |
+| 왕도 비밀 금고 | 12 | 1,200 |
+| 고원 전리품 창고 | 18 | 1,800 |
+| 해방된 정령 제단 | 24 | 2,400 |
+| 마왕성 봉인 보물 | 30 | 3,000 |
+
+The total one-time map-treasure income is 9,000 Gold. The focused-upgrade progression audit includes each treasure from the next stage onward; with the first 600-Gold cache included before stage 7, the tested early relative-pressure steps remain within ×0.95–×1.35 and stage 4 remains at least ×1.05.
 - No payment implementation currently exists. A future verified Quick Starter may combine a data-driven Gem grant with battle-speed access and exactly the first formation purchase; slots 6–7 remain ordinary campaign progression unless a future documented entitlement explicitly changes that rule.
 
 Hero Training Ground unlocks from the stage-9 first clear. It supplements rather than replaces battle-earned hero mastery XP and refuses purchases at the level-30 cap.
 
-Fortress growth research has two independent tier-2 roots in one branch: each `전리품 회계` rank multiplies repeat and first-clear battle Gold by 1.05, and each `왕립 야전 교범` rank multiplies soldier and hero battle mastery XP by 1.05. Both cap at ×1.25 at rank 5 and round to the nearest whole value. Neither root requires investment in the command/supply tree or the other growth root. Achievement Gold, daily rewards, recruitment costs, and paid Hero Training packages are not multiplied.
+Fortress growth research has two independent tier-2 roots in one branch: each `전리품 회계` rank multiplies repeat and first-clear battle Gold by 1.05, and each `왕립 야전 교범` rank multiplies soldier and hero battle mastery XP by 1.05. Both cap at ×1.25 at rank 5 and round to the nearest whole value. Neither root requires investment in the command/supply tree or the other growth root. Achievement Gold, regional treasure Gold, daily rewards, recruitment costs, and paid Hero Training packages are not multiplied.
 
 | Training package | Gold cost | Hero XP | Gold per XP |
 |---|---:|---:|---:|

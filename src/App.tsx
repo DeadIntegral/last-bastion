@@ -3,14 +3,14 @@ import { flushSync } from 'react-dom';
 import { allTroopOrder, bossDefinition, heroDefinitions, heroOrder, troopDefinitions, unitFamilyById, unitFamilyLabels, unitGradeLabels, unitGradeStars } from './data/units';
 import { bossCodex, CODEX_TOTAL, codexEntryCount, heroCodex, troopCodex } from './data/codex';
 import { achievementById, achievementGroups, achievementProgress, achievements, featuredAchievement } from './data/achievements';
-import { CAMPAIGN_MAP_REGION_WIDTH, campaignMapRegions, campaignMapStagePosition } from './data/campaignMapArt';
+import { CAMPAIGN_MAP_WORLD_HEIGHT, CAMPAIGN_MAP_WORLD_WIDTH, campaignMapMarkerArt, campaignMapRegions, campaignMapStagePosition, challengeRiftPresentation } from './data/campaignMapArt';
 import { canUpgradeCastleTech, castleBattleStats, castleTechChildren, castleTechCost, castleTechDefinitions, castleTechPrerequisiteStatus, castleTechRoots, fortressTierDefinitions, totalCastleResearch } from './data/castle';
 import { battleFormationCapacity, BATTLE_SPEED_LICENSE, DAILY_REWARD, FORMATION_SLOT_LICENSES, MAX_FORMATION_SLOT_PURCHASES } from './data/economy';
 import { TRIUMPH_MONUMENT, triumphMonumentBonuses, triumphMonumentCost } from './data/endgame';
 import { gameFeatures, heroTrainingPackages, isGameFeatureUnlocked } from './data/features';
-import { fortressArtDefinitions } from './data/fortressArt';
 import { OPENING_SCENE_DURATION_MS, openingScenes } from './data/opening';
 import { HERO_AWAKENING_LEVELS, HERO_MASTERY_MAX_LEVEL, heroAwakeningAuras, heroMasteryGrowth, heroSkillPower, soldierMasteryGrowth } from './data/mastery';
+import { mapTreasures, type MapTreasureId } from './data/mapTreasures';
 import { challengeStages, enemyFactionLabels, getStage, stages } from './data/stages';
 import { GAME_VERSION_LABEL } from './data/version';
 import { localDateKey } from './game/daily';
@@ -450,13 +450,13 @@ function Credits({ onBack }: { onBack: () => void }) {
 
 const mapPositions = stages.map((stage) => campaignMapStagePosition(stage.id));
 const challengeMapPositions: Record<number, { x: number; y: number }> = {
-  101: { x: mapPositions[5].x + 55, y: 11 },
-  106: { x: mapPositions[11].x + 45, y: 88 },
-  102: { x: mapPositions[17].x + 35, y: 11 },
-  107: { x: mapPositions[23].x + 25, y: 88 },
-  103: { x: mapPositions[26].x + 45, y: 12 },
-  104: { x: mapPositions[29].x + 70, y: 86 },
-  105: { x: mapPositions[29].x + 210, y: 45 },
+  101: { x: mapPositions[5].x - 120, y: mapPositions[5].y - 190 },
+  106: { x: mapPositions[11].x + 80, y: mapPositions[11].y + 180 },
+  102: { x: mapPositions[17].x + 100, y: mapPositions[17].y - 140 },
+  107: { x: mapPositions[23].x + 100, y: mapPositions[23].y + 180 },
+  103: { x: mapPositions[26].x + 60, y: mapPositions[26].y - 170 },
+  104: { x: mapPositions[29].x - 110, y: mapPositions[29].y + 190 },
+  105: { x: mapPositions[29].x + 150, y: mapPositions[29].y + 65 },
 };
 const campaignDifficultyReport = analyzeCampaignDifficulty(stages);
 
@@ -596,11 +596,14 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
   const unlocked = useGameStore((state) => state.unlockedStage);
   const clearedStages = useGameStore((state) => state.clearedStages);
   const clearedChallenges = useGameStore((state) => state.clearedChallenges);
+  const claimedMapTreasureIds = useGameStore((state) => state.claimedMapTreasureIds);
+  const claimMapTreasure = useGameStore((state) => state.claimMapTreasure);
   const castleTechLevels = useGameStore((state) => state.castleTechLevels);
   const [selectedId, setSelectedId] = useState(Math.min(unlocked, stages.length));
   const [mapDragging, setMapDragging] = useState(false);
+  const [notice, setNotice] = useState('');
   const mapRef = useRef<HTMLElement>(null);
-  const mapDragRef = useRef({ pointerId: -1, startX: 0, scrollLeft: 0, moved: false });
+  const mapDragRef = useRef({ pointerId: -1, startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0, moved: false });
   const suppressMapClickRef = useRef(false);
   const selected = getStage(selectedId);
   const isChallenge = Boolean(selected.challenge);
@@ -616,10 +619,11 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
   const displayedFirstClearGold = selected.firstClearReward.gold === undefined
     ? undefined
     : scaledProgressionReward(selected.firstClearReward.gold, progressionStats.battleGoldMultiplier);
-  const mapWidth = Math.max(1_260, visibleRegionCount * CAMPAIGN_MAP_REGION_WIDTH + 260);
+  const mapWidth = CAMPAIGN_MAP_WORLD_WIDTH;
+  const mapHeight = CAMPAIGN_MAP_WORLD_HEIGHT;
   const roadPath = visibleStages.map((stage, index) => {
     const position = mapPositions[stage.id - 1];
-    return `${index === 0 ? 'M' : 'L'}${position.x} ${position.y * 5}`;
+    return `${index === 0 ? 'M' : 'L'}${position.x} ${position.y}`;
   }).join(' ');
   const roadSegments = visibleStages.slice(1).map((stage) => {
     const from = mapPositions[stage.id - 2];
@@ -634,14 +638,15 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
     const map = mapRef.current;
     const position = isChallenge ? challengeMapPositions[selectedId] : mapPositions[selectedId - 1];
     if (!map || !position) return;
-    map.scrollTo({ left: Math.max(0, position.x - map.clientWidth / 2), behavior: 'smooth' });
+    map.scrollTo({ left: Math.max(0, position.x - map.clientWidth / 2), top: Math.max(0, position.y - map.clientHeight / 2), behavior: 'smooth' });
   }, [isChallenge, selectedId, visibleRegionCount]);
 
   const startMapDrag = (event: ReactPointerEvent<HTMLElement>) => {
     if (event.button !== 0) return;
     const map = mapRef.current;
     if (!map) return;
-    mapDragRef.current = { pointerId: event.pointerId, startX: event.clientX, scrollLeft: map.scrollLeft, moved: false };
+    if (event.pointerType === 'touch') return;
+    mapDragRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, scrollLeft: map.scrollLeft, scrollTop: map.scrollTop, moved: false };
   };
 
   const moveMapDrag = (event: ReactPointerEvent<HTMLElement>) => {
@@ -649,13 +654,15 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
     const drag = mapDragRef.current;
     if (!map || drag.pointerId !== event.pointerId) return;
     const distance = event.clientX - drag.startX;
-    if (!drag.moved && Math.abs(distance) < 6) return;
+    const verticalDistance = event.clientY - drag.startY;
+    if (!drag.moved && Math.hypot(distance, verticalDistance) < 6) return;
     if (!drag.moved) {
       drag.moved = true;
       map.setPointerCapture(event.pointerId);
     }
     setMapDragging(true);
     map.scrollLeft = drag.scrollLeft - distance;
+    map.scrollTop = drag.scrollTop - verticalDistance;
     event.preventDefault();
   };
 
@@ -681,8 +688,27 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
     setSelectedId(id);
   };
 
+  const collectMapTreasure = (event: ReactMouseEvent<HTMLButtonElement>, id: MapTreasureId) => {
+    if (suppressMapClickRef.current) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    const treasure = mapTreasures.find((entry) => entry.id === id);
+    if (!treasure || !claimMapTreasure(id)) return;
+    setNotice(`${treasure.name}: 금화 ${treasure.gold.toLocaleString()}개를 획득했습니다.`);
+    window.setTimeout(() => setNotice(''), 2_000);
+  };
+
   const scrollToRegion = (regionIndex: number) => {
-    mapRef.current?.scrollTo({ left: Math.max(0, regionIndex * CAMPAIGN_MAP_REGION_WIDTH - 34), behavior: 'smooth' });
+    const map = mapRef.current;
+    const region = campaignMapRegions[regionIndex];
+    if (!map || !region) return;
+    map.scrollTo({
+      left: Math.max(0, region.x + region.width / 2 - map.clientWidth / 2),
+      top: Math.max(0, region.y + region.height / 2 - map.clientHeight / 2),
+      behavior: 'smooth',
+    });
   };
 
   const selectedCampaignStage = selected.requiredCampaignStage ?? selected.id;
@@ -696,7 +722,7 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
         <div className="map-content-column">
           <section className="map-heading">
             <div><span className="eyebrow">CAMPAIGN MAP</span><h2>대륙 탈환의 길</h2></div>
-            <p><strong>해금 {Math.min(unlocked, stages.length)}/{stages.length} · 해방 {liberatedRegionCount}/{campaignMapRegions.length} · 마수 영역 {visibleChallenges.length}/{challengeStages.length} · 지도를 잡아 드래그</strong><br />{visibleRegionCount > 1 ? `${campaignMapRegions[visibleRegionCount - 1].name}까지 원정로가 개방되었습니다.` : '마왕군에게 빼앗긴 대륙을 서부 변경부터 되찾으세요.'}</p>
+            <p><strong>해금 {Math.min(unlocked, stages.length)}/{stages.length} · 해방 {liberatedRegionCount}/{campaignMapRegions.length} · 마수 영역 {visibleChallenges.length}/{challengeStages.length} · 지도를 상하좌우로 이동</strong><br />{visibleRegionCount > 1 ? `${campaignMapRegions[visibleRegionCount - 1].name}까지 원정로가 개방되었습니다.` : '마왕군에게 빼앗긴 대륙을 서부 변경부터 되찾으세요.'}</p>
           </section>
           <nav className="map-region-nav" aria-label="지역 바로가기">
             {campaignMapRegions.slice(0, visibleRegionCount).map((region, index) => {
@@ -709,27 +735,27 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
           <div className="campaign-map-layout">
         <section
           className={`campaign-map ${visibleRegionCount > 1 ? 'expanded' : ''} ${mapDragging ? 'dragging' : ''}`}
-          aria-label="캠페인 지도 · 좌우로 드래그하여 이동"
+          aria-label="캠페인 지도 · 상하좌우로 드래그하여 이동"
           ref={mapRef}
           onPointerDown={startMapDrag}
           onPointerMove={moveMapDrag}
           onPointerUp={finishMapDrag}
           onPointerCancel={finishMapDrag}
         >
-          <div className="campaign-map-world" style={{ width: `${mapWidth}px` }} onDragStart={(event) => event.preventDefault()}>
+          <div className="campaign-map-world" style={{ width: `${mapWidth}px`, height: `${mapHeight}px` }} onDragStart={(event) => event.preventDefault()}>
           {campaignMapRegions.slice(0, visibleRegionCount).map((region, index) => {
             const state = clearedStages.includes(region.stageEnd) ? 'liberated' : unlocked >= region.stageStart ? 'frontline' : 'occupied';
             return <Fragment key={region.id}>
-              <img className={`campaign-region-art ${state}`} src={region.image} style={{ left: `${index * CAMPAIGN_MAP_REGION_WIDTH - 40}px`, width: `${CAMPAIGN_MAP_REGION_WIDTH + 80}px` }} alt="" aria-hidden="true" draggable={false} />
-              <div className={`map-region-zone region-theme-${index + 1} ${state}`} style={{ left: `${index * CAMPAIGN_MAP_REGION_WIDTH + 18}px`, width: `${CAMPAIGN_MAP_REGION_WIDTH - 36}px` }} aria-hidden="true">
+              <img className={`campaign-region-art ${state}`} src={region.image} style={{ left: `${region.x}px`, top: `${region.y}px`, width: `${region.width}px`, height: `${region.height}px` }} alt="" aria-hidden="true" draggable={false} />
+              <div className={`map-region-zone region-theme-${index + 1} ${state}`} style={{ left: `${region.x + 20}px`, top: `${region.y + 18}px`, width: `${region.width - 40}px`, height: `${region.height - 36}px` }} aria-hidden="true">
               <span className="region-state"><b>{region.name}</b><small>{state === 'liberated' ? '해방 완료' : state === 'frontline' ? '교전 중' : '마왕군 점령'}</small></span>
               {state === 'liberated' && <span className="liberation-beacon"><i>♜</i></span>}
               </div>
             </Fragment>;
           })}
-          <svg className="campaign-road" viewBox={`0 0 ${mapWidth} 500`} preserveAspectRatio="none" aria-hidden="true">
+          <svg className="campaign-road" viewBox={`0 0 ${mapWidth} ${mapHeight}`} preserveAspectRatio="none" aria-hidden="true">
             <path d={roadPath} />
-            {roadSegments.map((segment) => <line className={`road-segment ${segment.state}`} x1={segment.from.x} y1={segment.from.y * 5} x2={segment.to.x} y2={segment.to.y * 5} key={segment.id} />)}
+            {roadSegments.map((segment) => <line className={`road-segment ${segment.state}`} x1={segment.from.x} y1={segment.from.y} x2={segment.to.x} y2={segment.to.y} key={segment.id} />)}
           </svg>
           {visibleStages.map((stage) => {
             const nodeLocked = stage.id > unlocked;
@@ -739,11 +765,11 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
               <button
                 key={stage.id}
                 className={`map-node ${stage.boss ? 'boss-node' : ''} ${nodeLocked ? 'locked' : ''} ${nodeCleared ? 'cleared' : ''} ${selectedId === stage.id ? 'selected' : ''}`}
-                style={{ left: `${position.x}px`, top: `${position.y}%` }}
+                style={{ left: `${position.x}px`, top: `${position.y}px` }}
                 onClick={(event) => selectMapStage(event, stage.id)}
                 aria-label={`${stage.id}장 ${stage.name}${nodeLocked ? ' 잠김' : nodeCleared ? ' 해방 완료' : ''}`}
               >
-                <span className="node-beacon fortress-beacon" aria-hidden="true"><img src={fortressArtDefinitions[nodeCleared ? 'player' : 'enemy'].url} alt="" draggable={false} />{nodeCleared && <i className="liberation-flag" />}<b>{stage.id}</b></span>
+                <span className="node-beacon fortress-beacon" aria-hidden="true"><img src={nodeCleared ? campaignMapMarkerArt.liberated : stage.boss ? campaignMapMarkerArt.boss : campaignMapMarkerArt.occupied} alt="" draggable={false} />{nodeCleared && <i className="liberation-flag" />}<b>{stage.id}</b></span>
                 <strong>{stage.name}</strong>
                 <small>{stage.boss ? 'BOSS' : `0${stage.id}`}</small>
               </button>
@@ -752,20 +778,29 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
           {visibleChallenges.map((challenge) => {
             const position = challengeMapPositions[challenge.id];
             const challengeCleared = clearedChallenges.includes(challenge.id);
+            const rift = challengeRiftPresentation[challenge.terrain.id as keyof typeof challengeRiftPresentation];
             return (
               <button
                 key={challenge.id}
                 className={`map-node challenge-map-node ${challengeCleared ? 'cleared' : ''} ${selectedId === challenge.id ? 'selected' : ''}`}
-                style={{ left: `${position.x}px`, top: `${position.y}%` }}
+                style={{ left: `${position.x}px`, top: `${position.y}px` }}
                 onClick={(event) => selectMapStage(event, challenge.id)}
                 aria-label={`마수 도전 ${challenge.name}`}
               >
-                <span className="challenge-rift" aria-hidden="true" />
-                <span className="node-beacon">◉</span>
+                <span className={`challenge-rift rift-${rift.theme}`} aria-hidden="true"><i>{rift.symbol}</i></span>
+                <span className={`node-beacon rift-${rift.theme}`}>{rift.symbol}</span>
                 <strong>{challenge.name}</strong>
                 <small>{challengeCleared ? 'SUBJUGATED' : 'BEAST RIFT'}</small>
               </button>
             );
+          })}
+          {mapTreasures.filter((treasure) => clearedStages.includes(treasure.requiredStage)).map((treasure) => {
+            const claimed = claimedMapTreasureIds.includes(treasure.id);
+            return <button type="button" className={`map-node map-treasure-node ${claimed ? 'claimed' : ''}`} style={{ left: `${treasure.x}px`, top: `${treasure.y}px` }} aria-label={`${treasure.name}, ${claimed ? '수령 완료' : `금화 ${treasure.gold.toLocaleString()}개 수령`}`} aria-disabled={claimed} onClick={(event) => collectMapTreasure(event, treasure.id)} key={treasure.id}>
+              <span className="treasure-chest" aria-hidden="true"><i /></span>
+              <strong>{treasure.name}</strong>
+              <small>{claimed ? '수령 완료' : `● ${treasure.gold.toLocaleString()}`}</small>
+            </button>;
           })}
           <div className="map-compass"><span>✦</span><i>N</i></div>
           </div>
@@ -795,6 +830,7 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
           </div>
         </div>
       </div>
+      {notice && <div className="toast" role="status">{notice}</div>}
     </main>
   )}</Localized>;
 }

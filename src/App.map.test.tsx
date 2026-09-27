@@ -4,8 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { StageSelect } from './App';
 import { useGameStore } from './store/useGameStore';
 
-const pointerEvent = (type: string, clientX: number, pointerId = 1): MouseEvent => {
-  const event = new MouseEvent(type, { bubbles: true, button: 0, clientX });
+const pointerEvent = (type: string, clientX: number, pointerId = 1, clientY = 0): MouseEvent => {
+  const event = new MouseEvent(type, { bubbles: true, button: 0, clientX, clientY });
   Object.defineProperty(event, 'pointerId', { value: pointerId });
   return event;
 };
@@ -64,7 +64,16 @@ describe('campaign map pointer controls', () => {
     const regionButtons = [...host.querySelectorAll<HTMLButtonElement>('.map-region-nav button')];
     expect(regionButtons.map((button) => button.textContent)).toEqual(['01서부 변경해방 완료', '02점령 왕도교전 중']);
     act(() => regionButtons[1].click());
-    expect(map.scrollTo).toHaveBeenCalledWith({ left: 966, behavior: 'smooth' });
+    expect(map.scrollTo).toHaveBeenCalledWith({ left: 1_520, top: 940, behavior: 'smooth' });
+    expect(host.querySelector('.campaign-map-world')?.getAttribute('style')).toContain('height: 1850px');
+    expect(host.querySelector<HTMLImageElement>('.fortress-beacon img')?.src).toContain('/assets/campaign-map/markers/liberated-keep.webp');
+
+    const treasure = host.querySelector<HTMLButtonElement>('.map-treasure-node')!;
+    expect(treasure.textContent).toContain('변경 수복 궤짝');
+    act(() => treasure.click());
+    expect(useGameStore.getState().gold).toBe(700);
+    expect(useGameStore.getState().claimedMapTreasureIds).toEqual(['western-reliquary']);
+    expect(treasure.classList.contains('claimed')).toBe(true);
   });
 
   it('captures the pointer only after horizontal movement becomes a drag', () => {
@@ -75,5 +84,13 @@ describe('campaign map pointer controls', () => {
 
     act(() => map.dispatchEvent(pointerEvent('pointermove', 80, 2)));
     expect(setPointerCapture).toHaveBeenCalledWith(2);
+  });
+
+  it('pans the map vertically as well as horizontally for mouse and pen drags', () => {
+    const map = host.querySelector<HTMLElement>('.campaign-map')!;
+    act(() => map.dispatchEvent(pointerEvent('pointerdown', 100, 3, 100)));
+    act(() => map.dispatchEvent(pointerEvent('pointermove', 80, 3, 60)));
+    expect(map.scrollLeft).toBe(20);
+    expect(map.scrollTop).toBe(40);
   });
 });

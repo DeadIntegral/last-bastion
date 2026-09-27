@@ -42,7 +42,7 @@ Backgrounds mostly use the first three families. Gold, crimson, cyan, and healin
 4. Attack, guard, healing, and projectile effects clarify events rather than becoming persistent scenery.
 5. Background landmarks establish place but do not intersect the lower combat lane with high-frequency edges.
 
-On the continent map, occupation uses broken/dashed routes and crimson-edged region labels, the active front uses a warmer segmented route, and liberation uses continuous gold roads plus blue-and-gold flags and beacon shapes. The state remains readable without relying on hue alone.
+On the continent map, occupation uses broken/dashed routes and crimson-edged region labels, the active front uses a warmer segmented route, and liberation uses continuous gold roads plus blue-and-gold flags and beacon shapes. Dedicated oblique miniatures distinguish occupied, boss, and liberated fortresses; the seven challenge rifts use different silhouettes and center marks. The state remains readable without relying on hue alone.
 
 Color is never the only state marker. Ownership also uses facing, HP bars, floor relationship, and banner language. Guarding, healing, danger, and readiness each require a distinct shape or motion.
 

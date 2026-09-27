@@ -7,6 +7,7 @@ import { battleFormationCapacity, BATTLE_SPEED_LICENSE, DAILY_REWARD, FORMATION_
 import { TRIUMPH_MONUMENT, triumphMonumentCost } from '../data/endgame';
 import { heroTrainingPackageById, isGameFeatureUnlocked } from '../data/features';
 import { HERO_MASTERY_MAX_LEVEL } from '../data/mastery';
+import { MAP_TREASURE_IDS, mapTreasureById, type MapTreasureId } from '../data/mapTreasures';
 import { getStage, stages } from '../data/stages';
 import { allTroopOrder, heroDefinitions, heroOrder, troopDefinitions } from '../data/units';
 import { GAME_VERSION, SAVE_SCHEMA_VERSION } from '../data/version';
@@ -39,6 +40,7 @@ interface GameProfile {
   equippedUnits: UnitId[];
   clearedStages: number[];
   clearedChallenges: number[];
+  claimedMapTreasureIds: MapTreasureId[];
   unitMasteryXp: UnitXp;
   selectedHero: HeroId;
   unlockedHeroes: HeroId[];
@@ -70,6 +72,7 @@ interface GameProfile {
   recordBattle: (result: BattleResult) => BattleRecord;
   claimAchievement: (id: string) => boolean;
   claimDailyReward: () => boolean;
+  claimMapTreasure: (id: MapTreasureId) => boolean;
   purchaseBattleSpeed: () => boolean;
   purchaseFormationSlot: () => boolean;
   upgradeTriumphMonument: () => boolean;
@@ -134,6 +137,7 @@ const defaults = {
   equippedUnits: ['militia'] as UnitId[],
   clearedStages: [] as number[],
   clearedChallenges: [] as number[],
+  claimedMapTreasureIds: [] as MapTreasureId[],
   unitMasteryXp: emptyUnitXp(),
   selectedHero: 'warden' as HeroId,
   unlockedHeroes: ['warden'] as HeroId[],
@@ -218,6 +222,9 @@ function hydrateSavedProfile(saved: SavedGameProfile | undefined, current: GameP
     ? saved.claimedAchievementIds.filter((id): id is string => typeof id === 'string' && unlockedAchievementIds.includes(id))
     : [];
   const clearedChallenges = (Array.isArray(saved?.clearedChallenges) ? saved.clearedChallenges : []).filter((id): id is number => Number.isInteger(id) && Boolean(getStage(id).challenge));
+  const claimedMapTreasureIds = (Array.isArray(saved?.claimedMapTreasureIds) ? saved.claimedMapTreasureIds : [])
+    .filter((id): id is MapTreasureId => typeof id === 'string' && MAP_TREASURE_IDS.includes(id as MapTreasureId))
+    .filter((id) => clearedStages.includes(mapTreasureById[id].requiredStage));
   return {
     ...current,
     gold: nonNegative(saved?.gold, current.gold),
@@ -229,6 +236,7 @@ function hydrateSavedProfile(saved: SavedGameProfile | undefined, current: GameP
     equippedUnits: equippedUnits.length ? equippedUnits : ['militia'],
     clearedStages,
     clearedChallenges,
+    claimedMapTreasureIds,
     unitMasteryXp: normalizeXp(allTroopOrder, saved?.unitMasteryXp),
     selectedHero: validHero(saved?.selectedHero) && inferredHeroes.includes(saved.selectedHero) ? saved.selectedHero : inferredHeroes[0] ?? 'warden',
     heroEquipmentLevels: normalizeHeroEquipment(saved?.heroEquipmentLevels ?? saved?.heroLevels),
@@ -249,12 +257,12 @@ function hydrateSavedProfile(saved: SavedGameProfile | undefined, current: GameP
 }
 
 function persistedProfile({
-  gold, gems, lastDailyClaimDate, unlockedStage, equipmentLevels, unlockedUnits, equippedUnits, clearedStages, clearedChallenges, unitMasteryXp, selectedHero, unlockedHeroes,
+  gold, gems, lastDailyClaimDate, unlockedStage, equipmentLevels, unlockedUnits, equippedUnits, clearedStages, clearedChallenges, claimedMapTreasureIds, unitMasteryXp, selectedHero, unlockedHeroes,
   heroEquipmentLevels, heroMasteryXp, fortressTier, castleTechLevels, stats,
   unlockedAchievementIds, claimedAchievementIds, discoveredEnemies, muted, battleSpeedUnlocked, battleSpeed, formationSlotPurchases, triumphMonumentLevel,
 }: GameProfile) {
   return {
-    gold, gems, lastDailyClaimDate, unlockedStage, equipmentLevels, unlockedUnits, equippedUnits, clearedStages, clearedChallenges, unitMasteryXp, selectedHero, unlockedHeroes,
+    gold, gems, lastDailyClaimDate, unlockedStage, equipmentLevels, unlockedUnits, equippedUnits, clearedStages, clearedChallenges, claimedMapTreasureIds, unitMasteryXp, selectedHero, unlockedHeroes,
     heroEquipmentLevels, heroMasteryXp, fortressTier, castleTechLevels, stats,
     unlockedAchievementIds, claimedAchievementIds, discoveredEnemies, muted, battleSpeedUnlocked, battleSpeed, formationSlotPurchases, triumphMonumentLevel,
   };
@@ -492,6 +500,13 @@ export const useGameStore = create<GameProfile>()(
         set({ gems: state.gems + DAILY_REWARD.gems, lastDailyClaimDate: today });
         return true;
       },
+      claimMapTreasure: (id) => {
+        const state = get();
+        const treasure = mapTreasureById[id];
+        if (!treasure || !state.clearedStages.includes(treasure.requiredStage) || state.claimedMapTreasureIds.includes(id)) return false;
+        set({ gold: state.gold + treasure.gold, claimedMapTreasureIds: [...state.claimedMapTreasureIds, id] });
+        return true;
+      },
       purchaseBattleSpeed: () => {
         const state = get();
         if (state.battleSpeedUnlocked) return true;
@@ -560,7 +575,7 @@ export const useGameStore = create<GameProfile>()(
         equipmentLevels: emptyUnitEquipment(), unitMasteryXp: emptyUnitXp(),
         heroEquipmentLevels: emptyHeroEquipment(), heroMasteryXp: emptyHeroXp(),
         castleTechLevels: emptyCastleTech(), stats: emptyStats(),
-        unlockedUnits: ['militia'], equippedUnits: ['militia'], clearedStages: [], clearedChallenges: [],
+        unlockedUnits: ['militia'], equippedUnits: ['militia'], clearedStages: [], clearedChallenges: [], claimedMapTreasureIds: [],
         unlockedHeroes: ['warden'], unlockedAchievementIds: [], claimedAchievementIds: [],
         discoveredEnemies: [],
       }),

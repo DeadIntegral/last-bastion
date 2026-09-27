@@ -71,7 +71,7 @@ REV-06 through REV-09 require observation or measurement before selecting gamepl
 
 ## 7. Content, art, animation, and player-experience production backlog
 
-Status: **Partial**. The comprehensive review and acceptance criteria are in [IMPROVEMENT_REVIEW.md](IMPROVEMENT_REVIEW.md). GD-01's shared art direction is Implemented; GD-02 has one western-frontier runtime pilot; and GD-12 reconstructs static liberation state from cleared stages. All other GD work remains Planned. Live browser playback and audio listening were unavailable during the original review.
+Status: **Partial**. The comprehensive review and acceptance criteria are in [IMPROVEMENT_REVIEW.md](IMPROVEMENT_REVIEW.md). GD-01's shared art direction is Implemented; GD-02 has one western-frontier runtime pilot; and GD-12 now includes a two-dimensional illustrated continent, dedicated markers/rifts, persistent regional treasures, and static liberation state. All other GD work remains Planned. Live browser playback and audio listening were unavailable during the original review.
 
 | ID | Production priority | Scope | Status |
 |---|---|---|---|
@@ -86,7 +86,7 @@ Status: **Partial**. The comprehensive review and acceptance criteria are in [IM
 | GD-09 | B | Authored late-stage tactical situations | Planned |
 | GD-10 | A | Seven hero skill and awakening presentations | Planned |
 | GD-11 | B | Regional story, recruitment, and finale closure | Planned |
-| GD-12 | A | Visible liberation on the campaign map | Partial — illustrated regions, navigation, static liberation |
+| GD-12 | A | Visible liberation on the campaign map | Partial — 2D illustrated world, treasures, static liberation |
 | GD-13 | B | Role comparison, presets, optional reward-free practice | Planned |
 | GD-14 | A | Recruitment and progression reward moments | Planned |
 | GD-15 | B | Facility and merchant visual identity | Planned |
