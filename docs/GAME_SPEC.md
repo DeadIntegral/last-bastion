@@ -1,6 +1,6 @@
 # Last Bastion — Living Game Specification
 
-Last updated: 2026-09-24
+Last updated: 2026-09-27
 
 This is the canonical specification for the game currently present in this repository. Future developers and AI agents must keep it synchronized with the code.
 
@@ -43,6 +43,7 @@ Status: **Implemented**.
 - A combatant with healing data checks friendly living non-boss combatants in healing range before attacking. It restores the ally with the greatest missing HP, cannot overheal, and uses the same rule on both factions. Bosses are excluded to prevent a producing fortress garrison from creating an unbounded boss-healing loop. The current healer is the shared Priest; its heal grows with weapon equipment and mastery attack growth.
 - All simulation values use elapsed milliseconds rather than frame count.
 - Every regular attack triggers one of six presentation motion rigs: slash, thrust, shoot, cast, crush, or creature lunge. The rig plays through the authored windup and the hit resolves at its end; the combatant container, portrait/body, shadow, and health bar remain stable while only the attached arm, weapon, bow, claw, or spell focus moves. The same rule applies to player units, enemy units, heroes, bosses, and attacks against fortresses.
+- Battlefield art is resolved centrally from `terrain.id` through `src/data/backgroundArt.ts`. The `ruined-border` terrain used by campaign stages 1–6 has the first 1600 × 720 hand-painted regional backdrop: a cold western frontier with burned farms, broken walls, watchtower ruins, weak beacons, and a low-contrast traversable lane. Unmapped campaign regions and challenges deliberately retain the procedural mountain/forest fallback until their own reviewed art ships, so the game never presents the western frontier as another region. Background selection changes no terrain multiplier, unit position, collision, range, or fortress distance.
 - Soldiers deploy from the protected rear of their own fortress rather than appearing in front of it. Player troops and the initial/respawning hero begin 50 virtual units left of the player fortress; computer wave and reinforcement troops begin 50 units right of the enemy fortress. Additional squad bodies are spaced another 16 units rearward. While the relevant fortress is alive, enemies cannot directly select a combatant that is still behind it: ranged defenders can shoot from cover, while melee defenders walk through the fortress line before engaging. The rule is symmetric, and destroying the enemy fortress exposes surviving rear troops. Bosses and named elite guards keep their authored forward positions, while boss-only challenges have no enemy fortress cover.
 - Normal victory: enemy fortress HP reaches zero.
 - Campaign boss victory: both the named beast and its supporting enemy fortress reach zero HP, in either order. Challenge victory requires only the beast.
@@ -417,6 +418,7 @@ Important paths:
 - `src/data/units.ts`: canonical faction-neutral troop definitions plus hero and boss definitions
 - `src/data/characterArt.ts`: canonical troop/hero atlas sheet/frame mapping and Phaser frame dimensions
 - `src/data/fortressArt.ts`: canonical player/enemy battlefield-fortress image paths and display footprint
+- `src/data/backgroundArt.ts`: canonical terrain-ID-to-battlefield-background mapping and visual fallback boundary
 - `src/data/stages.ts`: campaign waves and stage-level bounded enemy equipment profiles
 - `src/data/castle.ts`: fortress technology definitions, prerequisites, cost, and derived battle stats
 - `src/data/achievements.ts`: achievement definitions and progress evaluation
@@ -428,16 +430,19 @@ Important paths:
 - `src/data/version.ts`: canonical game version and save-schema version
 - `src/game/daily.ts`: browser-local daily claim date rules
 - `src/game/saveSlots.ts`: three-slot local persistence, active-slot routing, summaries, deletion, and one-time legacy migration
-- `src/game/saveCrypto.ts`: password-based portable-save encryption, Base64 envelope encoding, checksum, and authenticated decryption
+- `src/game/saveCrypto.ts`: application-managed current portable-save encryption, legacy password-envelope compatibility, Base64 encoding, checksum, and authenticated decryption
 - `src/audio/music.ts`: application-level procedural background music engine and scene patterns
 - `src/store/useGameStore.ts`: progression and persistence
 - `docs/BALANCE.md`: canonical implemented numeric balance reference
+- `docs/ART_DIRECTION.md`: implemented palette, material, composition, readability, runtime-size, and asset-delivery contract
+- `docs/IMPROVEMENT_REVIEW.md`: content and presentation production backlog with per-item completion criteria and status
 - `docs/FUTURE_SYSTEMS.md`: canonical `Planned`/`Partial` backlog and implementation acceptance criteria; entries are not current game behavior
 - `scripts/balance.test.ts`: standalone campaign difficulty audit run by `yarn balance`; intentionally excluded from the normal app test/build path
 - `scripts/unit-efficiency.test.ts`: standalone roster Command-efficiency and deployability audit run by `yarn balance`
 - `scripts/progression-power.test.ts`: focused early-equipment rush stress report that compares stage pressure with the strongest affordable one-branch troop build
 - `scripts/build-expansion-atlas.mjs`: deterministic RGBA builder for every non-core character atlas that preserves source transparency and isolates generated grid cells
 - `public/assets/characters/`: generated RGBA sources, optimized runtime atlases, sheet/frame order, and generation prompts
+- `public/assets/backgrounds/`: regional battlefield masters, optimized runtime backdrops, status, and generation records
 - `public/assets/opening/`: optimized cinematic WebP backgrounds and their generation record
 
 The battle bundle is lazy-loaded so Phaser does not delay the initial menu.
@@ -475,6 +480,8 @@ Regression tests follow a minimum-sufficient strategy: protect formulas, combat 
 
 ## 17. Changelog
 
+- 2026-09-27: Established the shared production art direction and shipped the first GD-02 regional-background pilot: stages 1–6 now resolve an optimized 1600×720 ruined-border matte through a terrain-ID mapping, while unfinished regions safely retain the procedural fallback and all combat/terrain values remain unchanged.
+- 2026-09-27: Added a comprehensive content, art, animation, audio, narrative, progression, and UI review with 24 Planned production tasks in `docs/IMPROVEMENT_REVIEW.md`. Preserved eleven supporting technical tasks in `docs/ENGINEERING_REVIEW.md`; both backlogs are tracked in `docs/FUTURE_SYSTEMS.md`. Selected existing art was inspected directly; live playback and listening remain outstanding. No runtime, assets, or balance behavior changed.
 - 2026-09-24: Removed password entry and length restrictions from new portable-save downloads by introducing automatically encrypted application-managed version-2 envelopes and automatic imports, while retaining password-only compatibility for existing version-1 encrypted files plus all earlier plaintext formats.
 - 2026-09-19: Added progressive pure-fade View Transitions between React-owned title, map, facility, and result screens, with reduced-motion and unsupported-browser fallbacks while explicitly excluding positional motion, the cinematic opening, and every Phaser battle boundary.
 - 2026-09-19: Removed the redundant symbol from the language trigger; desktop now shows only the native name and locale code, while compact headers show only `KO`, `EN`, or `JA`.

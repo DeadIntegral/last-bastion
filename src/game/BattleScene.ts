@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { musicEngine } from '../audio/music';
+import { battleBackgroundDefinitions, battleBackgroundForTerrain } from '../data/backgroundArt';
 import { CHARACTER_ART_FRAME_HEIGHT, CHARACTER_ART_FRAME_WIDTH, characterArtFrameIndex, characterArtFrames, characterArtSheet, characterArtSheets, TRANSCENDENT_BATTLE_ART_SCALE, type CharacterArtId } from '../data/characterArt';
 import { battleMobilizationTuning, castleBattleStats, mobilizationCommandCost, rallyCommandTuning, soldierCommandCost } from '../data/castle';
 import { triumphMonumentBonuses } from '../data/endgame';
@@ -255,6 +256,9 @@ export class BattleScene extends Phaser.Scene {
   }
 
   preload(): void {
+    for (const art of Object.values(battleBackgroundDefinitions)) {
+      if (!this.textures.exists(art.textureKey)) this.load.image(art.textureKey, art.url);
+    }
     for (const sheet of Object.values(characterArtSheets)) {
       if (this.textures.exists(sheet.textureKey)) continue;
       this.load.spritesheet(sheet.textureKey, sheet.url, {
@@ -385,34 +389,43 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private drawWorld(): void {
-    this.cameras.main.setBackgroundColor('#111928');
+    const background = battleBackgroundForTerrain(this.stageDefinition.terrain.id);
+    this.cameras.main.setBackgroundColor(background?.fallbackColor ?? '#111928');
     const g = this.add.graphics();
-    g.fillGradientStyle(0x101827, 0x101827, 0x2b3042, 0x2b3042, 1);
-    g.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    if (background) {
+      this.add.image(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, background.textureKey)
+        .setDisplaySize(WORLD_WIDTH, WORLD_HEIGHT)
+        .setDepth(-20);
+    } else {
+      g.fillGradientStyle(0x101827, 0x101827, 0x2b3042, 0x2b3042, 1);
+      g.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
-    g.fillStyle(0x29364b, 0.7);
-    for (let i = 0; i < 15; i += 1) {
-      const x = i * 125 - 30;
-      const height = 80 + ((i * 47) % 90);
-      g.fillTriangle(x, 486, x + 75, 486 - height, x + 160, 486);
+      g.fillStyle(0x29364b, 0.7);
+      for (let i = 0; i < 15; i += 1) {
+        const x = i * 125 - 30;
+        const height = 80 + ((i * 47) % 90);
+        g.fillTriangle(x, 486, x + 75, 486 - height, x + 160, 486);
+      }
+      g.fillStyle(0x172235, 0.9);
+      for (let i = 0; i < 23; i += 1) {
+        const x = i * 75;
+        g.fillTriangle(x, 526, x + 40, 426 - (i % 3) * 14, x + 82, 526);
+      }
+
+      this.add.circle(1165, 126, 58, 0xd9c391, 0.12);
+      this.add.circle(1165, 126, 43, 0xf2dca4, 0.13);
+
+      g.fillStyle(0x1c2a31, 1);
+      g.fillRect(0, 526, WORLD_WIDTH, 194);
+      g.fillStyle(0x263a3d, 1);
+      g.fillRect(0, 526, WORLD_WIDTH, 5);
+      g.lineStyle(1, 0x56706b, 0.16);
+      for (let x = 0; x < WORLD_WIDTH; x += 55) g.lineBetween(x, 531, x + 25, WORLD_HEIGHT);
     }
-    g.fillStyle(0x172235, 0.9);
-    for (let i = 0; i < 23; i += 1) {
-      const x = i * 75;
-      g.fillTriangle(x, 526, x + 40, 426 - (i % 3) * 14, x + 82, 526);
-    }
 
-    this.add.circle(1165, 126, 58, 0xd9c391, 0.12);
-    this.add.circle(1165, 126, 43, 0xf2dca4, 0.13);
-    this.mist = this.add.tileSprite(WORLD_WIDTH / 2, 491, WORLD_WIDTH, 150, '__WHITE').setAlpha(0.12);
-    this.mist.setTint(0xbfd9e3);
-
-    g.fillStyle(0x1c2a31, 1);
-    g.fillRect(0, 526, WORLD_WIDTH, 194);
-    g.fillStyle(0x263a3d, 1);
-    g.fillRect(0, 526, WORLD_WIDTH, 5);
-    g.lineStyle(1, 0x56706b, 0.16);
-    for (let x = 0; x < WORLD_WIDTH; x += 55) g.lineBetween(x, 531, x + 25, WORLD_HEIGHT);
+    this.mist = this.add.tileSprite(WORLD_WIDTH / 2, 491, WORLD_WIDTH, 150, '__WHITE')
+      .setAlpha(background?.mistAlpha ?? 0.12)
+      .setTint(background?.mistTint ?? 0xbfd9e3);
 
     this.drawCastle(PLAYER_CASTLE_X, true);
     const title = this.add.text(WORLD_WIDTH / 2, 28, this.stageDefinition.name, {
