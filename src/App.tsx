@@ -610,6 +610,7 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
   const visibleRegionCount = Math.min(5, Math.max(1, Math.ceil(unlocked / 6)));
   const visibleStages = stages.slice(0, visibleRegionCount * 6);
   const visibleChallenges = challengeStages.filter((challenge) => clearedStages.includes(challenge.requiredCampaignStage ?? 1));
+  const liberatedRegionCount = campaignRegionNames.filter((_, index) => clearedStages.includes((index + 1) * 6)).length;
   const difficulty = stageDifficultyPresentation(selected, campaignDifficultyReport);
   const progressionStats = castleBattleStats(castleTechLevels);
   const displayedBattleReward = scaledProgressionReward(selected.reward, progressionStats.battleGoldMultiplier);
@@ -621,6 +622,14 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
     const position = mapPositions[stage.id - 1];
     return `${index === 0 ? 'M' : 'L'}${position.x} ${position.y * 5}`;
   }).join(' ');
+  const roadSegments = visibleStages.slice(1).map((stage) => {
+    const from = mapPositions[stage.id - 2];
+    const to = mapPositions[stage.id - 1];
+    const state = clearedStages.includes(stage.id - 1) && clearedStages.includes(stage.id)
+      ? 'liberated'
+      : stage.id <= unlocked ? 'frontline' : 'occupied';
+    return { id: stage.id, from, to, state };
+  });
 
   useEffect(() => {
     const map = mapRef.current;
@@ -681,7 +690,7 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
         <div className="map-content-column">
           <section className="map-heading">
             <div><span className="eyebrow">CAMPAIGN MAP</span><h2>대륙 탈환의 길</h2></div>
-            <p><strong>해금 {Math.min(unlocked, stages.length)}/{stages.length} · 마수 영역 {visibleChallenges.length}/{challengeStages.length} · 지도를 잡아 드래그</strong><br />{visibleRegionCount > 1 ? `${campaignRegionNames[visibleRegionCount - 1]}까지 원정로가 개방되었습니다.` : '마왕군에게 빼앗긴 대륙을 서부 변경부터 되찾으세요.'}</p>
+            <p><strong>해금 {Math.min(unlocked, stages.length)}/{stages.length} · 해방 {liberatedRegionCount}/{campaignRegionNames.length} · 마수 영역 {visibleChallenges.length}/{challengeStages.length} · 지도를 잡아 드래그</strong><br />{visibleRegionCount > 1 ? `${campaignRegionNames[visibleRegionCount - 1]}까지 원정로가 개방되었습니다.` : '마왕군에게 빼앗긴 대륙을 서부 변경부터 되찾으세요.'}</p>
           </section>
           <div className="campaign-map-layout">
         <section
@@ -696,13 +705,21 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
           <div className="campaign-map-world" style={{ width: `${mapWidth}px` }} onDragStart={(event) => event.preventDefault()}>
           <div className="map-sea"><span>잿빛 해안</span></div>
           <div className="map-land" />
+          {Array.from({ length: visibleRegionCount }, (_, index) => {
+            const startStage = index * 6 + 1;
+            const endStage = startStage + 5;
+            const state = clearedStages.includes(endStage) ? 'liberated' : unlocked >= startStage ? 'frontline' : 'occupied';
+            return <div className={`map-region-zone region-theme-${index + 1} ${state}`} style={{ left: `${45 + index * mapStageSpacing * 6}px`, width: `${mapStageSpacing * 6 - 30}px` }} aria-hidden="true" key={`zone-${campaignRegionNames[index]}`}>
+              <span className="region-state"><b>{campaignRegionNames[index]}</b><small>{state === 'liberated' ? '해방 완료' : state === 'frontline' ? '교전 중' : '마왕군 점령'}</small></span>
+              {state === 'liberated' && <span className="liberation-beacon"><i>♜</i></span>}
+            </div>;
+          })}
           <div className="map-mountains">▲ ▲<br /> ▲ ▲ ▲</div>
           <div className="map-forest forest-one">♠ ♠ ♠<br /> ♠ ♠</div>
           <div className="map-forest forest-two">♠ ♠<br />♠ ♠ ♠</div>
-          {Array.from({ length: visibleRegionCount }, (_, index) => <span className="map-region" style={{ left: `${170 + index * 930}px`, top: `${index % 2 === 0 ? 14 : 82}%` }} key={campaignRegionNames[index]}>{campaignRegionNames[index]}</span>)}
           <svg className="campaign-road" viewBox={`0 0 ${mapWidth} 500`} preserveAspectRatio="none" aria-hidden="true">
             <path d={roadPath} />
-            <path className="road-glow" d={roadPath} />
+            {roadSegments.map((segment) => <line className={`road-segment ${segment.state}`} x1={segment.from.x} y1={segment.from.y * 5} x2={segment.to.x} y2={segment.to.y * 5} key={segment.id} />)}
           </svg>
           {visibleStages.map((stage) => {
             const nodeLocked = stage.id > unlocked;
@@ -714,9 +731,9 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
                 className={`map-node ${stage.boss ? 'boss-node' : ''} ${nodeLocked ? 'locked' : ''} ${nodeCleared ? 'cleared' : ''} ${selectedId === stage.id ? 'selected' : ''}`}
                 style={{ left: `${position.x}px`, top: `${position.y}%` }}
                 onClick={(event) => selectMapStage(event, stage.id)}
-                aria-label={`${stage.id}장 ${stage.name}${nodeLocked ? ' 잠김' : ''}`}
+                aria-label={`${stage.id}장 ${stage.name}${nodeLocked ? ' 잠김' : nodeCleared ? ' 해방 완료' : ''}`}
               >
-                <span className="node-beacon fortress-beacon" aria-hidden="true"><i className="fortress-wall" /><b>{nodeCleared ? '✓' : stage.id}</b></span>
+                <span className="node-beacon fortress-beacon" aria-hidden="true"><i className="fortress-wall" />{nodeCleared && <i className="liberation-flag" />}<b>{nodeCleared ? '✓' : stage.id}</b></span>
                 <strong>{stage.name}</strong>
                 <small>{stage.boss ? 'BOSS' : `0${stage.id}`}</small>
               </button>

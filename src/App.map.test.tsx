@@ -53,6 +53,12 @@ describe('campaign map pointer controls', () => {
     expect(host.querySelector('.map-mission h2')?.textContent).toBe('국경의 불씨');
     expect(host.querySelector('.difficulty')?.textContent).toContain('전투 평가 낮음');
     expect(host.querySelector('.difficulty')?.textContent).not.toContain('1/30');
+    expect(host.querySelectorAll('.map-region-zone.liberated')).toHaveLength(1);
+    expect(host.querySelectorAll('.map-region-zone.frontline')).toHaveLength(1);
+    expect(host.querySelectorAll('.liberation-flag')).toHaveLength(6);
+    expect(host.querySelectorAll('.road-segment.liberated')).toHaveLength(5);
+    expect(host.querySelector('.map-heading')?.textContent).toContain('해방 1/5');
+    expect(stageOne.getAttribute('aria-label')).toContain('해방 완료');
   });
 
   it('captures the pointer only after horizontal movement becomes a drag', () => {

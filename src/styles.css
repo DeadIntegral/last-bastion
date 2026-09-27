@@ -490,9 +490,33 @@ button:disabled { cursor: not-allowed; }
 .map-sea { position: absolute; z-index: -1; inset: 0 auto 0 0; width: 330px; background: repeating-radial-gradient(ellipse at 30% 50%, rgba(121,172,181,.16) 0 2px, transparent 3px 14px), #18333e; clip-path: polygon(0 0, 74% 0, 55% 13%, 75% 26%, 48% 42%, 71% 57%, 44% 73%, 65% 100%, 0 100%); }
 .map-sea span { position: absolute; left: 10%; top: 39%; color: rgba(165,205,208,.3); font: 600 11px 'Pretendard Variable'; letter-spacing: .45em; transform: rotate(-76deg); }
 .map-land { position: absolute; z-index: -2; inset: 4% 2% 5% 16%; border: 1px solid rgba(191,205,173,.1); background: radial-gradient(circle at 38% 63%, rgba(183,159,92,.16), transparent 16%), radial-gradient(circle at 75% 27%, rgba(96,111,97,.4), transparent 24%); clip-path: polygon(3% 16%, 23% 5%, 38% 11%, 53% 3%, 70% 15%, 94% 8%, 100% 36%, 91% 61%, 98% 88%, 70% 94%, 54% 86%, 29% 96%, 11% 82%, 0 56%); }
+.map-region-zone { position: absolute; z-index: -1; top: 4%; bottom: 5%; overflow: hidden; pointer-events: none; opacity: .76; border: 1px solid rgba(109,126,118,.16); clip-path: polygon(3% 10%, 19% 3%, 37% 7%, 55% 2%, 72% 8%, 96% 5%, 100% 32%, 95% 60%, 100% 89%, 72% 96%, 50% 91%, 30% 98%, 8% 89%, 0 58%); transition: filter .35s ease, opacity .35s ease; }
+.map-region-zone::before, .map-region-zone::after { content: ''; position: absolute; inset: 0; }
+.map-region-zone::before { background: repeating-linear-gradient(108deg, transparent 0 38px, rgba(7,13,16,.13) 39px, transparent 41px); }
+.map-region-zone::after { opacity: .32; background: radial-gradient(circle at 28% 68%, rgba(218,190,111,.22), transparent 16%), radial-gradient(circle at 76% 24%, rgba(9,15,18,.5), transparent 25%); }
+.map-region-zone.region-theme-1 { background: linear-gradient(145deg, rgba(69,88,78,.58), rgba(46,66,61,.42)); }
+.map-region-zone.region-theme-2 { background: linear-gradient(145deg, rgba(78,72,71,.6), rgba(46,54,63,.48)); }
+.map-region-zone.region-theme-3 { background: linear-gradient(145deg, rgba(88,60,47,.62), rgba(62,48,45,.5)); }
+.map-region-zone.region-theme-4 { background: linear-gradient(145deg, rgba(69,90,102,.62), rgba(48,65,79,.5)); }
+.map-region-zone.region-theme-5 { background: linear-gradient(145deg, rgba(67,43,70,.7), rgba(43,34,58,.58)); }
+.map-region-zone.frontline { opacity: .84; box-shadow: inset 0 0 70px rgba(177,71,62,.13); }
+.map-region-zone.liberated { opacity: .95; border-color: rgba(221,189,112,.28); filter: saturate(1.08) brightness(1.07); box-shadow: inset 0 0 80px rgba(218,187,103,.1); }
+.map-region-zone.liberated::after { opacity: .62; background: radial-gradient(circle at 25% 67%, rgba(237,205,117,.34), transparent 14%), radial-gradient(circle at 63% 38%, rgba(113,161,118,.22), transparent 24%); }
+.region-state { position: absolute; z-index: 1; left: 74px; top: 52px; display: grid; gap: 2px; padding: 6px 9px; border-left: 2px solid rgba(177,76,68,.58); background: rgba(9,16,20,.42); }
+.region-state b { color: rgba(231,226,208,.58); font-size: 9px; letter-spacing: .18em; }
+.region-state small { color: rgba(207,127,113,.7); font: 700 7px 'Cinzel','Pretendard Variable',sans-serif; letter-spacing: .12em; }
+.map-region-zone.liberated .region-state { border-left-color: var(--gold); background: rgba(25,33,28,.58); }
+.map-region-zone.liberated .region-state b { color: #e7d8a9; }
+.map-region-zone.liberated .region-state small { color: #b9d493; }
+.liberation-beacon { position: absolute; z-index: 1; left: 58%; top: 28%; width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid rgba(234,204,123,.48); border-radius: 50%; background: radial-gradient(circle, rgba(240,202,104,.3), rgba(55,72,48,.52) 55%, transparent 58%); box-shadow: 0 0 22px rgba(232,196,99,.36); color: #f2d47d; }
+.liberation-beacon::before { content: ''; position: absolute; left: 16px; top: -16px; width: 2px; height: 34px; background: #bda468; }
+.liberation-beacon::after { content: ''; position: absolute; left: 18px; top: -13px; width: 25px; height: 14px; background: linear-gradient(135deg, #335f82, #203d59); border: 1px solid #c8ab62; clip-path: polygon(0 0, 100% 12%, 78% 52%, 100% 92%, 0 100%); }
+.liberation-beacon i { font: normal 12px Georgia; }
 .campaign-road { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .campaign-road path { fill: none; stroke: rgba(27,18,13,.7); stroke-width: 12; stroke-linecap: round; stroke-dasharray: 2 11; vector-effect: non-scaling-stroke; }
-.campaign-road .road-glow { stroke: rgba(221,189,112,.38); stroke-width: 2; stroke-dasharray: none; }
+.campaign-road .road-segment { stroke: rgba(87,72,55,.58); stroke-width: 2; stroke-dasharray: 4 9; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.campaign-road .road-segment.frontline { stroke: rgba(215,137,99,.72); stroke-width: 3; stroke-dasharray: 8 7; }
+.campaign-road .road-segment.liberated { stroke: rgba(238,207,125,.8); stroke-width: 4; stroke-dasharray: none; filter: drop-shadow(0 0 3px rgba(221,189,112,.42)); }
 .map-mountains { position: absolute; left: 840px; top: 5%; color: rgba(29,34,36,.48); font: 35px/1.05 Georgia; letter-spacing: 8px; transform: rotate(-8deg); }
 .map-forest { position: absolute; color: rgba(19,43,35,.7); font: 20px/1.25 Georgia; letter-spacing: 7px; }
 .forest-one { left: 280px; top: 20%; transform: rotate(-8deg); }
@@ -500,9 +524,6 @@ button:disabled { cursor: not-allowed; }
 .mountains-east { left: 1760px; top: 9%; transform: rotate(7deg); }
 .forest-east { left: 1360px; bottom: 11%; transform: rotate(-5deg); }
 .map-rift { position: absolute; left: 995px; top: 0; bottom: 0; width: 10px; opacity: .28; background: linear-gradient(90deg, transparent, #d7c17e, transparent); box-shadow: 0 0 36px #d7c17e66; }
-.map-region { position: absolute; color: rgba(216,221,203,.26); font-size: 10px; letter-spacing: .25em; text-transform: uppercase; }
-.region-west { left: 200px; bottom: 8%; }.region-heart { left: 490px; top: 18%; }.region-ash { left: 880px; top: 43%; transform: rotate(-65deg); }
-.region-east { left: 1220px; top: 15%; }.region-twilight { left: 1720px; bottom: 17%; transform: rotate(-12deg); }
 .map-node { position: absolute; z-index: 4; width: 108px; padding: 0; transform: translate(-50%, -50%); border: 0; background: transparent; color: #eef0e8; text-align: center; cursor: pointer; filter: drop-shadow(0 7px 6px rgba(0,0,0,.45)); }
 .node-beacon { width: 48px; height: 48px; margin: 0 auto 7px; display: grid; place-items: center; transform: rotate(45deg); background: linear-gradient(135deg, #38566a, #1b2c39); border: 2px solid #9ac8d1; color: white; font: 700 14px 'Cinzel'; transition: .2s ease; }
 .map-node .fortress-beacon { position: relative; width: 60px; height: 53px; overflow: visible; transform: none; border: 0; background: transparent; filter: drop-shadow(0 5px 4px rgba(0,0,0,.5)); }
@@ -519,6 +540,8 @@ button:disabled { cursor: not-allowed; }
 .map-node.cleared .node-beacon { background: linear-gradient(135deg, #536b3b, #29391f); border-color: #b9d288; }
 .map-node.cleared .fortress-beacon { border: 0; background: transparent; }
 .map-node.cleared .fortress-wall { background: linear-gradient(180deg, #718452, #354a2b 68%, #1d2d1a); border-bottom-color: #b9d288; }
+.fortress-beacon .liberation-flag { position: absolute; z-index: 4; left: 39px; top: -12px; width: 20px; height: 14px; background: linear-gradient(135deg, #335f82, #203d59); border: 1px solid #d2b86d; clip-path: polygon(0 0, 100% 12%, 76% 52%, 100% 92%, 0 100%); }
+.fortress-beacon .liberation-flag::before { content: ''; position: absolute; left: -3px; top: -2px; width: 2px; height: 31px; background: #c3aa6c; }
 .map-node.locked { opacity: .43; filter: grayscale(1) drop-shadow(0 5px 5px #0008); }
 .map-node.boss-node .node-beacon { width: 62px; height: 62px; background: radial-gradient(circle, #843e37, #311e25 68%); border-color: #e27a5e; color: #ffb38c; font-size: 22px; }
 .map-node.boss-node .fortress-beacon { width: 76px; height: 65px; border: 0; background: transparent; }
@@ -1034,7 +1057,7 @@ button:disabled { cursor: not-allowed; }
 .menu-top .version, .campaign-button small, .secondary-button small { font-size: 10px; }
 .menu-tip { font-size: 11px; }
 .map-heading p { font-size: 13px; line-height: 1.55; }
-.map-heading p strong, .map-region { font-size: 11px; }
+.map-heading p strong { font-size: 11px; }
 .map-node strong { font-size: 11px; }
 .map-node small, .map-compass i { font-size: 9px; }
 .map-mission > p { font-size: 13px; }
