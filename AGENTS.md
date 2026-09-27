@@ -27,6 +27,7 @@ The documentation must always describe the game that actually exists in the repo
 ## Toolchain rules
 
 - Use Yarn Classic. Use `yarn install`, `yarn dev`, `yarn test`, `yarn balance`, `yarn lint`, and `yarn build`.
+- Use Node.js 22.22.2 or newer. Keep the repository-root `.node-version` pinned to `22.22.2` because Cloudflare Pages v3 defaults to Node 22.16.0, which cannot install jsdom 30.0.1; Pages does not infer Node from `package.json#engines` in that build system.
 - Do not create `package-lock.json` or use npm for project workflows.
 - Use Vite 8.
 - TypeScript 8 was requested, but it does not exist in the registry as of 2026-09-12. The project therefore uses the latest stable TypeScript 7.0.2. Upgrade to TypeScript 8 only after an official stable package is available and the full verification suite passes.

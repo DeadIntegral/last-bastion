@@ -4,6 +4,8 @@
 
 ## 실행 방법
 
+Node.js 22.22.2 이상과 Yarn Classic 1.22.22를 사용합니다. 저장소의 `.node-version`은 Cloudflare Pages가 호환되는 Node를 선택하도록 `22.22.2`로 고정되어 있습니다.
+
 ```bash
 yarn install
 yarn dev
@@ -18,6 +20,8 @@ yarn lint
 yarn build
 yarn art:atlas
 ```
+
+Cloudflare Pages 설정은 빌드 명령 `yarn build`, 출력 경로 `dist`를 사용합니다. Pages v3의 기본 Node 22.16.0은 `jsdom@30.0.1`을 설치할 수 없지만, 루트 `.node-version`이 빌드 환경을 Node 22.22.2로 올립니다. 대시보드에서 별도 `NODE_VERSION`을 설정했다면 `22.22.2` 이상으로 맞추세요.
 
 ## GitHub 자동화
 

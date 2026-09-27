@@ -386,6 +386,7 @@ Status: **Implemented** for menu, daily attendance, dual-currency wallet, myster
 ## 14. Technical architecture
 
 - Package manager: Yarn Classic 1.22.22
+- Runtime/tooling Node: minimum 22.22.2; repository `.node-version` pins 22.22.2 for Cloudflare Pages compatibility with jsdom 30.0.1
 - Application: React 19
 - Battle: Phaser 3
 - State and persistence: Zustand 5
@@ -487,6 +488,7 @@ Regression tests follow a minimum-sufficient strategy: protect formulas, combat 
 
 ## 17. Changelog
 
+- 2026-09-28: Pinned Node 22.22.2 through the repository `.node-version` and declared the matching package engine floor so Cloudflare Pages no longer attempts to install jsdom 30.0.1 under its incompatible Node 22.16.0 default.
 - 2026-09-27: Restricted automatic dead-zone retreat to five data-authored skirmishers—Scout, Goblin Poison Archer, Storm Spirit, Ria, and Neris—while every other ranged combatant now holds position without attacking when screened; added symmetric combat integration, UI/codex disclosure, pure regression coverage, and difficulty valuation.
 - 2026-09-27: Fixed skirmishers endlessly retreating without firing by storing one bounded step-back destination and adding a 1.6-second retrigger cooldown; a pursuer can no longer move the retreat goal backward every frame.
 - 2026-09-27: Decoupled treasures from story bosses: clearing each region's first ordinary stage now reveals an independently placed near-boss-strength guardian, guardian victory opens a short route to a separate rear chest, and schema 5 persists guardian defeat and one-time chest collection independently while preserving repeat side battles and validated schema-4 claims.
