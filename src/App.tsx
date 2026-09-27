@@ -25,7 +25,7 @@ import { CharacterSprite } from './components/CharacterSprite';
 import { GameModal } from './components/GameModal';
 import { Localized } from './shared/i18n/Localized';
 import { changeLanguage, getLanguageLocale, supportedLanguages, t, useTranslation, type Language } from './shared/i18n/i18n';
-import type { BattleResult, CastleTechId, EquipmentSlot, FortressTier, HeroId, Screen, UnitDefinition, UnitFamily, UnitId } from './types/game';
+import type { BattleResult, CastleTechId, EquipmentSlot, FortressTier, HeroId, MapTreasureId, Screen, UnitDefinition, UnitFamily, UnitId } from './types/game';
 
 const equipmentSlots: Array<{ id: EquipmentSlot; name: string; icon: string }> = [
   { id: 'weapon', name: '무기', icon: '⚔' },
@@ -596,10 +596,13 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
   const unlocked = useGameStore((state) => state.unlockedStage);
   const clearedStages = useGameStore((state) => state.clearedStages);
   const clearedChallenges = useGameStore((state) => state.clearedChallenges);
+  const clearedMapTreasureGuardianIds = useGameStore((state) => state.clearedMapTreasureGuardianIds);
   const claimedMapTreasureIds = useGameStore((state) => state.claimedMapTreasureIds);
+  const claimMapTreasure = useGameStore((state) => state.claimMapTreasure);
   const castleTechLevels = useGameStore((state) => state.castleTechLevels);
   const [selectedId, setSelectedId] = useState(Math.min(unlocked, stages.length));
   const [mapDragging, setMapDragging] = useState(false);
+  const [notice, setNotice] = useState('');
   const mapRef = useRef<HTMLElement>(null);
   const mapDragRef = useRef({ pointerId: -1, startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0, moved: false });
   const suppressMapClickRef = useRef(false);
@@ -610,7 +613,7 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
   const locked = isChallenge || isTreasureMission ? !clearedStages.includes(selected.requiredCampaignStage ?? 1) : selected.id > unlocked;
   const cleared = isChallenge
     ? clearedChallenges.includes(selected.id)
-    : isTreasureMission ? claimedMapTreasureIds.includes(selected.treasureId!) : clearedStages.includes(selected.id);
+    : isTreasureMission ? clearedMapTreasureGuardianIds.includes(selected.treasureId!) : clearedStages.includes(selected.id);
   const visibleRegionCount = Math.min(5, Math.max(1, Math.ceil(unlocked / 6)));
   const visibleStages = stages.slice(0, visibleRegionCount * 6);
   const visibleChallenges = challengeStages.filter((challenge) => clearedStages.includes(challenge.requiredCampaignStage ?? 1));
@@ -638,7 +641,9 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
 
   useEffect(() => {
     const map = mapRef.current;
-    const position = isChallenge ? challengeMapPositions[selectedId] : selectedTreasure ?? mapPositions[selectedId - 1];
+    const position = isChallenge
+      ? challengeMapPositions[selectedId]
+      : selectedTreasure ? { x: selectedTreasure.guardianX, y: selectedTreasure.guardianY } : mapPositions[selectedId - 1];
     if (!map || !position) return;
     map.scrollTo({ left: Math.max(0, position.x - map.clientWidth / 2), top: Math.max(0, position.y - map.clientHeight / 2), behavior: 'smooth' });
   }, [isChallenge, selectedId, selectedTreasure, visibleRegionCount]);
@@ -688,6 +693,18 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
       return;
     }
     setSelectedId(id);
+  };
+
+  const collectMapTreasure = (event: ReactMouseEvent<HTMLButtonElement>, id: MapTreasureId) => {
+    if (suppressMapClickRef.current) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    const treasure = mapTreasures.find((entry) => entry.id === id);
+    if (!treasure || !claimMapTreasure(id)) return;
+    setNotice(`${treasure.name}: 금화 ${treasure.gold.toLocaleString()}개를 획득했습니다.`);
+    window.setTimeout(() => setNotice(''), 2_000);
   };
 
   const scrollToRegion = (regionIndex: number) => {
@@ -746,10 +763,7 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
           <svg className="campaign-road" viewBox={`0 0 ${mapWidth} ${mapHeight}`} preserveAspectRatio="none" aria-hidden="true">
             <path d={roadPath} />
             {roadSegments.map((segment) => <line className={`road-segment ${segment.state}`} x1={segment.from.x} y1={segment.from.y} x2={segment.to.x} y2={segment.to.y} key={segment.id} />)}
-            {mapTreasures.filter((treasure) => clearedStages.includes(treasure.requiredStage)).map((treasure) => {
-              const boss = mapPositions[treasure.requiredStage - 1];
-              return <line className={`treasure-route ${claimedMapTreasureIds.includes(treasure.id) ? 'claimed' : ''}`} x1={boss.x} y1={boss.y} x2={treasure.x} y2={treasure.y} key={`route-${treasure.id}`} />;
-            })}
+            {mapTreasures.filter((treasure) => clearedMapTreasureGuardianIds.includes(treasure.id)).map((treasure) => <line className={`treasure-route ${claimedMapTreasureIds.includes(treasure.id) ? 'claimed' : ''}`} x1={treasure.guardianX} y1={treasure.guardianY} x2={treasure.x} y2={treasure.y} key={`route-${treasure.id}`} />)}
           </svg>
           {visibleStages.map((stage) => {
             const nodeLocked = stage.id > unlocked;
@@ -788,13 +802,21 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
               </button>
             );
           })}
-          {mapTreasures.filter((treasure) => clearedStages.includes(treasure.requiredStage)).map((treasure) => {
-            const claimed = claimedMapTreasureIds.includes(treasure.id);
-            return <button type="button" className={`map-node map-treasure-node ${claimed ? 'claimed' : ''} ${selectedId === treasure.missionStageId ? 'selected' : ''}`} style={{ left: `${treasure.x}px`, top: `${treasure.y}px` }} aria-label={`${treasure.name}, ${claimed ? '수복 완료' : '보물 수복전'}`} onClick={(event) => selectMapStage(event, treasure.missionStageId)} key={treasure.id}>
-              <span className="treasure-chest" aria-hidden="true"><i /></span>
-              <strong>{treasure.name}</strong>
-              <small>{claimed ? '수복 완료' : 'SIDE MISSION'}</small>
-            </button>;
+          {mapTreasures.filter((treasure) => clearedStages.includes(treasure.revealStage)).map((treasure) => {
+            const defeated = clearedMapTreasureGuardianIds.includes(treasure.id);
+            return <Fragment key={`guardian-${treasure.id}`}>
+              <button type="button" className={`map-node treasure-guardian-node ${defeated ? 'defeated' : ''} ${selectedId === treasure.missionStageId ? 'selected' : ''}`} style={{ left: `${treasure.guardianX}px`, top: `${treasure.guardianY}px` }} aria-label={`${treasure.name} 수호자, ${defeated ? '격파 완료' : '강적 도전'}`} onClick={(event) => selectMapStage(event, treasure.missionStageId)}>
+                <span className="treasure-guardian-crest" aria-hidden="true"><CharacterSprite id={treasure.guardianUnitId} className="treasure-guardian-art" /></span>
+                <strong>{getStage(treasure.missionStageId).name}</strong>
+                <small>{defeated ? 'GUARDIAN DEFEATED' : 'DANGER · GUARDIAN'}</small>
+              </button>
+              {defeated && (() => {
+                const claimed = claimedMapTreasureIds.includes(treasure.id);
+                return <button type="button" className={`map-node map-treasure-node ${claimed ? 'claimed' : ''}`} style={{ left: `${treasure.x}px`, top: `${treasure.y}px` }} aria-label={`${treasure.name}, ${claimed ? '수령 완료' : `금화 ${treasure.gold.toLocaleString()}개 수령`}`} aria-disabled={claimed} onClick={(event) => collectMapTreasure(event, treasure.id)}>
+                  <span className="treasure-chest" aria-hidden="true"><i /></span><strong>{treasure.name}</strong><small>{claimed ? '수령 완료' : `● ${treasure.gold.toLocaleString()}`}</small>
+                </button>;
+              })()}
+            </Fragment>;
           })}
           <div className="map-compass"><span>✦</span><i>N</i></div>
           </div>
@@ -825,6 +847,7 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
           </div>
         </div>
       </div>
+      {notice && <div className="toast" role="status">{notice}</div>}
     </main>
   )}</Localized>;
 }

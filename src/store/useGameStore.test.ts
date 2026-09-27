@@ -52,14 +52,18 @@ describe('shared troop progression', () => {
     expect(useGameStore.getState().claimAchievement('first_blood')).toBe(false);
   });
 
-  it('reveals each regional treasure after its boss clear and claims it only once', () => {
+  it('requires a regional guardian victory before its treasure can be claimed once', () => {
     const westernTreasure = mapTreasures[0];
     expect(useGameStore.getState().completeTreasureMission(westernTreasure.missionStageId)).toBeUndefined();
-    useGameStore.setState({ clearedStages: [westernTreasure.requiredStage] });
-    expect(useGameStore.getState().completeTreasureMission(westernTreasure.missionStageId)?.gold).toBe(westernTreasure.gold);
+    useGameStore.setState({ clearedStages: [westernTreasure.revealStage] });
+    expect(useGameStore.getState().completeTreasureMission(westernTreasure.missionStageId)?.label).toContain('경로 해금');
+    expect(useGameStore.getState().gold).toBe(100);
+    expect(useGameStore.getState().clearedMapTreasureGuardianIds).toEqual([westernTreasure.id]);
+    expect(useGameStore.getState().claimMapTreasure(westernTreasure.id)).toBe(true);
     expect(useGameStore.getState().gold).toBe(100 + westernTreasure.gold);
     expect(useGameStore.getState().claimedMapTreasureIds).toEqual([westernTreasure.id]);
     expect(useGameStore.getState().completeTreasureMission(westernTreasure.missionStageId)).toBeUndefined();
+    expect(useGameStore.getState().claimMapTreasure(westernTreasure.id)).toBe(false);
     expect(useGameStore.getState().gold).toBe(100 + westernTreasure.gold);
   });
 
@@ -268,7 +272,7 @@ describe('shared troop progression', () => {
   });
 
   it('exports a portable versioned save without store actions and imports it again', () => {
-    useGameStore.setState({ gold: 1_234, gems: 56, unlockedStage: 30, clearedStages: [1, 2, 3, 4, 5, 6, 12, 18, 24, 30], claimedMapTreasureIds: ['western-reliquary'], formationSlotPurchases: 3, triumphMonumentLevel: 4 });
+    useGameStore.setState({ gold: 1_234, gems: 56, unlockedStage: 30, clearedStages: [1, 2, 3, 4, 5, 6, 12, 18, 24, 30], clearedMapTreasureGuardianIds: ['western-reliquary'], claimedMapTreasureIds: ['western-reliquary'], formationSlotPurchases: 3, triumphMonumentLevel: 4 });
 
     const serialized = useGameStore.getState().exportSave();
     const exported = JSON.parse(serialized) as { format: string; version: number; gameVersion: string; saveSchemaVersion: number; exportedAt: string; state: Record<string, unknown> };
@@ -283,6 +287,7 @@ describe('shared troop progression', () => {
     expect(exported.state.formationSlotPurchases).toBe(3);
     expect(exported.state.triumphMonumentLevel).toBe(4);
     expect(exported.state.claimedMapTreasureIds).toEqual(['western-reliquary']);
+    expect(exported.state.clearedMapTreasureGuardianIds).toEqual(['western-reliquary']);
     expect(exported.state.exportSave).toBeUndefined();
     expect(exported.state.resetProgress).toBeUndefined();
 
@@ -293,6 +298,7 @@ describe('shared troop progression', () => {
     expect(useGameStore.getState().formationSlotPurchases).toBe(3);
     expect(useGameStore.getState().triumphMonumentLevel).toBe(4);
     expect(useGameStore.getState().claimedMapTreasureIds).toEqual(['western-reliquary']);
+    expect(useGameStore.getState().clearedMapTreasureGuardianIds).toEqual(['western-reliquary']);
   });
 
   it('defaults missing monument progress to zero when importing an older save', () => {

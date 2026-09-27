@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { stages } from '../src/data/stages';
-import { mapTreasures } from '../src/data/mapTreasures';
 import { troopDefinitions } from '../src/data/units';
 import { analyzeCampaignDifficulty, estimateUnitThreat } from '../src/game/difficulty';
 import { equipmentCost, upgradedStats } from '../src/game/rules';
@@ -18,8 +17,7 @@ const slots: EquipmentSlot[] = ['weapon', 'armor', 'boots'];
 function goldBeforeStage(stageId: number): number {
   return STARTING_GOLD + stages
     .filter((stage) => stage.id < stageId)
-    .reduce((gold, stage) => gold + stage.reward + (stage.firstClearReward.gold ?? 0), 0)
-    + mapTreasures.filter((treasure) => treasure.requiredStage < stageId).reduce((gold, treasure) => gold + treasure.gold, 0);
+    .reduce((gold, stage) => gold + stage.reward + (stage.firstClearReward.gold ?? 0), 0);
 }
 
 function affordableBranchLevel(id: UnitId, budget: number): number {

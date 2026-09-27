@@ -68,13 +68,19 @@ describe('campaign map pointer controls', () => {
     expect(host.querySelector('.campaign-map-world')?.getAttribute('style')).toContain('height: 1850px');
     expect(host.querySelector<HTMLImageElement>('.fortress-beacon img')?.src).toContain('/assets/campaign-map/markers/liberated-keep.webp');
 
-    const treasure = host.querySelector<HTMLButtonElement>('.map-treasure-node')!;
-    expect(treasure.textContent).toContain('변경 수복 궤짝');
-    act(() => treasure.click());
+    expect(host.querySelector('.map-treasure-node')).toBeNull();
+    const guardian = host.querySelector<HTMLButtonElement>('.treasure-guardian-node')!;
+    expect(guardian.textContent).toContain('봉화대 매복전');
+    act(() => guardian.click());
     expect(host.querySelector('.map-mission h2')?.textContent).toBe('봉화대 매복전');
     expect(host.querySelector('.treasure-gimmick-preview')?.textContent).toContain('교차 사격 매복');
     expect(useGameStore.getState().gold).toBe(100);
     expect(useGameStore.getState().claimedMapTreasureIds).toEqual([]);
+    act(() => { useGameStore.getState().completeTreasureMission(201); });
+    const treasure = host.querySelector<HTMLButtonElement>('.map-treasure-node')!;
+    expect(treasure.textContent).toContain('변경 수복 궤짝');
+    act(() => treasure.click());
+    expect(useGameStore.getState().gold).toBe(700);
   });
 
   it('captures the pointer only after horizontal movement becomes a drag', () => {

@@ -3,7 +3,6 @@ import { UNIT_IDS } from '../types/game';
 import { upgradedStats } from '../game/rules';
 import { advancedEnemyIntroductionStages, challengeStages, ENEMY_EQUIPMENT_MAX_LEVEL, MAX_FORTRESS_DISTANCE, MIN_FORTRESS_DISTANCE, stages, treasureStages } from './stages';
 import { mapTreasures } from './mapTreasures';
-import { campaignMapStagePosition } from './campaignMapArt';
 import { allTroopOrder, troopDefinitions, unitFamilyById } from './units';
 
 describe('campaign rewards', () => {
@@ -264,7 +263,7 @@ describe('campaign rewards', () => {
 
   it('defines five fortress-based treasure side missions with distinct tactical gimmicks', () => {
     expect(treasureStages).toHaveLength(5);
-    expect(treasureStages.map((stage) => stage.requiredCampaignStage)).toEqual([6, 12, 18, 24, 30]);
+    expect(treasureStages.map((stage) => stage.requiredCampaignStage)).toEqual([1, 7, 13, 19, 25]);
     expect(new Set(treasureStages.map((stage) => stage.gimmick?.name)).size).toBe(5);
     for (const [index, stage] of treasureStages.entries()) {
       expect(stage.sideMission).toBe(true);
@@ -272,10 +271,9 @@ describe('campaign rewards', () => {
       expect(stage.enemyCastleHp).toBeGreaterThan(0);
       expect(stage.reinforcement).toBeDefined();
       expect(stage.treasureId).toBe(mapTreasures[index].id);
-      expect(stage.firstClearReward.gold).toBe(mapTreasures[index].gold);
-      const bossPosition = campaignMapStagePosition(mapTreasures[index].requiredStage);
-      expect(mapTreasures[index].x).toBeGreaterThan(bossPosition.x);
-      expect(Math.hypot(mapTreasures[index].x - bossPosition.x, mapTreasures[index].y - bossPosition.y)).toBeLessThan(220);
+      expect(stage.firstClearReward.gold).toBeUndefined();
+      expect(mapTreasures[index].x).toBeGreaterThan(mapTreasures[index].guardianX);
+      expect(Math.hypot(mapTreasures[index].x - mapTreasures[index].guardianX, mapTreasures[index].y - mapTreasures[index].guardianY)).toBeLessThan(220);
     }
   });
 });

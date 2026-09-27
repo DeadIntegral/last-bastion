@@ -577,6 +577,16 @@ button:disabled { cursor: not-allowed; }
 .challenge-map-node small { color: #d07f70; }
 .challenge-map-node.cleared .node-beacon { background: radial-gradient(circle, #4f745b, #233529 68%); border-color: #a7d7af; }
 .map-treasure-node { z-index: 6; width: 130px; }
+.treasure-guardian-node { z-index: 6; width: 150px; }
+.treasure-guardian-crest { position: relative; width: 78px; height: 78px; margin: 0 auto 7px; display: grid; place-items: center; border: 2px solid #dc6b55; border-radius: 50%; background: radial-gradient(circle, rgba(126,45,42,.82), rgba(25,19,28,.94) 70%); box-shadow: 0 0 0 7px rgba(171,53,48,.11), 0 0 28px rgba(201,71,57,.38); overflow: hidden; }
+.treasure-guardian-crest::after { content: '!'; position: absolute; right: 4px; top: 3px; width: 19px; height: 19px; display: grid; place-items: center; border-radius: 50%; background: #d85b49; color: #fff0d7; font: 800 11px 'Cinzel'; }
+.treasure-guardian-art { width: 82px; transform: translateY(7px); filter: drop-shadow(0 5px 5px rgba(0,0,0,.55)); }
+.treasure-guardian-node strong { color: #ffd0b4; border: 1px solid rgba(222,103,82,.3); background: rgba(39,14,20,.88); }
+.treasure-guardian-node small { color: #e4826c; }
+.treasure-guardian-node:hover .treasure-guardian-crest, .treasure-guardian-node.selected .treasure-guardian-crest { transform: scale(1.08); border-color: #ffd199; box-shadow: 0 0 0 8px rgba(216,91,69,.16), 0 0 34px rgba(230,105,76,.52); }
+.treasure-guardian-node.defeated { opacity: .62; filter: grayscale(.45); }
+.treasure-guardian-node.defeated .treasure-guardian-crest::after { content: '✓'; background: #66865a; }
+.treasure-guardian-node.defeated small { color: #a8c48a; }
 .treasure-chest { position: relative; width: 56px; height: 38px; margin: 0 auto 8px; display: block; border: 2px solid #9c7837; border-radius: 4px 4px 9px 9px; background: linear-gradient(180deg, #b07a2f 0 23%, #63411f 24% 100%); box-shadow: 0 0 0 5px rgba(230,190,91,.08), 0 8px 12px rgba(0,0,0,.45); }
 .treasure-chest::before { content: ''; position: absolute; left: -2px; top: -14px; width: 56px; height: 20px; border: 2px solid #b89147; border-radius: 13px 13px 3px 3px; background: linear-gradient(180deg, #d5a448, #765024); }
 .treasure-chest::after { content: '✦'; position: absolute; z-index: 2; left: 50%; top: 8px; width: 18px; height: 20px; display: grid; place-items: center; transform: translateX(-50%); border: 1px solid #f0cd74; background: #8a6328; color: #ffe4a0; font: 10px Georgia; }
