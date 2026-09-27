@@ -1,4 +1,5 @@
 import { battleMobilizationTuning, fortressDeploymentTuning, mobilizationCommandCost } from '../data/castle';
+import { deadZoneRetreatTuning } from '../data/combat';
 import { triumphMonumentBonuses } from '../data/endgame';
 import { HERO_AWAKENING_COOLDOWN_REDUCTION_MS, HERO_AWAKENING_LEVELS, HERO_MASTERY_MAX_LEVEL, SOLDIER_MASTERY_MAX_LEVEL, heroAwakeningAuras, heroMasteryGrowth, soldierMasteryGrowth, type MasteryStatGrowth } from '../data/mastery';
 import type { BattleSpeed, EquipmentLevels, HeroDefinition, HeroId, Side, StageDefinition, TerrainEffect, UnitDefinition, UnitId } from '../types/game';
@@ -87,6 +88,13 @@ export function retreatsFromDeadZone(definition: Pick<UnitDefinition, 'minimumAt
 
 export function spacingTraitLabel(definition: Pick<UnitDefinition, 'minimumAttackRange' | 'retreatsInsideMinimumRange'>): string | undefined {
   return retreatsFromDeadZone(definition) ? '후퇴 사격 · 사각 진입 시 거리 확보' : undefined;
+}
+
+export function deadZoneRetreatDestination(currentX: number, threatX: number, minimumRange: number, currentDistance: number, minimumX: number, maximumX: number): number {
+  const direction = Math.sign(currentX - threatX) || -1;
+  const requiredStep = minimumRange - currentDistance + deadZoneRetreatTuning.spacingBuffer;
+  const step = Math.max(deadZoneRetreatTuning.minimumStep, Math.min(deadZoneRetreatTuning.maximumStep, requiredStep));
+  return Math.max(minimumX, Math.min(maximumX, currentX + direction * step));
 }
 
 export function attackTimingLabel(definition: UnitDefinition): string {

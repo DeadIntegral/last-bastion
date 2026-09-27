@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { heroMasteryGrowth, heroSkillPower, soldierMasteryGrowth } from '../data/mastery';
 import { allTroopOrder, bossCombatTuning, bossDefinition, heroDefinitions, troopDefinitions } from '../data/units';
 import { challengeStages, stages } from '../data/stages';
-import { ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL, STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS, applyEnemyTerrain, applyTriumphMonumentStats, attackPatternLabel, attackRangeLabel, attackRecoveryMs, attackTimingLabel, calculateDamage, canActivateMobilization, canAttackTarget, canReceiveRallyOrder, cooldownFillRatio, enemyFortressCanReinforce, enemyObjectiveDefeated, equipmentCost, fortressRearSpawnX, guardProtectionLabel, hasEquipmentCapstone, healedHp, heroAuraBonuses, heroAwakeningRank, heroMasteryLevelFromXp, isBehindLivingFortress, isWithinAttackBand, masteryLevelFromXp, mobilizedCommandStats, regenerateCommand, retreatsFromDeadZone, scaledBattleDelta, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, spacingTraitLabel, unitDeploymentCapacity, upgradedStats, upgradeCost, usesStatEquipmentCapstone } from './rules';
+import { ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL, STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS, applyEnemyTerrain, applyTriumphMonumentStats, attackPatternLabel, attackRangeLabel, attackRecoveryMs, attackTimingLabel, calculateDamage, canActivateMobilization, canAttackTarget, canReceiveRallyOrder, cooldownFillRatio, deadZoneRetreatDestination, enemyFortressCanReinforce, enemyObjectiveDefeated, equipmentCost, fortressRearSpawnX, guardProtectionLabel, hasEquipmentCapstone, healedHp, heroAuraBonuses, heroAwakeningRank, heroMasteryLevelFromXp, isBehindLivingFortress, isWithinAttackBand, masteryLevelFromXp, mobilizedCommandStats, regenerateCommand, retreatsFromDeadZone, scaledBattleDelta, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, spacingTraitLabel, unitDeploymentCapacity, upgradedStats, upgradeCost, usesStatEquipmentCapstone } from './rules';
 
 describe('combat rules', () => {
   it('applies anti-large damage bonus', () => {
@@ -87,6 +87,13 @@ describe('combat rules', () => {
     expect(stationaryRanged.every((definition) => !retreatsFromDeadZone(definition))).toBe(true);
     expect(spacingTraitLabel(troopDefinitions.scout)).toContain('후퇴 사격');
     expect(spacingTraitLabel(troopDefinitions.archer)).toBeUndefined();
+  });
+
+  it('computes one bounded retreat destination instead of moving the goal every frame', () => {
+    const destination = deadZoneRetreatDestination(500, 530, 55, 10, 20, 1_580);
+    expect(destination).toBe(431);
+    expect(deadZoneRetreatDestination(destination, 520, 55, 10, 20, 1_580)).not.toBe(destination);
+    expect(deadZoneRetreatDestination(25, 50, 100, -10, 20, 1_580)).toBe(20);
   });
 
   it('keeps archers superior at range and single-target deployment damage', () => {

@@ -3,6 +3,7 @@ import { musicEngine } from '../audio/music';
 import { battleBackgroundDefinitions, battleBackgroundForTerrain } from '../data/backgroundArt';
 import { CHARACTER_ART_FRAME_HEIGHT, CHARACTER_ART_FRAME_WIDTH, characterArtFrameIndex, characterArtFrames, characterArtSheet, characterArtSheets, TRANSCENDENT_BATTLE_ART_SCALE, type CharacterArtId } from '../data/characterArt';
 import { battleMobilizationTuning, castleBattleStats, mobilizationCommandCost, rallyCommandTuning, soldierCommandCost } from '../data/castle';
+import { deadZoneRetreatTuning } from '../data/combat';
 import { triumphMonumentBonuses } from '../data/endgame';
 import { fortressArtDefinitions, fortressArtLayout } from '../data/fortressArt';
 import { heroAwakeningAuras, heroSkillPower } from '../data/mastery';
@@ -19,6 +20,7 @@ import {
   canActivateMobilization,
   canAttackTarget,
   canReceiveRallyOrder,
+  deadZoneRetreatDestination,
   enemyFortressCanReinforce,
   enemyObjectiveDefeated,
   fortressRearSpawnX,
@@ -55,6 +57,8 @@ interface CombatUnit {
   pendingAttackKind: PendingAttackKind;
   pendingTargetId: number;
   pendingTargetX: number;
+  retreatDestination?: number;
+  retreatCooldownMs: number;
   container: Phaser.GameObjects.Container;
   shadow: Phaser.GameObjects.Ellipse;
   shadowGroundOffset: number;
@@ -509,6 +513,7 @@ export class BattleScene extends Phaser.Scene {
       id: this.nextEntityId++, definition, side, hp: definition.maxHp, maxHp: definition.maxHp,
       shield: 0, attackTimer: Phaser.Math.Between(0, 250), attackRecoveryLocked: false,
       attackWindupRemainingMs: 0, pendingAttackKind: 'none', pendingTargetId: 0, pendingTargetX: 0,
+      retreatDestination: undefined, retreatCooldownMs: 0,
       container, shadow, shadowGroundOffset, hpBar, alive: true, isHero: hero, isBoss: boss, isElite: Boolean(eliteName), hasCharged: false,
       baseScale, attackMotionMs: 0, attackMotionDurationMs: 0, attackRig, attackPose: createAttackMotionPose(), damageFlashMs: 0,
     };
@@ -657,6 +662,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private updateUnit(unit: CombatUnit, delta: number): void {
+    unit.retreatCooldownMs = Math.max(0, unit.retreatCooldownMs - delta);
     if (unit.attackRecoveryLocked) {
       if (unit.attackTimer > 0) return;
       unit.attackRecoveryLocked = false;
@@ -671,16 +677,18 @@ export class BattleScene extends Phaser.Scene {
     if (target) {
       const distance = Math.abs(target.container.x - unit.container.x) - target.definition.size - unit.definition.size;
       if (isWithinAttackBand(unit.definition, distance, aura.rangeBonus)) {
+        unit.retreatDestination = undefined;
         if (unit.attackTimer <= 0) {
           this.beginAttack(unit, 'unit', target);
         }
         return;
       }
       if (distance < unit.definition.minimumAttackRange) {
-        if (retreatsFromDeadZone(unit.definition)) this.retreatFrom(unit, target.container.x, delta);
+        if (retreatsFromDeadZone(unit.definition)) this.stepBackFrom(unit, target.container.x, distance, delta);
         return;
       }
     }
+    unit.retreatDestination = undefined;
 
     const rallyDestination = this.rallyDestinationFor(unit);
     if (rallyDestination !== undefined) {
@@ -706,18 +714,29 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
     if (castleEdgeDistance < unit.definition.minimumAttackRange) {
-      if (retreatsFromDeadZone(unit.definition)) this.retreatFrom(unit, destination, delta);
+      if (retreatsFromDeadZone(unit.definition)) this.stepBackFrom(unit, destination, castleEdgeDistance, delta);
       return;
     }
 
     this.moveUnitToward(unit, destination, delta);
   }
 
-  private retreatFrom(unit: CombatUnit, threatX: number, delta: number): void {
-    const fallbackDirection = unit.side === 'player' ? -1 : 1;
-    const direction = Math.sign(unit.container.x - threatX) || fallbackDirection;
-    const destination = Phaser.Math.Clamp(unit.container.x + direction * 120, 20, WORLD_WIDTH - 20);
-    this.moveUnitToward(unit, destination, delta);
+  private stepBackFrom(unit: CombatUnit, threatX: number, currentDistance: number, delta: number): void {
+    if (unit.retreatCooldownMs > 0) return;
+    unit.retreatDestination ??= deadZoneRetreatDestination(
+      unit.container.x,
+      threatX,
+      unit.definition.minimumAttackRange,
+      currentDistance,
+      20,
+      WORLD_WIDTH - 20,
+    );
+    const previousX = unit.container.x;
+    this.moveUnitToward(unit, unit.retreatDestination, delta);
+    if (Math.abs(unit.retreatDestination - unit.container.x) <= 1 || unit.container.x === previousX) {
+      unit.retreatDestination = undefined;
+      unit.retreatCooldownMs = deadZoneRetreatTuning.cooldownMs;
+    }
   }
 
   private rallyDestinationFor(unit: CombatUnit): number | undefined {
