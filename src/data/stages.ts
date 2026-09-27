@@ -1,4 +1,5 @@
 import type { EnemyFaction, StageDefinition, TerrainEffect, UnitId } from '../types/game';
+import { mapTreasureById } from './mapTreasures';
 import { troopDefinitions } from './units';
 
 export const ENEMY_EQUIPMENT_MAX_LEVEL = 5;
@@ -449,6 +450,98 @@ export const challengeStages: StageDefinition[] = [
   },
 ];
 
+export const treasureStages: StageDefinition[] = [
+  {
+    id: 201, name: '봉화대 매복전', subtitle: '숨어 있던 폭탄병과 독궁수의 교차 사격을 뚫고 보급 궤짝을 확보하세요.', reward: 200,
+    enemyCastleHp: 7_500, fortressDistance: 1_180, sideMission: true, treasureId: 'western-reliquary', requiredCampaignStage: 6, enemyFaction: 'goblins',
+    terrain: { id: 'treasure-ambush', name: '폐허 봉화대', description: '낮은 전열 뒤에서 폭탄과 독화살이 교차하는 매복지입니다.', enemyHpMultiplier: 1, enemyAttackMultiplier: 1, enemyMoveSpeedMultiplier: 1 },
+    gimmick: { name: '교차 사격 매복', description: '빠른 약탈병이 시간을 끄는 동안 독궁수와 폭탄병이 후방에서 누적 피해를 줍니다.' },
+    enemyUpgrades: { equipment: { weapon: 3, armor: 3, boots: 2 } },
+    waves: [
+      { timeMs: 800, unitId: 'raider', count: 2, intervalMs: 2_400 },
+      { timeMs: 5_500, unitId: 'goblinArcher', count: 3, intervalMs: 2_600 },
+      { timeMs: 10_000, unitId: 'goblinBomber', count: 3, intervalMs: 3_000 },
+    ],
+    eliteGuards: [{ unitId: 'goblinBomber', name: '봉화대 폭파대장', positionRatio: 0.7, hpMultiplier: 1.8, attackMultiplier: 1.2, defenseBonus: 2 }],
+    reinforcement: { startMs: 21_000, intervalMs: 2_700, unitIds: ['raider', 'goblinArcher', 'goblinBomber'], maxAlive: 10 },
+    firstClearReward: { label: mapTreasureById['western-reliquary'].name, description: mapTreasureById['western-reliquary'].description, icon: '▣', gold: mapTreasureById['western-reliquary'].gold },
+  },
+  {
+    id: 202, name: '왕도 금고 수복전', subtitle: '수호병이 지키는 치유 전열을 끊고 비밀 금고를 되찾으세요.', reward: 400,
+    enemyCastleHp: 22_000, fortressDistance: 1_280, sideMission: true, treasureId: 'capital-vault', requiredCampaignStage: 12, enemyFaction: 'betrayers',
+    enemyFortressAttack: { damage: 45, range: 390, intervalMs: 5_000 },
+    terrain: { id: 'treasure-guardline', name: '왕도 지하 회랑', description: '좁은 회랑에서 수호병과 사제가 서로의 약점을 보완합니다.', enemyHpMultiplier: 1, enemyAttackMultiplier: 1, enemyMoveSpeedMultiplier: 1 },
+    gimmick: { name: '수호·치유 진형', description: '수호병이 관통을 끊고 전장 사제가 가장 크게 다친 병력을 계속 회복합니다.' },
+    enemyUpgrades: { equipment: { weapon: 5, armor: 5, boots: 5 } },
+    waves: [
+      { timeMs: 700, unitId: 'guardian', count: 4, intervalMs: 2_400 },
+      { timeMs: 6_000, unitId: 'priest', count: 3, intervalMs: 3_200 },
+      { timeMs: 12_000, unitId: 'crossbow', count: 5, intervalMs: 2_000 },
+    ],
+    eliteGuards: [
+      { unitId: 'guardian', name: '금고 수문장', positionRatio: 0.56, hpMultiplier: 2.2, attackMultiplier: 1.25, defenseBonus: 5 },
+      { unitId: 'priest', name: '배신한 왕실 치유사', positionRatio: 0.82, hpMultiplier: 2, attackMultiplier: 1.3, defenseBonus: 4 },
+    ],
+    reinforcement: { startMs: 24_000, intervalMs: 2_300, unitIds: ['guardian', 'priest', 'crossbow'], maxAlive: 14 },
+    firstClearReward: { label: mapTreasureById['capital-vault'].name, description: mapTreasureById['capital-vault'].description, icon: '▣', gold: mapTreasureById['capital-vault'].gold },
+  },
+  {
+    id: 203, name: '용광로 창고 급습', subtitle: '철갑 전열 사이에서 솟는 지면 마법을 피하며 전리품 창고를 함락하세요.', reward: 600,
+    enemyCastleHp: 32_000, fortressDistance: 1_340, sideMission: true, treasureId: 'highland-cache', requiredCampaignStage: 18, enemyFaction: 'orcs',
+    enemyFortressAttack: { damage: 60, range: 430, intervalMs: 4_500 },
+    terrain: { id: 'treasure-eruption', name: '용광로 저장구', description: '엄폐 전열 뒤의 주술사가 밀집한 후방을 지면 마법으로 노립니다.', enemyHpMultiplier: 1, enemyAttackMultiplier: 1, enemyMoveSpeedMultiplier: 1 },
+    gimmick: { name: '수호 우회 지면 마법', description: '오크 철갑병의 수호선은 관통을 막지만 주술사의 지면 발현은 그 뒤를 직접 공격합니다.' },
+    enemyUpgrades: { equipment: { weapon: 5, armor: 5, boots: 5 } },
+    waves: [
+      { timeMs: 700, unitId: 'bulwark', count: 4, intervalMs: 2_500 },
+      { timeMs: 6_500, unitId: 'orcShaman', count: 3, intervalMs: 3_100 },
+      { timeMs: 14_000, unitId: 'ogreMage', count: 2, intervalMs: 4_200 },
+    ],
+    eliteGuards: [{ unitId: 'bulwark', name: '용광로 감독관', positionRatio: 0.68, hpMultiplier: 2.4, attackMultiplier: 1.3, defenseBonus: 7 }],
+    reinforcement: { startMs: 27_000, intervalMs: 2_700, unitIds: ['bulwark', 'orcShaman', 'orcBerserker'], maxAlive: 14 },
+    firstClearReward: { label: mapTreasureById['highland-cache'].name, description: mapTreasureById['highland-cache'].description, icon: '▣', gold: mapTreasureById['highland-cache'].gold },
+  },
+  {
+    id: 204, name: '정령 제단 공명전', subtitle: '지상과 공중에서 동시에 밀려오는 정령 파동을 분리해 막아내세요.', reward: 800,
+    enemyCastleHp: 45_000, fortressDistance: MAX_FORTRESS_DISTANCE, sideMission: true, treasureId: 'tundra-sanctum', requiredCampaignStage: 24, enemyFaction: 'spirits',
+    enemyFortressAttack: { damage: 90, range: 470, intervalMs: 4_100 },
+    terrain: { id: 'treasure-resonance', name: '공명의 설원 제단', description: '공중 정령과 지상 수호 정령이 다른 사거리에서 동시에 전선을 압박합니다.', enemyHpMultiplier: 1, enemyAttackMultiplier: 1, enemyMoveSpeedMultiplier: 1 },
+    gimmick: { name: '지상·공중 동시 압박', description: '공중 정령은 원거리 병종으로 처리하면서 대지 정령의 수호선과 지면 발현을 함께 견뎌야 합니다.' },
+    enemyUpgrades: { equipment: { weapon: 5, armor: 5, boots: 5 } },
+    waves: [
+      { timeMs: 600, unitId: 'earthSpirit', count: 2, intervalMs: 4_200 },
+      { timeMs: 5_500, unitId: 'iceSpirit', count: 4, intervalMs: 2_300 },
+      { timeMs: 12_000, unitId: 'fireSpirit', count: 4, intervalMs: 2_200 },
+      { timeMs: 20_000, unitId: 'spirit', count: 2, intervalMs: 4_500 },
+    ],
+    eliteGuards: [{ unitId: 'earthSpirit', name: '공명 제단지기', positionRatio: 0.65, hpMultiplier: 2.5, attackMultiplier: 1.35, defenseBonus: 8 }],
+    reinforcement: { startMs: 31_000, intervalMs: 2_700, unitIds: ['earthSpirit', 'iceSpirit', 'fireSpirit'], maxAlive: 15 },
+    firstClearReward: { label: mapTreasureById['tundra-sanctum'].name, description: mapTreasureById['tundra-sanctum'].description, icon: '▣', gold: mapTreasureById['tundra-sanctum'].gold },
+  },
+  {
+    id: 205, name: '균열 봉인고 공성전', subtitle: '세 방어선을 지휘하는 악마 장교를 차례로 쓰러뜨리고 봉인 보물을 확보하세요.', reward: 1_000,
+    enemyCastleHp: 70_000, fortressDistance: MAX_FORTRESS_DISTANCE, sideMission: true, treasureId: 'rift-treasury', requiredCampaignStage: 30, enemyFaction: 'demons',
+    enemyFortressAttack: { damage: 125, range: 500, intervalMs: 3_700 },
+    terrain: { id: 'treasure-commanders', name: '균열 봉인고', description: '세 명의 악마 지휘관이 전선 깊이에 나뉘어 증원군을 지휘합니다.', enemyHpMultiplier: 1, enemyAttackMultiplier: 1, enemyMoveSpeedMultiplier: 1 },
+    gimmick: { name: '삼중 지휘 방어선', description: '수호·마법·공중 역할이 다른 세 지휘관을 돌파해야 성채에 안정적으로 접근할 수 있습니다.' },
+    enemyUpgrades: { equipment: { weapon: 5, armor: 5, boots: 5 } },
+    waves: [
+      { timeMs: 600, unitId: 'demonGuard', count: 4, intervalMs: 2_200 },
+      { timeMs: 6_500, unitId: 'demonMage', count: 3, intervalMs: 3_000 },
+      { timeMs: 13_000, unitId: 'gargoyle', count: 4, intervalMs: 2_400 },
+      { timeMs: 22_000, unitId: 'reaper', count: 1, intervalMs: 5_000 },
+    ],
+    eliteGuards: [
+      { unitId: 'demonGuard', name: '봉인고 철벽장', positionRatio: 0.38, hpMultiplier: 2.6, attackMultiplier: 1.4, defenseBonus: 10 },
+      { unitId: 'demonMage', name: '균열 의식장', positionRatio: 0.64, hpMultiplier: 2.5, attackMultiplier: 1.45, defenseBonus: 8 },
+      { unitId: 'gargoyle', name: '상공 감시관', positionRatio: 0.87, hpMultiplier: 2.4, attackMultiplier: 1.4, defenseBonus: 8 },
+    ],
+    reinforcement: { startMs: 34_000, intervalMs: 2_400, unitIds: ['imp', 'succubus', 'demonGuard', 'demonMage', 'gargoyle'], maxAlive: 17 },
+    firstClearReward: { label: mapTreasureById['rift-treasury'].name, description: mapTreasureById['rift-treasury'].description, icon: '▣', gold: mapTreasureById['rift-treasury'].gold },
+  },
+];
+
 export const getStage = (id: number) => stages.find((stage) => stage.id === id)
   ?? challengeStages.find((stage) => stage.id === id)
+  ?? treasureStages.find((stage) => stage.id === id)
   ?? stages[0];

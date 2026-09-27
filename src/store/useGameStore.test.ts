@@ -54,12 +54,12 @@ describe('shared troop progression', () => {
 
   it('reveals each regional treasure after its boss clear and claims it only once', () => {
     const westernTreasure = mapTreasures[0];
-    expect(useGameStore.getState().claimMapTreasure(westernTreasure.id)).toBe(false);
+    expect(useGameStore.getState().completeTreasureMission(westernTreasure.missionStageId)).toBeUndefined();
     useGameStore.setState({ clearedStages: [westernTreasure.requiredStage] });
-    expect(useGameStore.getState().claimMapTreasure(westernTreasure.id)).toBe(true);
+    expect(useGameStore.getState().completeTreasureMission(westernTreasure.missionStageId)?.gold).toBe(westernTreasure.gold);
     expect(useGameStore.getState().gold).toBe(100 + westernTreasure.gold);
     expect(useGameStore.getState().claimedMapTreasureIds).toEqual([westernTreasure.id]);
-    expect(useGameStore.getState().claimMapTreasure(westernTreasure.id)).toBe(false);
+    expect(useGameStore.getState().completeTreasureMission(westernTreasure.missionStageId)).toBeUndefined();
     expect(useGameStore.getState().gold).toBe(100 + westernTreasure.gold);
   });
 

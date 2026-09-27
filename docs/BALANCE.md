@@ -16,17 +16,17 @@ This is the canonical reference for implemented economy, progression, combat, an
 - The claimed date persists as `YYYY-MM-DD`. Changing the device clock is not prevented because progression is local-only.
 - The `수수께끼 상인` shop is revealed after the stage-6 campaign boss clear. It sells `전투 가속 허가` for 200 Royal Gems once; the map operations button only enters the shop. The license permanently unlocks a persisted 1×/1.5× battle toggle. The purchase is idempotent and the speed applies to simulation time, timer events, and combat tweens; BGM tempo is not changed.
 - Formation licenses are sequential: stage 12 reveals slot 5 for 150 Royal Gems, stage 18 reveals slot 6 for 250, and stage 24 reveals slot 7 for 350. They persist as a clamped `formationSlotPurchases` count and expose matching battle cards and numeric hotkeys. The full formation expansion costs 750 Gems, or 75 daily claims before achievement income; buying it together with battle speed costs 950 Gems. Legacy `formationSlotUnlocked: true` saves migrate to one purchase.
-- Each six-stage region has one map treasure revealed only after its boss siege is cleared. Treasure Gold is claimed once, persisted independently, and is not multiplied by `전리품 회계` because it is exploration loot rather than a battle reward.
+- Each six-stage region reveals one treasure side mission after its boss siege is cleared. The one-time treasure Gold is granted only after the side mission's first victory, persists independently, and is not multiplied by `전리품 회계`. Each mission also grants ordinary repeatable battle Gold, which does receive the normal battle-Gold multiplier.
 
-| Region treasure | Required clear | Gold |
-|---|---:|---:|
-| 변경 수복 궤짝 | 6 | 600 |
-| 왕도 비밀 금고 | 12 | 1,200 |
-| 고원 전리품 창고 | 18 | 1,800 |
-| 해방된 정령 제단 | 24 | 2,400 |
-| 마왕성 봉인 보물 | 30 | 3,000 |
+| Side mission | Required clear | First treasure Gold | Repeat battle Gold | Pressure / milestone |
+|---|---:|---:|---:|---:|
+| 봉화대 매복전 | 6 | 600 | 200 | ×0.85 |
+| 왕도 금고 수복전 | 12 | 1,200 | 400 | ×0.79 |
+| 용광로 창고 급습 | 18 | 1,800 | 600 | ×0.76 |
+| 정령 제단 공명전 | 24 | 2,400 | 800 | ×0.77 |
+| 균열 봉인고 공성전 | 30 | 3,000 | 1,000 | ×1.00 |
 
-The total one-time map-treasure income is 9,000 Gold. The focused-upgrade progression audit includes each treasure from the next stage onward; with the first 600-Gold cache included before stage 7, the tested early relative-pressure steps remain within ×0.95–×1.35 and stage 4 remains at least ×1.05.
+The total one-time map-treasure income is 9,000 Gold. The focused-upgrade progression audit includes each treasure from the next stage onward; with the first 600-Gold cache included before stage 7, the tested early relative-pressure steps remain within ×0.95–×1.35 and stage 4 remains at least ×1.05. The separate side-mission audit requires pressure to rise monotonically and remain between ×0.70 and ×1.45 of its unlock boss; current missions range from ×0.76 to ×1.00 after the introductory ×0.85 encounter.
 - No payment implementation currently exists. A future verified Quick Starter may combine a data-driven Gem grant with battle-speed access and exactly the first formation purchase; slots 6–7 remain ordinary campaign progression unless a future documented entitlement explicitly changes that rule.
 
 Hero Training Ground unlocks from the stage-9 first clear. It supplements rather than replaces battle-earned hero mastery XP and refuses purchases at the level-30 cap.

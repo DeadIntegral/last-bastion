@@ -7,14 +7,14 @@ import { battleFormationCapacity, BATTLE_SPEED_LICENSE, DAILY_REWARD, FORMATION_
 import { TRIUMPH_MONUMENT, triumphMonumentCost } from '../data/endgame';
 import { heroTrainingPackageById, isGameFeatureUnlocked } from '../data/features';
 import { HERO_MASTERY_MAX_LEVEL } from '../data/mastery';
-import { MAP_TREASURE_IDS, mapTreasureById, type MapTreasureId } from '../data/mapTreasures';
+import { MAP_TREASURE_IDS, mapTreasureById } from '../data/mapTreasures';
 import { getStage, stages } from '../data/stages';
 import { allTroopOrder, heroDefinitions, heroOrder, troopDefinitions } from '../data/units';
 import { GAME_VERSION, SAVE_SCHEMA_VERSION } from '../data/version';
 import { emptyEquipment, equipmentCost, heroMasteryLevelFromXp, scaledProgressionReward, totalMasteryXpForLevel } from '../game/rules';
 import { canClaimDailyReward, localDateKey } from '../game/daily';
 import { initializeSaveSlots, writeActiveSaveSlot } from '../game/saveSlots';
-import type { BattleResult, BattleSpeed, CastleTechId, CodexEnemyId, EquipmentLevels, EquipmentSlot, FirstClearReward, FortressTier, HeroId, HeroTrainingPackageId, PlayerStats, UnitId } from '../types/game';
+import type { BattleResult, BattleSpeed, CastleTechId, CodexEnemyId, EquipmentLevels, EquipmentSlot, FirstClearReward, FortressTier, HeroId, HeroTrainingPackageId, MapTreasureId, PlayerStats, UnitId } from '../types/game';
 
 initializeSaveSlots();
 
@@ -72,7 +72,7 @@ interface GameProfile {
   recordBattle: (result: BattleResult) => BattleRecord;
   claimAchievement: (id: string) => boolean;
   claimDailyReward: () => boolean;
-  claimMapTreasure: (id: MapTreasureId) => boolean;
+  completeTreasureMission: (stageId: number) => FirstClearReward | undefined;
   purchaseBattleSpeed: () => boolean;
   purchaseFormationSlot: () => boolean;
   upgradeTriumphMonument: () => boolean;
@@ -500,12 +500,14 @@ export const useGameStore = create<GameProfile>()(
         set({ gems: state.gems + DAILY_REWARD.gems, lastDailyClaimDate: today });
         return true;
       },
-      claimMapTreasure: (id) => {
+      completeTreasureMission: (stageId) => {
         const state = get();
-        const treasure = mapTreasureById[id];
-        if (!treasure || !state.clearedStages.includes(treasure.requiredStage) || state.claimedMapTreasureIds.includes(id)) return false;
+        const stage = getStage(stageId);
+        const id = stage.sideMission ? stage.treasureId : undefined;
+        const treasure = id ? mapTreasureById[id] : undefined;
+        if (!id || !treasure || treasure.missionStageId !== stageId || !state.clearedStages.includes(treasure.requiredStage) || state.claimedMapTreasureIds.includes(id)) return undefined;
         set({ gold: state.gold + treasure.gold, claimedMapTreasureIds: [...state.claimedMapTreasureIds, id] });
-        return true;
+        return stage.firstClearReward;
       },
       purchaseBattleSpeed: () => {
         const state = get();

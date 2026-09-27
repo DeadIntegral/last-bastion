@@ -45,6 +45,7 @@ export type BattleSpeed = 1 | 1.5;
 export type Screen = 'menu' | 'opening' | 'credits' | 'stages' | 'merchant' | 'monument' | 'armory' | 'heroes' | 'fortress' | 'achievements' | 'codex' | 'battle' | 'result';
 export type GameFeatureId = 'hero-training';
 export type HeroTrainingPackageId = 'field-drill' | 'tactical-lesson' | 'royal-tutoring';
+export type MapTreasureId = 'western-reliquary' | 'capital-vault' | 'highland-cache' | 'tundra-sanctum' | 'rift-treasury';
 
 export interface UnitDefinition {
   id: UnitId | EnemyId | HeroId | 'boss';
@@ -119,6 +120,9 @@ export interface StageDefinition {
   bossName?: string;
   bossUnitId?: UnitId;
   challenge?: boolean;
+  sideMission?: boolean;
+  treasureId?: MapTreasureId;
+  gimmick?: { name: string; description: string };
   requiredCampaignStage?: number;
   bossModifiers?: BossStageModifiers;
   firstClearReward: FirstClearReward;

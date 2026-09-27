@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { UNIT_IDS } from '../types/game';
 import { upgradedStats } from '../game/rules';
-import { advancedEnemyIntroductionStages, challengeStages, ENEMY_EQUIPMENT_MAX_LEVEL, MAX_FORTRESS_DISTANCE, MIN_FORTRESS_DISTANCE, stages } from './stages';
+import { advancedEnemyIntroductionStages, challengeStages, ENEMY_EQUIPMENT_MAX_LEVEL, MAX_FORTRESS_DISTANCE, MIN_FORTRESS_DISTANCE, stages, treasureStages } from './stages';
+import { mapTreasures } from './mapTreasures';
 import { allTroopOrder, troopDefinitions, unitFamilyById } from './units';
 
 describe('campaign rewards', () => {
@@ -257,6 +258,20 @@ describe('campaign rewards', () => {
       const reinforcement = stage.reinforcement!;
       expect(reinforcement.unitIds.some((unitId) => troopDefinitions[unitId].grade >= 2)).toBe(true);
       expect(reinforcement.unitIds.every((unitId) => troopDefinitions[unitId].grade <= 3)).toBe(true);
+    }
+  });
+
+  it('defines five fortress-based treasure side missions with distinct tactical gimmicks', () => {
+    expect(treasureStages).toHaveLength(5);
+    expect(treasureStages.map((stage) => stage.requiredCampaignStage)).toEqual([6, 12, 18, 24, 30]);
+    expect(new Set(treasureStages.map((stage) => stage.gimmick?.name)).size).toBe(5);
+    for (const [index, stage] of treasureStages.entries()) {
+      expect(stage.sideMission).toBe(true);
+      expect(stage.challenge).not.toBe(true);
+      expect(stage.enemyCastleHp).toBeGreaterThan(0);
+      expect(stage.reinforcement).toBeDefined();
+      expect(stage.treasureId).toBe(mapTreasures[index].id);
+      expect(stage.firstClearReward.gold).toBe(mapTreasures[index].gold);
     }
   });
 });

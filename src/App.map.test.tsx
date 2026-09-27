@@ -71,9 +71,10 @@ describe('campaign map pointer controls', () => {
     const treasure = host.querySelector<HTMLButtonElement>('.map-treasure-node')!;
     expect(treasure.textContent).toContain('변경 수복 궤짝');
     act(() => treasure.click());
-    expect(useGameStore.getState().gold).toBe(700);
-    expect(useGameStore.getState().claimedMapTreasureIds).toEqual(['western-reliquary']);
-    expect(treasure.classList.contains('claimed')).toBe(true);
+    expect(host.querySelector('.map-mission h2')?.textContent).toBe('봉화대 매복전');
+    expect(host.querySelector('.treasure-gimmick-preview')?.textContent).toContain('교차 사격 매복');
+    expect(useGameStore.getState().gold).toBe(100);
+    expect(useGameStore.getState().claimedMapTreasureIds).toEqual([]);
   });
 
   it('captures the pointer only after horizontal movement becomes a drag', () => {
