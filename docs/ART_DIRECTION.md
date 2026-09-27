@@ -71,6 +71,7 @@ Review assets at the sizes below before evaluating a zoomed master. These files 
 |---|---:|---|
 | Opening shot | responsive 16:9 viewport | [`opening-04-counteroffensive.webp`](../public/assets/opening/opening-04-counteroffensive.webp) |
 | Battle background | 1600 × 720 | [`ruined-border.webp`](../public/assets/backgrounds/ruined-border.webp) |
+| Campaign-map region | 1000-unit display panel / 1400 × 630 runtime art | [`western-frontier.webp`](../public/assets/campaign-map/western-frontier.webp) and four regional siblings |
 | Fortress | 250 × 228 | [`player-fortress.png`](../public/assets/fortresses/player-fortress.png), [`enemy-fortress.png`](../public/assets/fortresses/enemy-fortress.png) |
 | Character source cell | 153 × 160 | [`roster-atlas.png`](../public/assets/characters/roster-atlas.png) |
 | Common battlefield body | roughly 48–100 px tall by authored size | inspect in battle at 1× and 1.5× |
@@ -97,6 +98,7 @@ Every new battle asset is checked at desktop 1600×720, a horizontally constrain
 ### Create
 
 - Five campaign-region battle environments and composed challenge landmarks.
+- The five continent-map region panels are complete; future map work should refine transitions or liberation motion rather than return to abstract CSS terrain.
 - Five distinct campaign-beast silhouettes and authored warning/death poses.
 - True multi-frame or separated-part motion assets for the representative animation pilot.
 - A coherent small icon family for economy, command, roles, research, and liberation.

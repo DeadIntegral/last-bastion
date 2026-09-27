@@ -1,12 +1,14 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { Fragment, lazy, Suspense, useCallback, useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import { allTroopOrder, bossDefinition, heroDefinitions, heroOrder, troopDefinitions, unitFamilyById, unitFamilyLabels, unitGradeLabels, unitGradeStars } from './data/units';
 import { bossCodex, CODEX_TOTAL, codexEntryCount, heroCodex, troopCodex } from './data/codex';
 import { achievementById, achievementGroups, achievementProgress, achievements, featuredAchievement } from './data/achievements';
+import { CAMPAIGN_MAP_REGION_WIDTH, campaignMapRegions, campaignMapStagePosition } from './data/campaignMapArt';
 import { canUpgradeCastleTech, castleBattleStats, castleTechChildren, castleTechCost, castleTechDefinitions, castleTechPrerequisiteStatus, castleTechRoots, fortressTierDefinitions, totalCastleResearch } from './data/castle';
 import { battleFormationCapacity, BATTLE_SPEED_LICENSE, DAILY_REWARD, FORMATION_SLOT_LICENSES, MAX_FORMATION_SLOT_PURCHASES } from './data/economy';
 import { TRIUMPH_MONUMENT, triumphMonumentBonuses, triumphMonumentCost } from './data/endgame';
 import { gameFeatures, heroTrainingPackages, isGameFeatureUnlocked } from './data/features';
+import { fortressArtDefinitions } from './data/fortressArt';
 import { OPENING_SCENE_DURATION_MS, openingScenes } from './data/opening';
 import { HERO_AWAKENING_LEVELS, HERO_MASTERY_MAX_LEVEL, heroAwakeningAuras, heroMasteryGrowth, heroSkillPower, soldierMasteryGrowth } from './data/mastery';
 import { challengeStages, enemyFactionLabels, getStage, stages } from './data/stages';
@@ -446,9 +448,7 @@ function Credits({ onBack }: { onBack: () => void }) {
   </main></Localized>;
 }
 
-const mapHeightPattern = [75, 57, 73, 45, 62, 28, 50, 72, 46, 65, 40, 23];
-const mapStageSpacing = 185;
-const mapPositions = stages.map((_, index) => ({ x: 135 + index * mapStageSpacing, y: mapHeightPattern[index % mapHeightPattern.length] }));
+const mapPositions = stages.map((stage) => campaignMapStagePosition(stage.id));
 const challengeMapPositions: Record<number, { x: number; y: number }> = {
   101: { x: mapPositions[5].x + 55, y: 11 },
   106: { x: mapPositions[11].x + 45, y: 88 },
@@ -458,7 +458,6 @@ const challengeMapPositions: Record<number, { x: number; y: number }> = {
   104: { x: mapPositions[29].x + 70, y: 86 },
   105: { x: mapPositions[29].x + 210, y: 45 },
 };
-const campaignRegionNames = ['서부 변경', '점령 왕도', '오크 고원', '정령 설원', '마왕성 균열'];
 const campaignDifficultyReport = analyzeCampaignDifficulty(stages);
 
 function MapCommandCenter({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
@@ -610,14 +609,14 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
   const visibleRegionCount = Math.min(5, Math.max(1, Math.ceil(unlocked / 6)));
   const visibleStages = stages.slice(0, visibleRegionCount * 6);
   const visibleChallenges = challengeStages.filter((challenge) => clearedStages.includes(challenge.requiredCampaignStage ?? 1));
-  const liberatedRegionCount = campaignRegionNames.filter((_, index) => clearedStages.includes((index + 1) * 6)).length;
+  const liberatedRegionCount = campaignMapRegions.filter((region) => clearedStages.includes(region.stageEnd)).length;
   const difficulty = stageDifficultyPresentation(selected, campaignDifficultyReport);
   const progressionStats = castleBattleStats(castleTechLevels);
   const displayedBattleReward = scaledProgressionReward(selected.reward, progressionStats.battleGoldMultiplier);
   const displayedFirstClearGold = selected.firstClearReward.gold === undefined
     ? undefined
     : scaledProgressionReward(selected.firstClearReward.gold, progressionStats.battleGoldMultiplier);
-  const mapWidth = Math.max(1_320, visibleStages.length * mapStageSpacing + 260);
+  const mapWidth = Math.max(1_260, visibleRegionCount * CAMPAIGN_MAP_REGION_WIDTH + 260);
   const roadPath = visibleStages.map((stage, index) => {
     const position = mapPositions[stage.id - 1];
     return `${index === 0 ? 'M' : 'L'}${position.x} ${position.y * 5}`;
@@ -682,6 +681,13 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
     setSelectedId(id);
   };
 
+  const scrollToRegion = (regionIndex: number) => {
+    mapRef.current?.scrollTo({ left: Math.max(0, regionIndex * CAMPAIGN_MAP_REGION_WIDTH - 34), behavior: 'smooth' });
+  };
+
+  const selectedCampaignStage = selected.requiredCampaignStage ?? selected.id;
+  const selectedRegionIndex = Math.min(campaignMapRegions.length - 1, Math.floor((selectedCampaignStage - 1) / 6));
+
   return <Localized>{(
     <main className="panel-screen campaign-map-screen">
       <ShellHeader title="왕국 지도" onBack={onBack} />
@@ -690,8 +696,16 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
         <div className="map-content-column">
           <section className="map-heading">
             <div><span className="eyebrow">CAMPAIGN MAP</span><h2>대륙 탈환의 길</h2></div>
-            <p><strong>해금 {Math.min(unlocked, stages.length)}/{stages.length} · 해방 {liberatedRegionCount}/{campaignRegionNames.length} · 마수 영역 {visibleChallenges.length}/{challengeStages.length} · 지도를 잡아 드래그</strong><br />{visibleRegionCount > 1 ? `${campaignRegionNames[visibleRegionCount - 1]}까지 원정로가 개방되었습니다.` : '마왕군에게 빼앗긴 대륙을 서부 변경부터 되찾으세요.'}</p>
+            <p><strong>해금 {Math.min(unlocked, stages.length)}/{stages.length} · 해방 {liberatedRegionCount}/{campaignMapRegions.length} · 마수 영역 {visibleChallenges.length}/{challengeStages.length} · 지도를 잡아 드래그</strong><br />{visibleRegionCount > 1 ? `${campaignMapRegions[visibleRegionCount - 1].name}까지 원정로가 개방되었습니다.` : '마왕군에게 빼앗긴 대륙을 서부 변경부터 되찾으세요.'}</p>
           </section>
+          <nav className="map-region-nav" aria-label="지역 바로가기">
+            {campaignMapRegions.slice(0, visibleRegionCount).map((region, index) => {
+              const liberated = clearedStages.includes(region.stageEnd);
+              return <button type="button" className={`${selectedRegionIndex === index ? 'active' : ''} ${liberated ? 'liberated' : 'frontline'}`} onClick={() => scrollToRegion(index)} key={region.id}>
+                <span>{String(index + 1).padStart(2, '0')}</span><b>{region.name}</b><small>{liberated ? '해방 완료' : '교전 중'}</small>
+              </button>;
+            })}
+          </nav>
           <div className="campaign-map-layout">
         <section
           className={`campaign-map ${visibleRegionCount > 1 ? 'expanded' : ''} ${mapDragging ? 'dragging' : ''}`}
@@ -703,20 +717,16 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
           onPointerCancel={finishMapDrag}
         >
           <div className="campaign-map-world" style={{ width: `${mapWidth}px` }} onDragStart={(event) => event.preventDefault()}>
-          <div className="map-sea"><span>잿빛 해안</span></div>
-          <div className="map-land" />
-          {Array.from({ length: visibleRegionCount }, (_, index) => {
-            const startStage = index * 6 + 1;
-            const endStage = startStage + 5;
-            const state = clearedStages.includes(endStage) ? 'liberated' : unlocked >= startStage ? 'frontline' : 'occupied';
-            return <div className={`map-region-zone region-theme-${index + 1} ${state}`} style={{ left: `${45 + index * mapStageSpacing * 6}px`, width: `${mapStageSpacing * 6 - 30}px` }} aria-hidden="true" key={`zone-${campaignRegionNames[index]}`}>
-              <span className="region-state"><b>{campaignRegionNames[index]}</b><small>{state === 'liberated' ? '해방 완료' : state === 'frontline' ? '교전 중' : '마왕군 점령'}</small></span>
+          {campaignMapRegions.slice(0, visibleRegionCount).map((region, index) => {
+            const state = clearedStages.includes(region.stageEnd) ? 'liberated' : unlocked >= region.stageStart ? 'frontline' : 'occupied';
+            return <Fragment key={region.id}>
+              <img className={`campaign-region-art ${state}`} src={region.image} style={{ left: `${index * CAMPAIGN_MAP_REGION_WIDTH - 40}px`, width: `${CAMPAIGN_MAP_REGION_WIDTH + 80}px` }} alt="" aria-hidden="true" draggable={false} />
+              <div className={`map-region-zone region-theme-${index + 1} ${state}`} style={{ left: `${index * CAMPAIGN_MAP_REGION_WIDTH + 18}px`, width: `${CAMPAIGN_MAP_REGION_WIDTH - 36}px` }} aria-hidden="true">
+              <span className="region-state"><b>{region.name}</b><small>{state === 'liberated' ? '해방 완료' : state === 'frontline' ? '교전 중' : '마왕군 점령'}</small></span>
               {state === 'liberated' && <span className="liberation-beacon"><i>♜</i></span>}
-            </div>;
+              </div>
+            </Fragment>;
           })}
-          <div className="map-mountains">▲ ▲<br /> ▲ ▲ ▲</div>
-          <div className="map-forest forest-one">♠ ♠ ♠<br /> ♠ ♠</div>
-          <div className="map-forest forest-two">♠ ♠<br />♠ ♠ ♠</div>
           <svg className="campaign-road" viewBox={`0 0 ${mapWidth} 500`} preserveAspectRatio="none" aria-hidden="true">
             <path d={roadPath} />
             {roadSegments.map((segment) => <line className={`road-segment ${segment.state}`} x1={segment.from.x} y1={segment.from.y * 5} x2={segment.to.x} y2={segment.to.y * 5} key={segment.id} />)}
@@ -733,7 +743,7 @@ export function StageSelect({ onBack, onSelect, onNavigate }: { onBack: () => vo
                 onClick={(event) => selectMapStage(event, stage.id)}
                 aria-label={`${stage.id}장 ${stage.name}${nodeLocked ? ' 잠김' : nodeCleared ? ' 해방 완료' : ''}`}
               >
-                <span className="node-beacon fortress-beacon" aria-hidden="true"><i className="fortress-wall" />{nodeCleared && <i className="liberation-flag" />}<b>{nodeCleared ? '✓' : stage.id}</b></span>
+                <span className="node-beacon fortress-beacon" aria-hidden="true"><img src={fortressArtDefinitions[nodeCleared ? 'player' : 'enemy'].url} alt="" draggable={false} />{nodeCleared && <i className="liberation-flag" />}<b>{stage.id}</b></span>
                 <strong>{stage.name}</strong>
                 <small>{stage.boss ? 'BOSS' : `0${stage.id}`}</small>
               </button>

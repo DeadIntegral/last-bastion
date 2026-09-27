@@ -59,6 +59,12 @@ describe('campaign map pointer controls', () => {
     expect(host.querySelectorAll('.road-segment.liberated')).toHaveLength(5);
     expect(host.querySelector('.map-heading')?.textContent).toContain('해방 1/5');
     expect(stageOne.getAttribute('aria-label')).toContain('해방 완료');
+    expect(host.querySelectorAll('.campaign-region-art')).toHaveLength(2);
+    expect(host.querySelectorAll('.fortress-beacon img')).toHaveLength(12);
+    const regionButtons = [...host.querySelectorAll<HTMLButtonElement>('.map-region-nav button')];
+    expect(regionButtons.map((button) => button.textContent)).toEqual(['01서부 변경해방 완료', '02점령 왕도교전 중']);
+    act(() => regionButtons[1].click());
+    expect(map.scrollTo).toHaveBeenCalledWith({ left: 966, behavior: 'smooth' });
   });
 
   it('captures the pointer only after horizontal movement becomes a drag', () => {

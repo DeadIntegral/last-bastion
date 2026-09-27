@@ -54,6 +54,7 @@ export const messages: Record<string, string> = {
   '왕국 지도': 'Continent Map',
   '대륙 탈환의 길': 'Road to Reclaim the Continent',
   '왕국 운영': 'Expedition Command',
+  '지역 바로가기': 'Jump to region',
   '해방 완료': 'Liberated',
   '교전 중': 'Front line',
   '마왕군 점령': 'Demon Army occupation',

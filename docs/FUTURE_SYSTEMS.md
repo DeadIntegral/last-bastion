@@ -86,7 +86,7 @@ Status: **Partial**. The comprehensive review and acceptance criteria are in [IM
 | GD-09 | B | Authored late-stage tactical situations | Planned |
 | GD-10 | A | Seven hero skill and awakening presentations | Planned |
 | GD-11 | B | Regional story, recruitment, and finale closure | Planned |
-| GD-12 | A | Visible liberation on the campaign map | Partial — derived static liberation state |
+| GD-12 | A | Visible liberation on the campaign map | Partial — illustrated regions, navigation, static liberation |
 | GD-13 | B | Role comparison, presets, optional reward-free practice | Planned |
 | GD-14 | A | Recruitment and progression reward moments | Planned |
 | GD-15 | B | Facility and merchant visual identity | Planned |
