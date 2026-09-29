@@ -39,11 +39,11 @@ export const fortressArtilleryTuning = {
 export const fortressResearchTuning = {
   baseCommandPerKill: 3,
   warTitheCommandPerRank: 0.5,
-  mendingStoneRegenPerRank: 4,
+  mendingStoneRegenPerRank: 10,
   fortifiedWallHpPerRank: 250,
-  reinforcedFoundationHpPerRank: 700,
-  citadelCoreHpPerRank: 1_000,
-  citadelCoreDamageReductionPerRank: 6,
+  reinforcedFoundationHpPerRank: 1_500,
+  citadelCoreHpPerRank: 3_000,
+  citadelCoreDamageReductionPerRank: 12,
 } as const;
 
 export const castleTechOrder: CastleTechId[] = [

@@ -30,8 +30,8 @@ describe('castle technology tree', () => {
     expect(stats.startingCommand).toBe(120);
     expect(stats.commandRegen).toBe(12.5);
     expect(stats.maxCommand).toBe(240);
-    expect(stats.maxHp).toBe(4_950);
-    expect(stats.damageReduction).toBe(12);
+    expect(stats.maxHp).toBe(8_550);
+    expect(stats.damageReduction).toBe(18);
     expect(stats.bombardDamage).toBe(220);
     expect(stats.bombardRange).toBe(1240);
     expect(stats.summonCooldownMultiplier).toBe(0.9);
@@ -40,7 +40,7 @@ describe('castle technology tree', () => {
     expect(stats.battleGoldMultiplier).toBe(1.1);
     expect(stats.masteryXpMultiplier).toBe(1.15);
     expect(stats.towerRange).toBe(400);
-    expect(stats.castleRegenPerSecond).toBe(16);
+    expect(stats.castleRegenPerSecond).toBe(40);
     expect(stats.bombardBossBonus).toBe(140);
     expect(stats.bombardCastleDamage).toBe(180);
     expect(stats.rallyUnlocked).toBe(true);
@@ -62,8 +62,8 @@ describe('castle technology tree', () => {
     const stats = castleBattleStats(levels);
     expect(fortressResearchTuning.warTitheCommandPerRank).toBe(0.5);
     expect(stats.commandPerKill).toBe(5.5);
-    expect(fortressResearchTuning.mendingStoneRegenPerRank).toBe(4);
-    expect(stats.castleRegenPerSecond).toBe(20);
+    expect(fortressResearchTuning.mendingStoneRegenPerRank).toBe(10);
+    expect(stats.castleRegenPerSecond).toBe(50);
   });
 
   it('enforces technology prerequisites', () => {
@@ -143,9 +143,9 @@ describe('castle technology tree', () => {
     levels.citadel_core = 5;
     levels.mending_stone = 5;
     const stats = castleBattleStats(levels);
-    expect(stats.maxHp).toBe(11_550);
-    expect(stats.damageReduction).toBe(45);
-    expect(stats.castleRegenPerSecond).toBe(20);
+    expect(stats.maxHp).toBe(25_550);
+    expect(stats.damageReduction).toBe(75);
+    expect(stats.castleRegenPerSecond).toBe(50);
     expect(castleTechCost(castleTechDefinitions.reinforced_foundations, 4)).toBe(2_000);
     expect(castleTechCost(castleTechDefinitions.citadel_core, 4)).toBe(4_000);
   });

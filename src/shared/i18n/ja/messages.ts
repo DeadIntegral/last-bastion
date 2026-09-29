@@ -4,8 +4,9 @@ export const messages: Record<string, string> = {
   '참전 {participation} · 기여 {contribution}': '参戦 {participation}・貢献 {contribution}',
   '심층 기초 보강': '深層基礎補強',
   '불락의 성벽핵': '難攻不落の城壁核',
-  '성채 최대 체력 +700': '要塞最大HP +700',
-  '성채 최대 체력 +1000 · 받는 공격 피해 -6': '要塞最大HP +1000・被ダメージ -6',
+  '성채 최대 체력 +1500': '要塞最大HP +1500',
+  '성채 최대 체력 +3000 · 받는 공격 피해 -12': '要塞最大HP +3000・被ダメージ -12',
+  '성채 체력 초당 회복 +10': '要塞HP毎秒回復 +10',
   // Global navigation and title
   'Last Bastion — 최후의 성채': 'Last Bastion — 最後の要塞',
   '병력을 지휘해 최후의 성채를 지키는 웹 공성 전략 게임': '兵を指揮し、最後の要塞を守るWeb攻城戦略ゲーム',

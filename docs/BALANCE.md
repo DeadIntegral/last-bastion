@@ -357,8 +357,8 @@ Fortress research has five ranks per node. Rank cost is `baseCost × (currentRan
 | Command | 3 | 승전 공납제 | 400 | Command per normal kill +0.5 | 상비군 훈련소 3 |
 | Defense | 1 | 강화 성벽 | 100 | fortress HP +250 | — |
 | Defense | 1 | 석재 장갑 | 150 | flat damage reduction +3 | 강화 성벽 1 |
-| Defense | 2 | 심층 기초 보강 | 400 | fortress HP +700 | 석재 장갑 3 |
-| Defense | 3 | 불락의 성벽핵 | 800 | fortress HP +1,000; flat damage reduction +6 | 심층 기초 보강 5 |
+| Defense | 2 | 심층 기초 보강 | 400 | fortress HP +1,500 | 석재 장갑 3 |
+| Defense | 3 | 불락의 성벽핵 | 800 | fortress HP +3,000; flat damage reduction +12 | 심층 기초 보강 5 |
 | Defense | 1 | 수호 망루 | 200 | tower damage +22; interval improves by 250 ms | 강화 성벽 1 |
 | Defense | 2 | 고층 흉벽 | 250 | tower range +45 | 수호 망루 2 |
 | Defense | 3 | 재생 석재 | 400 | fortress regeneration +4 HP/s | 고층 흉벽 3 |
@@ -375,8 +375,8 @@ Fortress research has five ranks per node. Rank cost is `baseCost × (currentRan
 
 - Summon cooldown reduction is capped at 25% through the five available ranks.
 - `승전 공납제` raises the base 3 Command per normal kill to 3.5/4.0/4.5/5.0/5.5 across ranks 1–5. A three-body low-tier deployment therefore refunds 9 Command at base or 16.5 at maximum research rather than the former 18/33, preventing kill chains from largely financing the next deployment. Fractional gains remain in simulation state and the HUD floors only the displayed stored Command.
-- `재생 석재` restores 4/8/12/16/20 fortress HP per second across ranks 1–5, clamped to the current maximum HP. The effect is continuous, elapsed-time based, and shown in the fortress summary.
-- `심층 기초 보강` grants 700/1,400/2,100/2,800/3,500 HP for 400/800/1,200/1,600/2,000 Gold. `불락의 성벽핵` grants 1,000/2,000/3,000/4,000/5,000 HP plus 6/12/18/24/30 flat reduction for 800/1,600/2,400/3,200/4,000 Gold. With `강화 성벽` and `석재 장갑` maxed, defense research resolves to 11,550 base HP and 45 flat reduction; `재생 석재` can then sustain 20 HP/s. Campaign stage bonus HP and the post-finale Victory Monument apply afterward.
+- `재생 석재` restores 10/20/30/40/50 fortress HP per second across ranks 1–5, clamped to the current maximum HP. The effect is continuous, elapsed-time based, and shown in the fortress summary.
+- `심층 기초 보강` grants 1,500/3,000/4,500/6,000/7,500 HP for 400/800/1,200/1,600/2,000 Gold. `불락의 성벽핵` grants 3,000/6,000/9,000/12,000/15,000 HP plus 12/24/36/48/60 flat reduction for 800/1,600/2,400/3,200/4,000 Gold. With `강화 성벽` and `석재 장갑` maxed, defense research resolves to 25,550 base HP and 75 flat reduction; `재생 석재` sustains 50 HP/s. Stage 30 reaches 27,580 HP before the Victory Monument and 30,580 at monument rank 20.
 - Soldier Command-cost reduction is capped at 15% through the five `군수 표준화` ranks. Effective cost is `min(per-unit cap, max(10, ceil(authored Command × 1.10 × (1 - 0.03 × rank))))`; the battle card, affordability check, actual deduction, and efficiency audit all use this same value. The default cap is 200, while Continental Alliance Guardian explicitly uses 300 and falls to 281 at rank 5.
 - Watchtower interval is floored at 900 ms, and bombardment cooldown is floored at 16 seconds.
 - Bombardment has a 1,000-unit base targeting range measured from the player fortress. `공성 계산학` adds 80 per rank, reaching 1,400 at rank 5; out-of-range ground enemies and fortresses cannot be selected, and an invalid activation spends neither cooldown nor use count.
