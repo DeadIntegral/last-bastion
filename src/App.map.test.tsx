@@ -83,6 +83,14 @@ describe('campaign map pointer controls', () => {
     expect(useGameStore.getState().gold).toBe(700);
   });
 
+  it('uses the supplied last battle as its initial selection instead of the furthest unlocked stage', () => {
+    act(() => root.render(<StageSelect key="last-battle" initialStageId={3} onBack={vi.fn()} onSelect={vi.fn()} onNavigate={vi.fn()} />));
+
+    expect(host.querySelector('.map-mission h2')?.textContent).toBe('붉은 화살비');
+    expect(host.querySelector<HTMLButtonElement>('[aria-label^="3장"]')?.classList.contains('selected')).toBe(true);
+    expect(host.querySelector<HTMLElement>('.campaign-map')?.scrollTo).toHaveBeenLastCalledWith(expect.objectContaining({ behavior: 'auto' }));
+  });
+
   it('captures the pointer only after horizontal movement becomes a drag', () => {
     const map = host.querySelector<HTMLElement>('.campaign-map')!;
     act(() => map.dispatchEvent(pointerEvent('pointerdown', 100, 2)));

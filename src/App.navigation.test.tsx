@@ -128,24 +128,45 @@ describe('title and kingdom-map navigation', () => {
     expect(useGameStore.getState().unlockedStage).toBe(4);
   });
 
-  it('removes an equipped troop from the persistent formation strip across family filters', () => {
+  it('removes an equipped troop from the persistent formation strip across faction filters', () => {
     act(() => host.querySelector<HTMLButtonElement>('.save-slot-card.empty')!.click());
     act(() => host.querySelector<HTMLButtonElement>('.opening-skip')!.click());
     act(() => useGameStore.setState({
       unlockedUnits: ['militia', 'guardian'],
       equippedUnits: ['militia', 'guardian'],
+      formationSlots: ['militia', 'guardian', null, null],
     }));
 
     const armoryButton = [...host.querySelectorAll<HTMLButtonElement>('.map-command-center button')]
       .find((button) => button.textContent?.includes('병영과 강화'))!;
     act(() => armoryButton.click());
-    const goblinFilter = [...host.querySelectorAll<HTMLButtonElement>('.roster-filters button')]
-      .find((button) => button.textContent?.includes('고블린'))!;
-    act(() => goblinFilter.click());
+    expect(host.querySelector('.armory-focus-layout')).not.toBeNull();
+    expect(host.querySelector('.roster-filters button.active')?.textContent).toContain('인간');
+    const oneStarFilter = [...host.querySelectorAll<HTMLButtonElement>('.grade-filters button')]
+      .find((button) => button.textContent?.includes('1성'))!;
+    act(() => oneStarFilter.click());
+    expect(host.querySelector('.unit-compact-button.accent-militia')).not.toBeNull();
+    expect(host.querySelector('.unit-compact-button.accent-cavalry')).toBeNull();
+    const humanFilter = [...host.querySelectorAll<HTMLButtonElement>('.faction-filters button')]
+      .find((button) => button.textContent?.includes('인간'))!;
+    act(() => humanFilter.click());
+    expect(host.querySelectorAll('.armory-filter-stack button.active')).toHaveLength(1);
+    const compactCount = host.querySelectorAll('.unit-compact-button').length;
+    const guardianCompact = host.querySelector<HTMLButtonElement>('.unit-compact-button.accent-guardian')!;
+    act(() => guardianCompact.click());
+    expect(host.querySelectorAll('.unit-compact-button')).toHaveLength(compactCount);
+    expect(host.querySelector('.unit-compact-button.accent-guardian.selected')).not.toBeNull();
+    const cardView = [...host.querySelectorAll<HTMLButtonElement>('.armory-view-switch button')]
+      .find((button) => button.textContent?.includes('전체 카드'))!;
+    act(() => cardView.click());
+    expect(host.querySelector('.unit-grid.card-view')).not.toBeNull();
+    const monsterFilter = [...host.querySelectorAll<HTMLButtonElement>('.roster-filters button')]
+      .find((button) => button.textContent?.includes('몬스터'))!;
+    act(() => monsterFilter.click());
 
     expect(host.querySelector('.unit-card.accent-guardian')).toBeNull();
     const guardianChip = [...host.querySelectorAll<HTMLButtonElement>('.formation-strip button')]
-      .find((button) => button.textContent?.includes('방패병'))!;
+      .find((button) => button.getAttribute('aria-label')?.includes('방패병 편성 제외'))!;
     act(() => guardianChip.click());
     expect(useGameStore.getState().equippedUnits).toEqual(['militia']);
   });

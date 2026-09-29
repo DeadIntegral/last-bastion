@@ -158,6 +158,17 @@ describe('shared troop progression', () => {
     expect(useGameStore.getState().unlockedUnits).toContain('cavalry');
   });
 
+  it('opens the expensive alliance guardian only after the campaign finale', () => {
+    useGameStore.setState({ gold: 20_000, fortressTier: 3 });
+    expect(useGameStore.getState().recruitUnit('allianceGuardian')).toBe(false);
+    expect(useGameStore.getState().gold).toBe(20_000);
+
+    useGameStore.setState({ clearedStages: [30] });
+    expect(useGameStore.getState().recruitUnit('allianceGuardian')).toBe(true);
+    expect(useGameStore.getState().gold).toBe(0);
+    expect(useGameStore.getState().unlockedUnits).toContain('allianceGuardian');
+  });
+
   it('repairs a saved fortress tier when existing research proves a higher unlock', async () => {
     const castleTechLevels = emptyCastleTech();
     castleTechLevels.siege_calculus = 1;
@@ -177,6 +188,7 @@ describe('shared troop progression', () => {
       gems: FORMATION_SLOT_LICENSES.reduce((total, license) => total + license.cost, 0),
       unlockedUnits: ['militia', 'guardian', 'archer', 'lancer', 'raider', 'swordsman', 'pikeman', 'scout'],
       equippedUnits: ['militia', 'guardian', 'archer', 'lancer'],
+      formationSlots: ['militia', 'guardian', 'archer', 'lancer'],
     });
     expect(useGameStore.getState().toggleEquippedUnit('raider')).toBe(false);
     expect(useGameStore.getState().purchaseFormationSlot()).toBe(false);
@@ -200,6 +212,20 @@ describe('shared troop progression', () => {
     expect(useGameStore.getState().toggleEquippedUnit('scout')).toBe(false);
     expect(useGameStore.getState().purchaseFormationSlot()).toBe(true);
     expect(useGameStore.getState().gems).toBe(0);
+  });
+
+  it('assigns owned troops directly to numbered formation positions', () => {
+    useGameStore.setState({
+      formationSlotPurchases: 2,
+      unlockedUnits: ['militia', 'guardian', 'archer', 'lancer', 'raider', 'swordsman', 'pikeman'],
+      equippedUnits: ['militia', 'guardian', 'archer', 'lancer', 'raider', 'swordsman'],
+      formationSlots: ['militia', 'guardian', 'archer', 'lancer', 'raider', 'swordsman'],
+    });
+    expect(useGameStore.getState().assignEquippedUnit('militia', 5)).toBe(true);
+    expect(useGameStore.getState().equippedUnits).toEqual(['swordsman', 'guardian', 'archer', 'lancer', 'raider', 'militia']);
+    expect(useGameStore.getState().assignEquippedUnit('pikeman', 2)).toBe(true);
+    expect(useGameStore.getState().equippedUnits).toEqual(['swordsman', 'guardian', 'pikeman', 'lancer', 'raider', 'militia']);
+    expect(useGameStore.getState().assignEquippedUnit('archer', 6)).toBe(false);
   });
 
   it('reveals later six-stage regions and derives the final cap from stage data', () => {

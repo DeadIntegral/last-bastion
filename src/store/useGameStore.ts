@@ -22,6 +22,7 @@ type UnitXp = Record<UnitId, number>;
 type HeroXp = Record<HeroId, number>;
 type UnitEquipment = Record<UnitId, EquipmentLevels>;
 type HeroEquipment = Record<HeroId, EquipmentLevels>;
+type FormationSlots = Array<UnitId | null>;
 type LegacyUnitLevels = Record<UnitId, number>;
 type LegacyHeroLevels = Record<HeroId, number>;
 
@@ -38,6 +39,7 @@ interface GameProfile {
   equipmentLevels: UnitEquipment;
   unlockedUnits: UnitId[];
   equippedUnits: UnitId[];
+  formationSlots: FormationSlots;
   clearedStages: number[];
   clearedChallenges: number[];
   clearedMapTreasureGuardianIds: MapTreasureId[];
@@ -63,6 +65,7 @@ interface GameProfile {
   completeChallenge: (stageId: number) => FirstClearReward | undefined;
   recruitUnit: (id: UnitId) => boolean;
   toggleEquippedUnit: (id: UnitId) => boolean;
+  assignEquippedUnit: (id: UnitId, slotIndex: number) => boolean;
   upgradeUnitEquipment: (id: UnitId, slot: EquipmentSlot) => boolean;
   unlockHero: (id: HeroId, cost: number) => boolean;
   selectHero: (id: HeroId) => void;
@@ -137,6 +140,7 @@ const defaults = {
   equipmentLevels: emptyUnitEquipment(),
   unlockedUnits: ['militia'] as UnitId[],
   equippedUnits: ['militia'] as UnitId[],
+  formationSlots: ['militia', null, null, null] as FormationSlots,
   clearedStages: [] as number[],
   clearedChallenges: [] as number[],
   clearedMapTreasureGuardianIds: [] as MapTreasureId[],
@@ -158,6 +162,22 @@ const defaults = {
   formationSlotPurchases: 0,
   triumphMonumentLevel: 0,
 };
+
+function resizeFormationSlots(slots: FormationSlots, capacity: number): FormationSlots {
+  return Array.from({ length: capacity }, (_, index) => slots[index] ?? null);
+}
+
+function compactFormation(slots: FormationSlots): UnitId[] {
+  return slots.filter((id): id is UnitId => id !== null);
+}
+
+function autoPlaceFormationUnit(slots: FormationSlots, id: UnitId, capacity: number): FormationSlots {
+  const next = resizeFormationSlots(slots, capacity);
+  if (next.includes(id)) return next;
+  const emptyIndex = next.indexOf(null);
+  if (emptyIndex >= 0) next[emptyIndex] = id;
+  return next;
+}
 
 type SavedGameProfile = Partial<GameProfile> & {
   upgrades?: LegacyUnitLevels;
@@ -195,9 +215,28 @@ function hydrateSavedProfile(saved: SavedGameProfile | undefined, current: GameP
     TRIUMPH_MONUMENT.maxLevel,
     nonNegative(saved?.triumphMonumentLevel, 0),
   );
-  const equippedUnits = (Array.isArray(saved?.equippedUnits) ? saved.equippedUnits : inferredUnits)
-    .filter((id) => validUnit(id) && inferredUnits.includes(id))
-    .slice(0, battleFormationCapacity(formationSlotPurchases));
+  const formationCapacity = battleFormationCapacity(formationSlotPurchases);
+  const formationSlots: FormationSlots = Array.from({ length: formationCapacity }, () => null);
+  const savedFormationSlots = Array.isArray(saved?.formationSlots) ? saved.formationSlots : undefined;
+  const seenFormationUnits = new Set<UnitId>();
+  if (savedFormationSlots) {
+    for (let index = 0; index < formationCapacity; index += 1) {
+      const id = savedFormationSlots[index];
+      if (!validUnit(id) || !inferredUnits.includes(id) || seenFormationUnits.has(id)) continue;
+      formationSlots[index] = id;
+      seenFormationUnits.add(id);
+    }
+  } else {
+    const legacyEquippedUnits = (Array.isArray(saved?.equippedUnits) ? saved.equippedUnits : inferredUnits)
+      .filter((id): id is UnitId => validUnit(id) && inferredUnits.includes(id));
+    for (let index = 0; index < Math.min(formationCapacity, legacyEquippedUnits.length); index += 1) {
+      if (seenFormationUnits.has(legacyEquippedUnits[index])) continue;
+      formationSlots[index] = legacyEquippedUnits[index];
+      seenFormationUnits.add(legacyEquippedUnits[index]);
+    }
+  }
+  if (!formationSlots.some(Boolean)) formationSlots[0] = inferredUnits[0] ?? 'militia';
+  const equippedUnits = formationSlots.filter((id): id is UnitId => id !== null);
   const normalizeXp = <T extends string>(ids: readonly T[], values: unknown): Record<T, number> => Object.fromEntries(ids.map((id) => {
     const source = values && typeof values === 'object' ? (values as Record<string, unknown>)[id] : 0;
     return [id, nonNegative(source, 0)];
@@ -241,7 +280,8 @@ function hydrateSavedProfile(saved: SavedGameProfile | undefined, current: GameP
     unlockedStage,
     equipmentLevels: normalizeUnitEquipment(saved?.equipmentLevels ?? saved?.upgrades),
     unlockedUnits: inferredUnits.length ? inferredUnits : ['militia'],
-    equippedUnits: equippedUnits.length ? equippedUnits : ['militia'],
+    equippedUnits,
+    formationSlots,
     clearedStages,
     clearedChallenges,
     clearedMapTreasureGuardianIds,
@@ -266,12 +306,12 @@ function hydrateSavedProfile(saved: SavedGameProfile | undefined, current: GameP
 }
 
 function persistedProfile({
-  gold, gems, lastDailyClaimDate, unlockedStage, equipmentLevels, unlockedUnits, equippedUnits, clearedStages, clearedChallenges, clearedMapTreasureGuardianIds, claimedMapTreasureIds, unitMasteryXp, selectedHero, unlockedHeroes,
+  gold, gems, lastDailyClaimDate, unlockedStage, equipmentLevels, unlockedUnits, equippedUnits, formationSlots, clearedStages, clearedChallenges, clearedMapTreasureGuardianIds, claimedMapTreasureIds, unitMasteryXp, selectedHero, unlockedHeroes,
   heroEquipmentLevels, heroMasteryXp, fortressTier, castleTechLevels, stats,
   unlockedAchievementIds, claimedAchievementIds, discoveredEnemies, muted, battleSpeedUnlocked, battleSpeed, formationSlotPurchases, triumphMonumentLevel,
 }: GameProfile) {
   return {
-    gold, gems, lastDailyClaimDate, unlockedStage, equipmentLevels, unlockedUnits, equippedUnits, clearedStages, clearedChallenges, clearedMapTreasureGuardianIds, claimedMapTreasureIds, unitMasteryXp, selectedHero, unlockedHeroes,
+    gold, gems, lastDailyClaimDate, unlockedStage, equipmentLevels, unlockedUnits, equippedUnits, formationSlots, clearedStages, clearedChallenges, clearedMapTreasureGuardianIds, claimedMapTreasureIds, unitMasteryXp, selectedHero, unlockedHeroes,
     heroEquipmentLevels, heroMasteryXp, fortressTier, castleTechLevels, stats,
     unlockedAchievementIds, claimedAchievementIds, discoveredEnemies, muted, battleSpeedUnlocked, battleSpeed, formationSlotPurchases, triumphMonumentLevel,
   };
@@ -301,9 +341,10 @@ export const useGameStore = create<GameProfile>()(
         const unlockedHeroes = reward.heroId && !state.unlockedHeroes.includes(reward.heroId)
           ? [...state.unlockedHeroes, reward.heroId]
           : state.unlockedHeroes;
-        const equippedUnits = reward.unitId && !state.equippedUnits.includes(reward.unitId) && state.equippedUnits.length < battleFormationCapacity(state.formationSlotPurchases)
-          ? [...state.equippedUnits, reward.unitId]
-          : state.equippedUnits;
+        const formationSlots = reward.unitId
+          ? autoPlaceFormationUnit(state.formationSlots, reward.unitId, battleFormationCapacity(state.formationSlotPurchases))
+          : state.formationSlots;
+        const equippedUnits = compactFormation(formationSlots);
         const nextStats = { ...state.stats, codexEntries: codexEntryCount(unlockedUnits, unlockedHeroes, state.discoveredEnemies) };
         const gold = reward.gold === undefined
           ? undefined
@@ -313,6 +354,7 @@ export const useGameStore = create<GameProfile>()(
           clearedStages: [...state.clearedStages, stageId],
           unlockedUnits,
           equippedUnits,
+          formationSlots,
           unlockedHeroes,
           stats: nextStats,
         });
@@ -327,14 +369,15 @@ export const useGameStore = create<GameProfile>()(
         const unlockedUnits = reward.unitId && !state.unlockedUnits.includes(reward.unitId)
           ? [...state.unlockedUnits, reward.unitId]
           : state.unlockedUnits;
-        const equippedUnits = reward.unitId && !state.equippedUnits.includes(reward.unitId) && state.equippedUnits.length < battleFormationCapacity(state.formationSlotPurchases)
-          ? [...state.equippedUnits, reward.unitId]
-          : state.equippedUnits;
+        const formationSlots = reward.unitId
+          ? autoPlaceFormationUnit(state.formationSlots, reward.unitId, battleFormationCapacity(state.formationSlotPurchases))
+          : state.formationSlots;
+        const equippedUnits = compactFormation(formationSlots);
         const nextStats = { ...state.stats, codexEntries: codexEntryCount(unlockedUnits, state.unlockedHeroes, state.discoveredEnemies) };
         const gold = reward.gold === undefined
           ? undefined
           : scaledProgressionReward(reward.gold, castleBattleStats(state.castleTechLevels).battleGoldMultiplier);
-        set({ gold: state.gold + (gold ?? 0), clearedChallenges: [...state.clearedChallenges, stageId], unlockedUnits, equippedUnits, stats: nextStats });
+        set({ gold: state.gold + (gold ?? 0), clearedChallenges: [...state.clearedChallenges, stageId], unlockedUnits, equippedUnits, formationSlots, stats: nextStats });
         return gold === undefined ? reward : { ...reward, gold };
       },
       recruitUnit: (id) => {
@@ -342,17 +385,20 @@ export const useGameStore = create<GameProfile>()(
         if (state.unlockedUnits.includes(id)) return true;
         const definition = troopDefinitions[id];
         if (definition.recruitSource === 'challenge') return false;
+        if (definition.requiredClearedStage && !state.clearedStages.includes(definition.requiredClearedStage)) return false;
         if (definition.requiresEncounter !== false && !state.discoveredEnemies.includes(id)) return false;
         if (state.fortressTier < (definition.requiredFortressTier ?? 1)) return false;
         const cost = definition.recruitCost ?? 0;
         if (state.gold < cost) return false;
         const unlockedUnits = [...state.unlockedUnits, id];
-        const equippedUnits = state.equippedUnits.length < battleFormationCapacity(state.formationSlotPurchases) ? [...state.equippedUnits, id] : state.equippedUnits;
+        const formationSlots = autoPlaceFormationUnit(state.formationSlots, id, battleFormationCapacity(state.formationSlotPurchases));
+        const equippedUnits = compactFormation(formationSlots);
         const nextStats = { ...state.stats, codexEntries: codexEntryCount(unlockedUnits, state.unlockedHeroes, state.discoveredEnemies) };
         set({
           gold: state.gold - cost,
           unlockedUnits,
           equippedUnits,
+          formationSlots,
           stats: nextStats,
           unlockedAchievementIds: [...new Set([...state.unlockedAchievementIds, ...unlockedAchievements(nextStats)])],
         });
@@ -361,13 +407,35 @@ export const useGameStore = create<GameProfile>()(
       toggleEquippedUnit: (id) => {
         const state = get();
         if (!state.unlockedUnits.includes(id)) return false;
-        if (state.equippedUnits.includes(id)) {
-          if (state.equippedUnits.length <= 1) return false;
-          set({ equippedUnits: state.equippedUnits.filter((unitId) => unitId !== id) });
+        const capacity = battleFormationCapacity(state.formationSlotPurchases);
+        const formationSlots = resizeFormationSlots(state.formationSlots, capacity);
+        const currentIndex = formationSlots.indexOf(id);
+        if (currentIndex >= 0) {
+          if (compactFormation(formationSlots).length <= 1) return false;
+          formationSlots[currentIndex] = null;
+          set({ formationSlots, equippedUnits: compactFormation(formationSlots) });
           return true;
         }
-        if (state.equippedUnits.length >= battleFormationCapacity(state.formationSlotPurchases)) return false;
-        set({ equippedUnits: [...state.equippedUnits, id] });
+        const emptyIndex = formationSlots.indexOf(null);
+        if (emptyIndex < 0) return false;
+        formationSlots[emptyIndex] = id;
+        set({ formationSlots, equippedUnits: compactFormation(formationSlots) });
+        return true;
+      },
+      assignEquippedUnit: (id, slotIndex) => {
+        const state = get();
+        const capacity = battleFormationCapacity(state.formationSlotPurchases);
+        if (!state.unlockedUnits.includes(id) || !Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex >= capacity) return false;
+        const formationSlots = resizeFormationSlots(state.formationSlots, capacity);
+        const currentIndex = formationSlots.indexOf(id);
+        if (currentIndex === slotIndex) return true;
+        if (currentIndex >= 0) {
+          [formationSlots[currentIndex], formationSlots[slotIndex]] = [formationSlots[slotIndex], formationSlots[currentIndex]];
+          set({ formationSlots, equippedUnits: compactFormation(formationSlots) });
+          return true;
+        }
+        formationSlots[slotIndex] = id;
+        set({ formationSlots, equippedUnits: compactFormation(formationSlots) });
         return true;
       },
       upgradeUnitEquipment: (id, slot) => {
@@ -544,6 +612,7 @@ export const useGameStore = create<GameProfile>()(
         set({
           gems: state.gems - license.cost,
           formationSlotPurchases: state.formationSlotPurchases + 1,
+          formationSlots: resizeFormationSlots(state.formationSlots, battleFormationCapacity(state.formationSlotPurchases + 1)),
         });
         return true;
       },
@@ -593,7 +662,7 @@ export const useGameStore = create<GameProfile>()(
         equipmentLevels: emptyUnitEquipment(), unitMasteryXp: emptyUnitXp(),
         heroEquipmentLevels: emptyHeroEquipment(), heroMasteryXp: emptyHeroXp(),
         castleTechLevels: emptyCastleTech(), stats: emptyStats(),
-        unlockedUnits: ['militia'], equippedUnits: ['militia'], clearedStages: [], clearedChallenges: [], clearedMapTreasureGuardianIds: [], claimedMapTreasureIds: [],
+        unlockedUnits: ['militia'], equippedUnits: ['militia'], formationSlots: ['militia', null, null, null], clearedStages: [], clearedChallenges: [], clearedMapTreasureGuardianIds: [], claimedMapTreasureIds: [],
         unlockedHeroes: ['warden'], unlockedAchievementIds: [], claimedAchievementIds: [],
         discoveredEnemies: [],
       }),

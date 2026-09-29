@@ -1,0 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&display=swap');
+
+:root {
+  font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', system-ui, sans-serif;
+  color: #e9e5dc;
+  background: #0c121d;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --ink: #101826;
+  --panel: #172232;
+  --panel-2: #1e2b3c;
+  --line: rgba(196, 213, 222, .16);
+  --gold: #ddbd70;
+  --gold-bright: #f2da98;
+  --blue: #68c5df;
+  --red: #df6668;
+  --control-radius-small: 8px;
+  --control-radius: 11px;
+  --control-radius-large: 15px;
+}
+
+.character-sprite { display: inline-block; width: 100%; aspect-ratio: 153 / 160; background-repeat: no-repeat; background-size: 400% 400%; }
+
+* { box-sizing: border-box; }
+html, body, #root { min-width: 320px; min-height: 100%; margin: 0; }
+body { min-height: 100vh; overflow-x: hidden; }
+button { border-radius: var(--control-radius); font: inherit; transition: filter .16s ease, border-color .16s ease, background-color .16s ease, color .16s ease, box-shadow .16s ease, transform .16s ease; }
+button:hover:not(:disabled) { filter: brightness(1.1); }
+button:active:not(:disabled) { filter: brightness(.88); box-shadow: inset 0 2px 9px rgba(0, 0, 0, .34); transition-duration: .04s; }
+button:focus-visible { outline: 3px solid #8bdcf0; outline-offset: 3px; }
+button:disabled { cursor: not-allowed; }
+
+.eyebrow {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .24em;
+  color: var(--gold);
+}
+
+.icon-button {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(214, 229, 235, .2);
+  background: rgba(14, 22, 34, .7);
+  color: #d7e6e8;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: .2s ease;
+}
+.icon-button:hover { border-color: var(--gold); color: var(--gold-bright); transform: translateY(-1px); }
+
+.wallet { display: flex; align-items: center; gap: 7px; }
+.gold-pill, .gem-pill {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  min-width: 96px;
+  justify-content: center;
+  padding: 9px 15px;
+  background: rgba(10, 17, 26, .72);
+  border: 1px solid rgba(221, 189, 112, .3);
+  border-radius: 999px;
+  box-shadow: inset 0 1px rgba(255,255,255,.04);
+}
+.gold-pill span { color: var(--gold); font-size: 12px; }
+.gem-pill { min-width: 78px; border-color: rgba(104,197,223,.35); }
+.gem-pill span { color: #7bd5e8; font-size: 12px; }
+.gold-pill strong, .gem-pill strong { font-family: 'Cinzel', serif; font-size: 13px; }
