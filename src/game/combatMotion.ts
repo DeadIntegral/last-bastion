@@ -11,6 +11,9 @@ export interface AttackMotionPose {
   lift: number;
   opacity: number;
   energyScale: number;
+  bodyX: number;
+  bodyY: number;
+  bodyAngle: number;
 }
 
 const creatureLungeIds = new Set([
@@ -54,7 +57,7 @@ export function projectileVisualStyle(definition: UnitDefinition): ProjectileVis
 }
 
 export function createAttackMotionPose(): AttackMotionPose {
-  return { shoulderAngle: 0, elbowAngle: 0, weaponAngle: 0, reach: 0, lift: 0, opacity: 0, energyScale: 0 };
+  return { shoulderAngle: 0, elbowAngle: 0, weaponAngle: 0, reach: 0, lift: 0, opacity: 0, energyScale: 0, bodyX: 0, bodyY: 0, bodyAngle: 0 };
 }
 
 /** Writes into a spawn-time pose object so active battles do not allocate on every animation frame. */
@@ -67,6 +70,9 @@ export function sampleAttackMotion(style: AttackMotionStyle, rawProgress: number
   pose.reach = 0;
   pose.lift = 0;
   pose.weaponAngle = 0;
+  pose.bodyX = 0;
+  pose.bodyY = 0;
+  pose.bodyAngle = 0;
 
   switch (style) {
     case 'thrust':
@@ -74,12 +80,17 @@ export function sampleAttackMotion(style: AttackMotionStyle, rawProgress: number
       pose.elbowAngle = 28 - snap * 34;
       pose.reach = snap * 11;
       pose.weaponAngle = -4;
+      pose.bodyX = arc * 7;
+      pose.bodyAngle = arc * 1.5;
       break;
     case 'shoot':
       pose.shoulderAngle = -28 + snap * 25;
       pose.elbowAngle = 58 - snap * 72;
       pose.reach = snap * 4;
       pose.weaponAngle = 0;
+      pose.bodyX = -arc * 3;
+      pose.bodyY = -arc * 1.5;
+      pose.bodyAngle = -arc * 1.2;
       break;
     case 'cast':
       pose.shoulderAngle = -58 + arc * 46;
@@ -87,18 +98,25 @@ export function sampleAttackMotion(style: AttackMotionStyle, rawProgress: number
       pose.reach = arc * 5;
       pose.lift = -arc * 3;
       pose.energyScale = 0.22 + arc * 0.62;
+      pose.bodyY = -arc * 5;
+      pose.bodyAngle = arc * 1.8;
       break;
     case 'breath':
       pose.shoulderAngle = 0;
       pose.elbowAngle = 0;
       pose.lift = -arc * 3;
       pose.energyScale = 0.28 + arc * 0.92;
+      pose.bodyX = arc * 4;
+      pose.bodyY = -arc * 2;
       break;
     case 'crush':
       pose.shoulderAngle = -88 + snap * 142;
       pose.elbowAngle = 24 - snap * 18;
       pose.lift = -Math.sin(Math.min(1, progress * 1.4) * Math.PI) * 4;
       pose.weaponAngle = 18;
+      pose.bodyX = arc * 5;
+      pose.bodyY = -arc * 4;
+      pose.bodyAngle = arc * 2.6;
       break;
     case 'lunge':
       pose.shoulderAngle = -18 + snap * 28;
@@ -106,11 +124,17 @@ export function sampleAttackMotion(style: AttackMotionStyle, rawProgress: number
       pose.reach = snap * 13;
       pose.lift = -arc * 2;
       pose.weaponAngle = snap * 28;
+      pose.bodyX = arc * 9;
+      pose.bodyY = -arc * 2;
+      pose.bodyAngle = arc * 2;
       break;
     default:
       pose.shoulderAngle = -62 + snap * 118;
       pose.elbowAngle = 34 - snap * 30;
       pose.weaponAngle = 12;
+      pose.bodyX = arc * 5;
+      pose.bodyY = -arc * 2;
+      pose.bodyAngle = arc * 4;
       break;
   }
 }

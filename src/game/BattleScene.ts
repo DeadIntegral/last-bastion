@@ -64,6 +64,9 @@ interface CombatUnit {
   retreatDestination?: number;
   retreatCooldownMs: number;
   container: Phaser.GameObjects.Container;
+  portrait: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
+  portraitBaseX: number;
+  portraitBaseY: number;
   shadow: Phaser.GameObjects.Image;
   shadowGroundOffset: number;
   hpBg: Phaser.GameObjects.Image;
@@ -78,21 +81,10 @@ interface CombatUnit {
   baseScale: number;
   attackMotionMs: number;
   attackMotionDurationMs: number;
-  attackRig: CombatAttackRig;
+  attackStyle: AttackMotionStyle;
   attackPose: AttackMotionPose;
   damageFlashMs: number;
   isFlying: boolean;
-}
-
-interface CombatAttackRig {
-  style: AttackMotionStyle;
-  root: Phaser.GameObjects.Container;
-  forearm: Phaser.GameObjects.Container;
-  weapon: Phaser.GameObjects.Image;
-  energy: Phaser.GameObjects.Image;
-  direction: 1 | -1;
-  baseX: number;
-  baseY: number;
 }
 
 interface SpawnOrder {
@@ -453,7 +445,7 @@ export class BattleScene extends Phaser.Scene {
 
     for (const unit of this.units) {
       if (!unit.alive) continue;
-      if (unit.damageFlashMs > 0 || unit.attackMotionMs > 0 || unit.attackRig.root.visible) this.updateUnitFeedback(unit, safeDelta);
+      if (unit.damageFlashMs > 0 || unit.attackMotionMs > 0) this.updateUnitFeedback(unit, safeDelta);
       unit.attackTimer -= safeDelta;
       unit.targetSearchCooldownMs = Math.max(0, unit.targetSearchCooldownMs - safeDelta);
       if (unit.isBoss && !this.bossAwake) continue;
@@ -607,8 +599,9 @@ export class BattleScene extends Phaser.Scene {
     const alwaysShowHealthBar = hero || boss || Boolean(eliteName);
     const hpBg = this.add.image(-size, healthBarY, '__WHITE').setOrigin(0, 0.5).setDisplaySize(hpBarFullWidth, 4).setTint(0x111111).setAlpha(0.8).setVisible(alwaysShowHealthBar);
     const hpBar = this.add.image(-size, healthBarY, '__WHITE').setOrigin(0, 0.5).setDisplaySize(hpBarFullWidth, 4).setTint(side === 'player' ? 0x75d5ee : 0xef6b6b).setVisible(alwaysShowHealthBar);
-    const attackRig = this.createAttackRig(definition, side, size * artScale, artOffsetY);
-    container.add([shadow, ...(auraRange ? [auraRange] : []), ...(aura ? [aura] : []), ...fallbackBackdrop, portrait, attackRig.root, hpBg, hpBar]);
+    const portraitBaseX = portrait.x;
+    const portraitBaseY = portrait.y;
+    container.add([shadow, ...(auraRange ? [auraRange] : []), ...(aura ? [aura] : []), ...fallbackBackdrop, portrait, hpBg, hpBar]);
     container.setDepth(flying ? 650 : Math.round(container.y));
 
     const unit: CombatUnit = {
@@ -617,8 +610,8 @@ export class BattleScene extends Phaser.Scene {
       attackWindupRemainingMs: 0, pendingAttackKind: 'none', pendingTargetId: 0, pendingTargetX: 0, pendingTargetGroundY: GROUND_Y,
       trackedTargetId: 0, targetSearchCooldownMs: Phaser.Math.Between(0, TARGET_SEARCH_INTERVAL_MS),
       retreatDestination: undefined, retreatCooldownMs: 0,
-      container, shadow, shadowGroundOffset, hpBg, hpBar, hpBarFullWidth, alwaysShowHealthBar, alive: true, isHero: hero, isBoss: boss, isElite: Boolean(eliteName), hasCharged: false,
-      baseScale, attackMotionMs: 0, attackMotionDurationMs: 0, attackRig, attackPose: createAttackMotionPose(), damageFlashMs: 0,
+      container, portrait, portraitBaseX, portraitBaseY, shadow, shadowGroundOffset, hpBg, hpBar, hpBarFullWidth, alwaysShowHealthBar, alive: true, isHero: hero, isBoss: boss, isElite: Boolean(eliteName), hasCharged: false,
+      baseScale, attackMotionMs: 0, attackMotionDurationMs: 0, attackStyle: attackMotionStyle(definition), attackPose: createAttackMotionPose(), damageFlashMs: 0,
       isFlying: flying,
     };
     this.units.push(unit);
@@ -640,48 +633,6 @@ export class BattleScene extends Phaser.Scene {
       container.add(banner);
     }
     return unit;
-  }
-
-  private createAttackRig(definition: UnitDefinition, side: Side, size: number, artOffsetY = 0): CombatAttackRig {
-    const style = attackMotionStyle(definition);
-    const direction: 1 | -1 = side === 'player' ? 1 : -1;
-    const baseX = size * 0.02;
-    const baseY = -size * 0.22 + artOffsetY;
-    const root = this.add.container(direction * baseX, baseY).setVisible(false).setScale(direction, 1);
-    const armThickness = Math.max(3, size * 0.18);
-    const upperLength = size * 0.58;
-    const forearmLength = size * 0.52;
-    const upperArm = this.add.image(0, 0, '__WHITE').setOrigin(0, 0.5).setDisplaySize(upperLength, armThickness).setTint(definition.color).setAlpha(0.96);
-    const forearm = this.add.container(upperLength * 0.82, 0);
-    const lowerArm = this.add.image(0, 0, '__WHITE').setOrigin(0, 0.5).setDisplaySize(forearmLength, armThickness * 0.9).setTint(definition.color).setAlpha(0.96);
-    const hand = this.add.image(forearmLength * 0.82, 0, COMBAT_CIRCLE_TEXTURE).setDisplaySize(Math.max(4, size * 0.2), Math.max(4, size * 0.2)).setTint(definition.accent).setAlpha(0.95);
-    const weapon = this.add.image(forearmLength * 0.74, 0, '__WHITE').setOrigin(0, 0.5).setDisplaySize(size * 0.95, Math.max(2, size * 0.07)).setTint(definition.accent).setAlpha(0.92);
-    const bowUpper = this.add.image(forearmLength * 0.95, -size * 0.12, '__WHITE').setDisplaySize(size * 0.42, Math.max(2, size * 0.06)).setTint(definition.accent).setRotation(-0.65);
-    const bowLower = this.add.image(forearmLength * 0.95, size * 0.12, '__WHITE').setDisplaySize(size * 0.42, Math.max(2, size * 0.06)).setTint(definition.accent).setRotation(0.65);
-    const bowString = this.add.image(forearmLength * 1.04, 0, '__WHITE').setDisplaySize(Math.max(1, size * 0.035), size * 0.52).setTint(definition.accent).setAlpha(0.82);
-    const clawTop = this.add.image(forearmLength * 1.04, -size * 0.09, '__WHITE').setOrigin(0, 0.5).setDisplaySize(size * 0.42, Math.max(2, size * 0.07)).setTint(definition.accent).setRotation(-0.28);
-    const clawMiddle = this.add.image(forearmLength * 1.04, 0, '__WHITE').setOrigin(0, 0.5).setDisplaySize(size * 0.46, Math.max(2, size * 0.07)).setTint(definition.accent);
-    const clawBottom = this.add.image(forearmLength * 1.04, size * 0.09, '__WHITE').setOrigin(0, 0.5).setDisplaySize(size * 0.42, Math.max(2, size * 0.07)).setTint(definition.accent).setRotation(0.28);
-    const energy = this.add.image(forearmLength * 1.06, 0, COMBAT_CIRCLE_TEXTURE)
-      .setDisplaySize(size * (style === 'cast' ? 0.34 : 0.46), size * (style === 'cast' ? 0.34 : 0.46))
-      .setTint(definition.accent)
-      .setAlpha(style === 'cast' ? 0.42 : 0.78);
-
-    weapon.setVisible(style === 'slash' || style === 'thrust' || style === 'crush');
-    for (const bowPart of [bowUpper, bowLower, bowString]) bowPart.setVisible(style === 'shoot');
-    for (const clawPart of [clawTop, clawMiddle, clawBottom]) clawPart.setVisible(style === 'lunge');
-    energy.setVisible(style === 'cast' || style === 'breath');
-    forearm.add([lowerArm, hand, weapon, bowUpper, bowLower, bowString, clawTop, clawMiddle, clawBottom, energy]);
-    if (style === 'breath') {
-      upperArm.setVisible(false);
-      forearm.setVisible(false);
-      forearm.remove(energy);
-      energy.setPosition(size * 0.58, -size * 0.18).setDisplaySize(size * 0.62, size * 0.62).setTint(0x78d65f).setAlpha(0.55);
-      root.add([upperArm, forearm, energy]);
-    } else {
-      root.add([upperArm, forearm]);
-    }
-    return { style, root, forearm, weapon, energy, direction, baseX, baseY };
   }
 
   private handleSpawn(id: UnitId): void {
@@ -995,7 +946,7 @@ export class BattleScene extends Phaser.Scene {
       const pattern = attacker.definition.attackPattern;
       this.showGroundTelegraph(attacker, target.container.x, attacker.pendingTargetGroundY, pattern.radius, windupMs, attacker.definition.accent);
     }
-    this.startAttackMotion(attacker, Math.max(windupMs, attackMotionDurationMs(attacker.attackRig.style)));
+    this.startAttackMotion(attacker, Math.max(windupMs, attackMotionDurationMs(attacker.attackStyle)));
     if (windupMs <= 0) this.resolvePendingAttack(attacker);
   }
 
@@ -1233,10 +1184,9 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private startAttackMotion(unit: CombatUnit, durationMs = attackMotionDurationMs(unit.attackRig.style)): void {
+  private startAttackMotion(unit: CombatUnit, durationMs = attackMotionDurationMs(unit.attackStyle)): void {
     unit.attackMotionDurationMs = durationMs;
     unit.attackMotionMs = durationMs;
-    unit.attackRig.root.setVisible(true).setAlpha(1);
   }
 
   private attackTargets(attacker: CombatUnit, primary: CombatUnit): CombatUnit[] {
@@ -2175,17 +2125,17 @@ export class BattleScene extends Phaser.Scene {
     if (unit.attackMotionMs > 0) {
       const duration = Math.max(1, unit.attackMotionDurationMs);
       unit.attackMotionMs = Math.max(0, unit.attackMotionMs - delta);
-      sampleAttackMotion(unit.attackRig.style, 1 - unit.attackMotionMs / duration, unit.attackPose);
-      const { attackRig: rig, attackPose: pose } = unit;
-      rig.root.x = rig.direction * (rig.baseX + pose.reach);
-      rig.root.y = rig.baseY + pose.lift;
-      rig.root.setAngle(rig.direction * pose.shoulderAngle).setAlpha(pose.opacity);
-      rig.forearm.setAngle(pose.elbowAngle);
-      rig.weapon.setAngle(pose.weaponAngle);
-      rig.energy.setScale(pose.energyScale);
-      if (unit.attackMotionMs === 0) rig.root.setVisible(false);
-    } else if (unit.attackRig.root.visible) {
-      unit.attackRig.root.setVisible(false);
+      sampleAttackMotion(unit.attackStyle, 1 - unit.attackMotionMs / duration, unit.attackPose);
+      const direction = unit.side === 'player' ? 1 : -1;
+      unit.portrait
+        .setPosition(
+          unit.portraitBaseX + direction * unit.attackPose.bodyX,
+          unit.portraitBaseY + unit.attackPose.bodyY,
+        )
+        .setAngle(direction * unit.attackPose.bodyAngle);
+      if (unit.attackMotionMs === 0) {
+        unit.portrait.setPosition(unit.portraitBaseX, unit.portraitBaseY).setAngle(0);
+      }
     }
   }
 

@@ -27,6 +27,7 @@ describe('localized combat attack motion', () => {
       sampleAttackMotion(style, 0.5, pose);
       expect(Object.values(pose).every(Number.isFinite)).toBe(true);
       expect(pose.opacity).toBeGreaterThan(0);
+      expect(Math.abs(pose.bodyX) + Math.abs(pose.bodyY) + Math.abs(pose.bodyAngle)).toBeGreaterThan(0);
     }
     sampleAttackMotion('thrust', 0.5, pose);
     expect(pose.reach).toBeGreaterThan(0);
