@@ -22,6 +22,17 @@ export interface HeroAwakeningAura {
   healingPerSecondPerRank?: number;
 }
 
+export interface HeroAwakeningSelfBonus {
+  name: string;
+  description: string;
+  hpPerRank: number;
+  attackPerRank: number;
+  defensePerRank?: number;
+  rangePerRank?: number;
+  moveSpeedPerRank?: number;
+  healingPerRank?: number;
+}
+
 const soldierMasteryOverrides: Partial<Record<UnitId, MasteryStatGrowth>> = {
   militia: { hp: 5, attack: 1 },
   guardian: { hp: 12, attack: 1 },
@@ -32,7 +43,7 @@ const soldierMasteryOverrides: Partial<Record<UnitId, MasteryStatGrowth>> = {
   cavalry: { hp: 10, attack: 2 },
   crossbow: { hp: 5, attack: 2 },
   brute: { hp: 35, attack: 4 },
-  griffin: { hp: 55, attack: 6 },
+  griffin: { hp: 110, attack: 6 },
   spirit: { hp: 24, attack: 3 },
   hellhound: { hp: 32, attack: 4 },
 };
@@ -49,13 +60,13 @@ export const heroMasteryGrowth: Record<HeroId, MasteryStatGrowth & {
   respawnReductionMs: number;
   maxRespawnReductionMs: number;
 }> = {
-  warden: { hp: 24, attack: 2, respawnReductionMs: 300, maxRespawnReductionMs: 7_000 },
-  pyromancer: { hp: 14, attack: 3, respawnReductionMs: 250, maxRespawnReductionMs: 6_300 },
-  huntress: { hp: 17, attack: 3, respawnReductionMs: 220, maxRespawnReductionMs: 5_600 },
-  saint: { hp: 16, attack: 2, respawnReductionMs: 240, maxRespawnReductionMs: 6_000 },
-  marshal: { hp: 21, attack: 3, respawnReductionMs: 280, maxRespawnReductionMs: 6_500 },
-  orcChampion: { hp: 30, attack: 4, respawnReductionMs: 320, maxRespawnReductionMs: 7_500 },
-  windSpirit: { hp: 18, attack: 4, respawnReductionMs: 240, maxRespawnReductionMs: 5_800 },
+  warden: { hp: 45, attack: 2, respawnReductionMs: 300, maxRespawnReductionMs: 7_000 },
+  pyromancer: { hp: 35, attack: 4, respawnReductionMs: 250, maxRespawnReductionMs: 6_300 },
+  huntress: { hp: 36, attack: 3, respawnReductionMs: 220, maxRespawnReductionMs: 5_600 },
+  saint: { hp: 34, attack: 2, respawnReductionMs: 240, maxRespawnReductionMs: 6_000 },
+  marshal: { hp: 42, attack: 3, respawnReductionMs: 280, maxRespawnReductionMs: 6_500 },
+  orcChampion: { hp: 55, attack: 4, respawnReductionMs: 320, maxRespawnReductionMs: 7_500 },
+  windSpirit: { hp: 38, attack: 4, respawnReductionMs: 240, maxRespawnReductionMs: 5_800 },
 };
 
 export const heroAwakeningAuras: Record<HeroId, HeroAwakeningAura> = {
@@ -68,15 +79,25 @@ export const heroAwakeningAuras: Record<HeroId, HeroAwakeningAura> = {
   windSpirit: { name: '순풍의 길', description: '주변 아군 사거리 +12 · 이동 속도 +3', radius: 215, rangeBonusPerRank: 12, moveSpeedBonusPerRank: 3 },
 };
 
+export const heroAwakeningSelfBonuses: Record<HeroId, HeroAwakeningSelfBonus> = {
+  warden: { name: '불굴의 육신', description: '자신의 생존력과 근접 전투력을 함께 강화합니다.', hpPerRank: 450, attackPerRank: 5, defensePerRank: 3 },
+  pyromancer: { name: '내면의 화로', description: '자신의 화력과 생존력을 크게 강화합니다.', hpPerRank: 200, attackPerRank: 12 },
+  huntress: { name: '포식자의 집중', description: '자신의 화력과 저격 사거리를 강화합니다.', hpPerRank: 200, attackPerRank: 12, rangePerRank: 8 },
+  saint: { name: '성녀의 가호', description: '자신의 생존력과 치유 능력을 강화합니다.', hpPerRank: 200, attackPerRank: 0, defensePerRank: 2, healingPerRank: 12 },
+  marshal: { name: '선봉장의 기백', description: '자신의 생존력과 전열 돌파력을 강화합니다.', hpPerRank: 250, attackPerRank: 8, defensePerRank: 2 },
+  orcChampion: { name: '족장의 투지', description: '자신의 생존력과 근접 화력을 강화합니다.', hpPerRank: 300, attackPerRank: 8, defensePerRank: 2 },
+  windSpirit: { name: '자유의 핵', description: '자신의 공중 전투력과 기동성을 강화합니다.', hpPerRank: 250, attackPerRank: 10, defensePerRank: 1, moveSpeedPerRank: 3 },
+};
+
 export const heroSkillPower = {
-  warden: { shield: 100, shieldPerRank: 10, shieldPerAwakening: 50 },
+  warden: { shield: 100, shieldPerRank: 20, shieldPerAwakening: 150 },
   pyromancer: {
-    unitDamage: 240, unitDamagePerRank: 16, unitDamagePerAwakening: 100,
+    unitDamage: 240, unitDamagePerRank: 40, unitDamagePerAwakening: 300,
     castleDamage: 160, castleDamagePerRank: 10, castleDamagePerAwakening: 60,
   },
   huntress: {
-    unitDamage: 105, unitDamagePerRank: 8, unitDamagePerAwakening: 45,
-    bossDamage: 155, bossDamagePerRank: 12, bossDamagePerAwakening: 65,
+    unitDamage: 105, unitDamagePerRank: 18, unitDamagePerAwakening: 120,
+    bossDamage: 155, bossDamagePerRank: 28, bossDamagePerAwakening: 180,
   },
   saint: {
     heal: 150, healPerRank: 10, healPerAwakening: 60,

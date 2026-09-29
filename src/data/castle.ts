@@ -1,4 +1,5 @@
 import type { CastleBattleStats, CastleTechDefinition, CastleTechId, FortressTier, FortressTierDefinition } from '../types/game';
+import { battleDeploymentTuning } from './combat';
 
 export const battleMobilizationTuning = {
   name: '전시 동원령',
@@ -36,8 +37,8 @@ export const fortressArtilleryTuning = {
 } as const;
 
 export const fortressResearchTuning = {
-  baseCommandPerKill: 6,
-  warTitheCommandPerRank: 1,
+  baseCommandPerKill: 3,
+  warTitheCommandPerRank: 0.5,
   mendingStoneRegenPerRank: 4,
 } as const;
 
@@ -169,6 +170,10 @@ export function castleBattleStats(levels: Record<CastleTechId, number>): CastleB
   };
 }
 
-export function soldierCommandCost(baseCost: number, multiplier: number): number {
-  return Math.max(10, Math.ceil(baseCost * multiplier));
+export function soldierCommandCost(baseCost: number, multiplier: number, maximumCost = battleDeploymentTuning.maximumCommandCost): number {
+  const adjustedCost = Math.round(baseCost * battleDeploymentTuning.baseCommandCostMultiplier * multiplier * 1_000_000) / 1_000_000;
+  return Math.min(
+    maximumCost,
+    Math.max(10, Math.ceil(adjustedCost)),
+  );
 }

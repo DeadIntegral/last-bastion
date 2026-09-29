@@ -1,7 +1,7 @@
 import { battleMobilizationTuning, fortressDeploymentTuning, mobilizationCommandCost } from '../data/castle';
-import { deadZoneRetreatTuning } from '../data/combat';
+import { deadZoneRetreatTuning, knockbackResistanceTuning } from '../data/combat';
 import { triumphMonumentBonuses } from '../data/endgame';
-import { HERO_AWAKENING_COOLDOWN_REDUCTION_MS, HERO_AWAKENING_LEVELS, HERO_MASTERY_MAX_LEVEL, SOLDIER_MASTERY_MAX_LEVEL, heroAwakeningAuras, heroMasteryGrowth, soldierMasteryGrowth, type MasteryStatGrowth } from '../data/mastery';
+import { HERO_AWAKENING_COOLDOWN_REDUCTION_MS, HERO_AWAKENING_LEVELS, HERO_MASTERY_MAX_LEVEL, SOLDIER_MASTERY_MAX_LEVEL, heroAwakeningAuras, heroAwakeningSelfBonuses, heroMasteryGrowth, soldierMasteryGrowth, type MasteryStatGrowth } from '../data/mastery';
 import type { BattleSpeed, EquipmentLevels, HeroDefinition, HeroId, Side, StageDefinition, TerrainEffect, UnitDefinition, UnitId } from '../types/game';
 
 export const COMMAND_MAX = 200;
@@ -54,13 +54,22 @@ export function canAttackTarget(attacker: UnitDefinition, target: UnitDefinition
   return true;
 }
 
+export function knockbackMultiplier(definition: Pick<UnitDefinition, 'grade' | 'tags'>): number {
+  if (definition.tags.includes('flying')) return 0;
+  if (!definition.tags.includes('large')) return knockbackResistanceTuning.ordinaryMultiplier;
+  if (definition.grade === 5) return knockbackResistanceTuning.largeTranscendentMultiplier;
+  if (definition.grade === 4) return knockbackResistanceTuning.largeLegendaryMultiplier;
+  return knockbackResistanceTuning.largeEliteMultiplier;
+}
+
 export function attackPatternLabel(definition: UnitDefinition): string {
+  if (definition.attackName) return definition.attackName;
   const pattern = definition.attackPattern;
-  if (pattern.kind === 'pierce') return `${pattern.maxTargets}명 관통`;
+  if (pattern.kind === 'pierce') return `${pattern.maxTargets}명 관통${pattern.piercesFortress ? ' · 성채 관통' : ''}`;
   if (pattern.kind === 'cleave') return '근접 범위 전체 공격';
   if (pattern.kind === 'splash') return `착탄 범위 공격 · 반경 ${pattern.radius}`;
   if (pattern.kind === 'directional') return `전방 파동 · 길이 ${pattern.length}`;
-  if (pattern.kind === 'groundBurst') return `지면 발현 · 반경 ${pattern.radius}`;
+  if (pattern.kind === 'groundBurst') return `지면 발현 · 최대 ${pattern.maxTargets}명 · 반경 ${pattern.radius}`;
   return '단일 공격';
 }
 
@@ -69,7 +78,7 @@ export function guardProtectionLabel(definition: UnitDefinition): string | undef
   if (!protection) return undefined;
   const reduction = Math.round((1 - protection.rearRangeMultiplier) * 100);
   const domain = protection.protectedDomains.includes('flying') ? '전 영역' : '지상';
-  return `관통 차단 · ${domain} 후방 파동 ${reduction}% 감쇠`;
+  return `${protection.stopsPierce ? '관통 차단' : '관통 통과'} · ${domain} 후방 파동 ${reduction}% 감쇠`;
 }
 
 export function attackRecoveryMs(definition: UnitDefinition): number {
@@ -86,8 +95,11 @@ export function retreatsFromDeadZone(definition: Pick<UnitDefinition, 'minimumAt
   return definition.minimumAttackRange > 0 && definition.retreatsInsideMinimumRange === true;
 }
 
-export function spacingTraitLabel(definition: Pick<UnitDefinition, 'minimumAttackRange' | 'retreatsInsideMinimumRange'>): string | undefined {
-  return retreatsFromDeadZone(definition) ? '후퇴 사격 · 사각 진입 시 거리 확보' : undefined;
+export function spacingTraitLabel(definition: Pick<UnitDefinition, 'minimumAttackRange' | 'retreatsInsideMinimumRange' | 'rangedTargeting'>): string | undefined {
+  const traits: string[] = [];
+  if (definition.rangedTargeting === 'backline') traits.push('곡사 · 전열 너머 후방 원거리·지원 우선');
+  if (retreatsFromDeadZone(definition)) traits.push('후퇴 사격 · 사각 진입 시 거리 확보');
+  return traits.length > 0 ? traits.join(' / ') : undefined;
 }
 
 export function deadZoneRetreatDestination(currentX: number, threatX: number, minimumRange: number, currentDistance: number, minimumX: number, maximumX: number): number {
@@ -215,6 +227,19 @@ export function heroAuraBonuses(heroId: HeroId, masteryLevel: number) {
   };
 }
 
+export function heroSelfAwakeningBonuses(heroId: HeroId, masteryLevel: number) {
+  const bonus = heroAwakeningSelfBonuses[heroId];
+  const rank = heroAwakeningRank(masteryLevel);
+  return {
+    hp: bonus.hpPerRank * rank,
+    attack: bonus.attackPerRank * rank,
+    defense: (bonus.defensePerRank ?? 0) * rank,
+    range: (bonus.rangePerRank ?? 0) * rank,
+    moveSpeed: (bonus.moveSpeedPerRank ?? 0) * rank,
+    healing: (bonus.healingPerRank ?? 0) * rank,
+  };
+}
+
 export function healedHp(currentHp: number, maxHp: number, amount: number): number {
   return Math.min(Math.max(0, maxHp), Math.max(0, currentHp) + Math.max(0, amount));
 }
@@ -250,19 +275,21 @@ export function upgradedStats(definition: UnitDefinition, equipment: number | Eq
   const masteryCap = isHero ? HERO_MASTERY_MAX_LEVEL : SOLDIER_MASTERY_MAX_LEVEL;
   const masteryRanks = Math.max(0, Math.min(masteryCap, masteryLevel) - 1);
   const masteryGrowth = masteryStatGrowth(definition);
+  const selfAwakening = isHero ? heroSelfAwakeningBonuses(definition.id as HeroId, masteryLevel) : undefined;
   const equipmentCapstone = isSoldier && hasEquipmentCapstone(levels);
   const eliteCapstoneRanks = equipmentCapstone && usesStatEquipmentCapstone(definition)
     ? STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS
     : 0;
   return {
     ...definition,
-    maxHp: Math.round(definition.maxHp + masteryRanks * masteryGrowth.hp + (levels.armor + eliteCapstoneRanks) * growth.hp),
-    attackDamage: Math.round(definition.attackDamage + masteryRanks * masteryGrowth.attack + (levels.weapon + eliteCapstoneRanks) * growth.attack),
+    maxHp: Math.round(definition.maxHp + masteryRanks * masteryGrowth.hp + (levels.armor + eliteCapstoneRanks) * growth.hp + (selfAwakening?.hp ?? 0)),
+    attackDamage: Math.round(definition.attackDamage + masteryRanks * masteryGrowth.attack + (levels.weapon + eliteCapstoneRanks) * growth.attack + (selfAwakening?.attack ?? 0)),
     healingPower: definition.healingPower === undefined
       ? undefined
-      : Math.round(definition.healingPower + masteryRanks * masteryGrowth.attack + (levels.weapon + eliteCapstoneRanks) * growth.attack),
-    defense: Math.round(((definition.defense ?? 0) + (levels.armor + eliteCapstoneRanks) * growth.defense) * 10) / 10,
-    moveSpeed: Math.round((definition.moveSpeed + (levels.boots + eliteCapstoneRanks) * growth.moveSpeed) * 10) / 10,
+      : Math.round(definition.healingPower + masteryRanks * masteryGrowth.attack + (levels.weapon + eliteCapstoneRanks) * growth.attack + (selfAwakening?.healing ?? 0)),
+    defense: Math.round(((definition.defense ?? 0) + (levels.armor + eliteCapstoneRanks) * growth.defense + (selfAwakening?.defense ?? 0)) * 10) / 10,
+    attackRange: definition.attackRange + (selfAwakening?.range ?? 0),
+    moveSpeed: Math.round((definition.moveSpeed + (levels.boots + eliteCapstoneRanks) * growth.moveSpeed + (selfAwakening?.moveSpeed ?? 0)) * 10) / 10,
     squadSize: definition.squadSize + (equipmentCapstone && !usesStatEquipmentCapstone(definition) ? 1 : 0),
   };
 }

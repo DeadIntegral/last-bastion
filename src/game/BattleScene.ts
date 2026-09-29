@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { musicEngine } from '../audio/music';
 import { battleBackgroundDefinitions, battleBackgroundForTerrain } from '../data/backgroundArt';
-import { CHARACTER_ART_FRAME_HEIGHT, CHARACTER_ART_FRAME_WIDTH, characterArtFrameIndex, characterArtFrames, characterArtSheet, characterArtSheets, TRANSCENDENT_BATTLE_ART_SCALE, type CharacterArtId } from '../data/characterArt';
+import { CHARACTER_ART_FRAME_HEIGHT, CHARACTER_ART_FRAME_WIDTH, characterArtFrameIndex, characterArtFrames, characterArtSheet, characterArtSheets, characterBattleOffsetY, TRANSCENDENT_BATTLE_ART_SCALE, type CharacterArtId } from '../data/characterArt';
 import { battleMobilizationTuning, castleBattleStats, mobilizationCommandCost, rallyCommandTuning, soldierCommandCost } from '../data/castle';
 import { deadZoneRetreatTuning } from '../data/combat';
 import { triumphMonumentBonuses } from '../data/endgame';
@@ -30,6 +30,7 @@ import {
   healedHp,
   isBehindLivingFortress,
   isWithinAttackBand,
+  knockbackMultiplier,
   masteryLevelFromXp,
   mobilizedCommandStats,
   regenerateCommand,
@@ -57,12 +58,18 @@ interface CombatUnit {
   pendingAttackKind: PendingAttackKind;
   pendingTargetId: number;
   pendingTargetX: number;
+  pendingTargetGroundY: number;
+  trackedTargetId: number;
+  targetSearchCooldownMs: number;
   retreatDestination?: number;
   retreatCooldownMs: number;
   container: Phaser.GameObjects.Container;
-  shadow: Phaser.GameObjects.Ellipse;
+  shadow: Phaser.GameObjects.Image;
   shadowGroundOffset: number;
-  hpBar: Phaser.GameObjects.Rectangle;
+  hpBg: Phaser.GameObjects.Image;
+  hpBar: Phaser.GameObjects.Image;
+  hpBarFullWidth: number;
+  alwaysShowHealthBar: boolean;
   alive: boolean;
   isHero: boolean;
   isBoss: boolean;
@@ -74,14 +81,15 @@ interface CombatUnit {
   attackRig: CombatAttackRig;
   attackPose: AttackMotionPose;
   damageFlashMs: number;
+  isFlying: boolean;
 }
 
 interface CombatAttackRig {
   style: AttackMotionStyle;
   root: Phaser.GameObjects.Container;
   forearm: Phaser.GameObjects.Container;
-  weapon: Phaser.GameObjects.Rectangle;
-  energy: Phaser.GameObjects.Arc;
+  weapon: Phaser.GameObjects.Image;
+  energy: Phaser.GameObjects.Image;
   direction: 1 | -1;
   baseX: number;
   baseY: number;
@@ -104,6 +112,13 @@ interface PooledProjectileEffect {
   arrowHead: Phaser.GameObjects.Triangle;
   magicCore: Phaser.GameObjects.Star;
   magicRing: Phaser.GameObjects.Arc;
+  magicHalo: Phaser.GameObjects.Arc;
+  magicTrail: Phaser.GameObjects.Triangle;
+  magicSpearShaft: Phaser.GameObjects.Rectangle;
+  magicSpearHead: Phaser.GameObjects.Triangle;
+  magicSpearTail: Phaser.GameObjects.Triangle;
+  poisonStream: Phaser.GameObjects.Rectangle;
+  poisonClouds: Phaser.GameObjects.Arc[];
   bombBody: Phaser.GameObjects.Arc;
   bombFuse: Phaser.GameObjects.Rectangle;
   siegeShell: Phaser.GameObjects.Rectangle;
@@ -114,6 +129,9 @@ interface PooledProjectileEffect {
   startY: number;
   endX: number;
   endY: number;
+  arcHeight: number;
+  color: number;
+  transcendent: boolean;
 }
 
 interface PooledFlashEffect {
@@ -126,7 +144,6 @@ interface PooledGroundTelegraphEffect {
   object: Phaser.GameObjects.Arc;
   elapsedMs: number;
   durationMs: number;
-  radius: number;
   owner?: CombatUnit;
 }
 
@@ -138,10 +155,48 @@ interface PooledGuardEffect {
   durationMs: number;
 }
 
+interface PooledGroundBurstEffect {
+  object: Phaser.GameObjects.Container;
+  glow: Phaser.GameObjects.Arc;
+  leftSpike: Phaser.GameObjects.Triangle;
+  centerSpike: Phaser.GameObjects.Triangle;
+  rightSpike: Phaser.GameObjects.Triangle;
+  elapsedMs: number;
+  durationMs: number;
+  baseScale: number;
+  groundY: number;
+}
+
+interface PooledTranscendentImpactEffect {
+  object: Phaser.GameObjects.Container;
+  outerRing: Phaser.GameObjects.Arc;
+  innerRing: Phaser.GameObjects.Arc;
+  core: Phaser.GameObjects.Star;
+  horizontalRay: Phaser.GameObjects.Rectangle;
+  verticalRay: Phaser.GameObjects.Rectangle;
+  elapsedMs: number;
+  durationMs: number;
+}
+
+type HeroAuraValues = ReturnType<typeof heroAuraBonuses>;
+
+const NO_HERO_AURA: HeroAuraValues = {
+  radius: 0,
+  attackBonus: 0,
+  defenseBonus: 0,
+  rangeBonus: 0,
+  moveSpeedBonus: 0,
+  healingPerSecond: 0,
+};
+
 export const WORLD_WIDTH = 1600;
 export const WORLD_HEIGHT = 720;
 const PLAYER_CASTLE_X = 105;
 const GROUND_Y = 550;
+const TARGET_SEARCH_INTERVAL_MS = 160;
+const HUD_UPDATE_INTERVAL_MS = 200;
+const CASTLE_SHAKE_COOLDOWN_MS = 120;
+const COMBAT_CIRCLE_TEXTURE = 'combat-circle-quad';
 
 export class BattleScene extends Phaser.Scene {
   private stageDefinition: StageDefinition;
@@ -152,9 +207,14 @@ export class BattleScene extends Phaser.Scene {
   private heroDefinition: HeroDefinition;
   private heroId: HeroId;
   private heroMasteryLevel: number;
+  private heroAura: HeroAuraValues;
   private triumphMonumentLevel: number;
   private castleStats: CastleBattleStats;
+  private hudUnitCosts: Partial<Record<UnitId, number>>;
   private units: CombatUnit[] = [];
+  private unitsById = new Map<number, CombatUnit>();
+  private livingSoldierCounts: Record<Side, number> = { player: 0, enemy: 0 };
+  private livingUnitCounts: Record<Side, Partial<Record<UnitId, number>>> = { player: {}, enemy: {} };
   private pendingUnitRemovalIds = new Set<number>();
   private attackTargetBuffer: CombatUnit[] = [];
   private strikeEffects: PooledStrikeEffect[] = [];
@@ -162,6 +222,8 @@ export class BattleScene extends Phaser.Scene {
   private flashEffects: PooledFlashEffect[] = [];
   private groundTelegraphEffects: PooledGroundTelegraphEffect[] = [];
   private guardEffects: PooledGuardEffect[] = [];
+  private groundBurstEffects: PooledGroundBurstEffect[] = [];
+  private transcendentImpactEffects: PooledTranscendentImpactEffect[] = [];
   private targetingAttacker?: CombatUnit;
   private readonly combatTargetAccess: LaneTargetAccess<CombatUnit> = {
     x: (target) => target.container.x,
@@ -208,8 +270,12 @@ export class BattleScene extends Phaser.Scene {
   private isPaused = false;
   private battleSpeed: BattleSpeed;
   private hudTimer = 0;
+  private performanceSampleMs = 0;
+  private performanceSampleFrames = 0;
+  private framesPerSecond = 60;
   private towerAttackTimer = 0;
   private enemyFortressAttackTimer = 0;
+  private lastCastleShakeAt = Number.NEGATIVE_INFINITY;
   private unitsLost = 0;
   private heroDeaths = 0;
   private heroSkillUses = 0;
@@ -244,6 +310,12 @@ export class BattleScene extends Phaser.Scene {
     this.castleStats = castleBattleStats(castleTechLevels);
     const baseHero = heroDefinitions[heroId];
     this.heroMasteryLevel = heroMasteryLevelFromXp(heroMasteryXp).level;
+    this.heroAura = heroAuraBonuses(heroId, this.heroMasteryLevel);
+    this.hudUnitCosts = {};
+    for (const id of equippedUnits) {
+      const definition = troopDefinitions[id];
+      this.hudUnitCosts[id] = soldierCommandCost(definition.cost, this.castleStats.summonCostMultiplier, definition.commandCostCap);
+    }
     const trainedHero = applyTriumphMonumentStats(
       upgradedStats(baseHero, heroEquipmentLevel, this.heroMasteryLevel),
       triumphMonumentLevel,
@@ -286,6 +358,7 @@ export class BattleScene extends Phaser.Scene {
       + triumphMonumentBonuses(this.triumphMonumentLevel).fortressHpBonus;
     this.playerCastleHp = this.playerCastleMaxHp;
     this.drawWorld();
+    this.ensureCombatTextures();
     this.createEffectPools();
     this.createRallyFlag();
     this.time.timeScale = this.battleSpeed;
@@ -346,6 +419,13 @@ export class BattleScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     if (this.ended || this.isPaused) return;
+    this.performanceSampleMs += delta;
+    this.performanceSampleFrames += 1;
+    if (this.performanceSampleMs >= 500) {
+      this.framesPerSecond = Math.round(this.performanceSampleFrames * 1000 / this.performanceSampleMs);
+      this.performanceSampleMs = 0;
+      this.performanceSampleFrames = 0;
+    }
     this.flushUnitRemovals();
     const safeDelta = scaledBattleDelta(delta, this.battleSpeed);
     this.elapsed += safeDelta;
@@ -356,7 +436,7 @@ export class BattleScene extends Phaser.Scene {
     this.mist.tilePositionX += safeDelta * 0.006;
     this.updatePooledEffects(safeDelta);
 
-    for (const id of Object.keys(this.spawnCooldowns) as UnitId[]) {
+    for (const id of this.equippedUnits) {
       this.spawnCooldowns[id] = Math.max(0, (this.spawnCooldowns[id] ?? 0) - safeDelta);
     }
     this.heroSkillCooldown = Math.max(0, this.heroSkillCooldown - safeDelta);
@@ -373,12 +453,14 @@ export class BattleScene extends Phaser.Scene {
 
     for (const unit of this.units) {
       if (!unit.alive) continue;
-      this.updateUnitFeedback(unit, safeDelta);
+      if (unit.damageFlashMs > 0 || unit.attackMotionMs > 0 || unit.attackRig.root.visible) this.updateUnitFeedback(unit, safeDelta);
       unit.attackTimer -= safeDelta;
+      unit.targetSearchCooldownMs = Math.max(0, unit.targetSearchCooldownMs - safeDelta);
       if (unit.isBoss && !this.bossAwake) continue;
-      this.applyPassiveAuraHealing(unit, safeDelta);
+      const aura = this.heroAuraFor(unit);
+      if (aura.healingPerSecond > 0) this.applyPassiveAuraHealing(unit, safeDelta, aura.healingPerSecond);
       if (this.updatePendingAttack(unit, safeDelta)) continue;
-      this.updateUnit(unit, safeDelta);
+      this.updateUnit(unit, safeDelta, aura);
     }
 
     if (this.bossAwake && this.boss?.alive) this.updateBoss(safeDelta);
@@ -386,10 +468,10 @@ export class BattleScene extends Phaser.Scene {
     this.updateEnemyFortressAttack(safeDelta);
     this.flushUnitRemovals();
     this.updateBars();
-    this.hudTimer -= safeDelta;
+    this.hudTimer -= delta;
     if (this.hudTimer <= 0) {
       this.emitHud();
-      this.hudTimer = 100;
+      this.hudTimer = HUD_UPDATE_INTERVAL_MS;
     }
   }
 
@@ -456,6 +538,15 @@ export class BattleScene extends Phaser.Scene {
     else this.enemyBar = bar;
   }
 
+  private ensureCombatTextures(): void {
+    if (this.textures.exists(COMBAT_CIRCLE_TEXTURE)) return;
+    const graphics = this.add.graphics();
+    graphics.fillStyle(0xffffff, 1);
+    graphics.fillCircle(32, 32, 32);
+    graphics.generateTexture(COMBAT_CIRCLE_TEXTURE, 64, 64);
+    graphics.destroy();
+  }
+
   private createRallyFlag(): void {
     if (!this.castleStats.rallyUnlocked) return;
     const glow = this.add.circle(0, 24, 30, 0x77d9e8, 0.08).setStrokeStyle(2, 0x8de9f5, 0.4);
@@ -479,8 +570,13 @@ export class BattleScene extends Phaser.Scene {
     const baseScale = boss && this.stageDefinition.challenge ? bossCombatTuning.challengeVisualScale : 1;
     const container = this.add.container(x, y - flightHeight + Phaser.Math.Between(-5, 5)).setScale(baseScale);
     const shadowGroundOffset = flightHeight + size * 0.8;
-    const shadow = this.add.ellipse(0, shadowGroundOffset / baseScale, size * 2.3, size * 0.7, 0x000000, flying ? 0.14 : 0.25);
-    const aura = this.add.circle(0, 0, size * 1.25, definition.color, hero || eliteName ? 0.18 : 0);
+    const shadow = this.add.image(0, shadowGroundOffset / baseScale, COMBAT_CIRCLE_TEXTURE)
+      .setDisplaySize(size * 2.3, size * 0.7)
+      .setTint(0x000000)
+      .setAlpha(flying ? 0.14 : 0.25);
+    const aura = hero || eliteName
+      ? this.add.image(0, 0, COMBAT_CIRCLE_TEXTURE).setDisplaySize(size * 2.5, size * 2.5).setTint(definition.color).setAlpha(0.18)
+      : undefined;
     const awakeningRank = hero && side === 'player' ? heroAwakeningRank(this.heroMasteryLevel) : 0;
     const awakeningAura = hero && awakeningRank > 0 ? heroAwakeningAuras[this.heroId] : undefined;
     const auraRange = awakeningAura
@@ -489,35 +585,49 @@ export class BattleScene extends Phaser.Scene {
     const artId = definition.id === 'boss' ? undefined : definition.id as CharacterArtId;
     const sheet = artId ? characterArtSheet(artId) : undefined;
     const frame = artId ? characterArtFrames[artId] : undefined;
+    const artOffsetY = artId ? characterBattleOffsetY(artId) : 0;
     const fallbackBackdrop = frame && sheet ? [] : [
       this.add.circle(0, 0, size, definition.color).setStrokeStyle(hero || boss || eliteName ? 3 : 2, definition.accent, 0.9),
       this.add.circle(-size * 0.2, -size * 0.25, size * 0.42, definition.accent, 0.3),
     ];
     const artScale = definition.grade === 5 ? TRANSCENDENT_BATTLE_ART_SCALE : 1;
     const portrait = artId && frame && sheet
-      ? this.add.image(0, -size * 0.12, sheet.textureKey, characterArtFrameIndex(artId))
+      ? this.add.image(0, -size * 0.12 + artOffsetY, sheet.textureKey, characterArtFrameIndex(artId))
         .setDisplaySize(size * 3.25 * artScale, size * 3.4 * artScale)
         .setFlipX(side === 'enemy')
       : this.add.text(0, -1, definition.icon, {
         fontFamily: 'Georgia, serif', fontSize: `${Math.max(15, size)}px`, color: '#f8f1df', fontStyle: 'bold',
       }).setOrigin(0.5);
     const portraitHalfHeight = artId && frame && sheet ? size * 1.7 * artScale : size;
-    const healthBarY = boss ? -Math.max(size + 11, portraitHalfHeight + 8) : -size - 11;
-    const hpBg = this.add.rectangle(-size, healthBarY, size * 2, 4, 0x111111, 0.8).setOrigin(0, 0.5);
-    const hpBar = this.add.rectangle(-size, healthBarY, size * 2, 4, side === 'player' ? 0x75d5ee : 0xef6b6b).setOrigin(0, 0.5);
-    const attackRig = this.createAttackRig(definition, side, size);
-    container.add([shadow, ...(auraRange ? [auraRange] : []), aura, ...fallbackBackdrop, portrait, attackRig.root, hpBg, hpBar]);
+    const defaultHealthBarY = boss ? -Math.max(size + 11, portraitHalfHeight + 8) : -size - 11;
+    const healthBarY = artOffsetY < 0
+      ? Math.min(defaultHealthBarY, -size * 0.12 + artOffsetY - portraitHalfHeight - 8)
+      : defaultHealthBarY;
+    const hpBarFullWidth = size * 2;
+    const alwaysShowHealthBar = hero || boss || Boolean(eliteName);
+    const hpBg = this.add.image(-size, healthBarY, '__WHITE').setOrigin(0, 0.5).setDisplaySize(hpBarFullWidth, 4).setTint(0x111111).setAlpha(0.8).setVisible(alwaysShowHealthBar);
+    const hpBar = this.add.image(-size, healthBarY, '__WHITE').setOrigin(0, 0.5).setDisplaySize(hpBarFullWidth, 4).setTint(side === 'player' ? 0x75d5ee : 0xef6b6b).setVisible(alwaysShowHealthBar);
+    const attackRig = this.createAttackRig(definition, side, size * artScale, artOffsetY);
+    container.add([shadow, ...(auraRange ? [auraRange] : []), ...(aura ? [aura] : []), ...fallbackBackdrop, portrait, attackRig.root, hpBg, hpBar]);
     container.setDepth(flying ? 650 : Math.round(container.y));
 
     const unit: CombatUnit = {
       id: this.nextEntityId++, definition, side, hp: definition.maxHp, maxHp: definition.maxHp,
       shield: 0, attackTimer: Phaser.Math.Between(0, 250), attackRecoveryLocked: false,
-      attackWindupRemainingMs: 0, pendingAttackKind: 'none', pendingTargetId: 0, pendingTargetX: 0,
+      attackWindupRemainingMs: 0, pendingAttackKind: 'none', pendingTargetId: 0, pendingTargetX: 0, pendingTargetGroundY: GROUND_Y,
+      trackedTargetId: 0, targetSearchCooldownMs: Phaser.Math.Between(0, TARGET_SEARCH_INTERVAL_MS),
       retreatDestination: undefined, retreatCooldownMs: 0,
-      container, shadow, shadowGroundOffset, hpBar, alive: true, isHero: hero, isBoss: boss, isElite: Boolean(eliteName), hasCharged: false,
+      container, shadow, shadowGroundOffset, hpBg, hpBar, hpBarFullWidth, alwaysShowHealthBar, alive: true, isHero: hero, isBoss: boss, isElite: Boolean(eliteName), hasCharged: false,
       baseScale, attackMotionMs: 0, attackMotionDurationMs: 0, attackRig, attackPose: createAttackMotionPose(), damageFlashMs: 0,
+      isFlying: flying,
     };
     this.units.push(unit);
+    this.unitsById.set(unit.id, unit);
+    if (!hero && !boss) {
+      const id = definition.id as UnitId;
+      this.livingSoldierCounts[side] += 1;
+      this.livingUnitCounts[side][id] = (this.livingUnitCounts[side][id] ?? 0) + 1;
+    }
     if (boss) {
       this.add.text(x, container.y + healthBarY * baseScale - 24, t('경계 중'), {
         fontFamily: 'Pretendard Variable, system-ui, sans-serif', fontSize: '14px', color: '#d7c2b5', backgroundColor: '#171521aa', padding: { x: 10, y: 5 },
@@ -532,35 +642,45 @@ export class BattleScene extends Phaser.Scene {
     return unit;
   }
 
-  private createAttackRig(definition: UnitDefinition, side: Side, size: number): CombatAttackRig {
+  private createAttackRig(definition: UnitDefinition, side: Side, size: number, artOffsetY = 0): CombatAttackRig {
     const style = attackMotionStyle(definition);
     const direction: 1 | -1 = side === 'player' ? 1 : -1;
     const baseX = size * 0.02;
-    const baseY = -size * 0.22;
-    const root = this.add.container(direction * baseX, baseY).setAlpha(0).setScale(direction, 1);
+    const baseY = -size * 0.22 + artOffsetY;
+    const root = this.add.container(direction * baseX, baseY).setVisible(false).setScale(direction, 1);
     const armThickness = Math.max(3, size * 0.18);
     const upperLength = size * 0.58;
     const forearmLength = size * 0.52;
-    const upperArm = this.add.rectangle(0, 0, upperLength, armThickness, definition.color, 0.96)
-      .setOrigin(0, 0.5).setStrokeStyle(1, definition.accent, 0.85);
+    const upperArm = this.add.image(0, 0, '__WHITE').setOrigin(0, 0.5).setDisplaySize(upperLength, armThickness).setTint(definition.color).setAlpha(0.96);
     const forearm = this.add.container(upperLength * 0.82, 0);
-    const lowerArm = this.add.rectangle(0, 0, forearmLength, armThickness * 0.9, definition.color, 0.96)
-      .setOrigin(0, 0.5).setStrokeStyle(1, definition.accent, 0.8);
-    const hand = this.add.circle(forearmLength * 0.82, 0, Math.max(2, size * 0.1), definition.accent, 0.95);
-    const weapon = this.add.rectangle(forearmLength * 0.74, 0, size * 0.95, Math.max(2, size * 0.07), definition.accent, 0.92)
-      .setOrigin(0, 0.5).setStrokeStyle(1, 0xffffff, 0.35);
-    const bow = this.add.arc(forearmLength * 0.82, 0, size * 0.38, 255, 105, false, definition.accent, 0)
-      .setStrokeStyle(Math.max(2, size * 0.07), definition.accent, 0.95);
-    const claw = this.add.star(forearmLength * 0.95, 0, 3, size * 0.11, size * 0.34, definition.accent, 0.95);
-    const energy = this.add.circle(forearmLength * 1.06, 0, size * 0.23, definition.accent, 0.78)
-      .setStrokeStyle(2, 0xffffff, 0.72);
+    const lowerArm = this.add.image(0, 0, '__WHITE').setOrigin(0, 0.5).setDisplaySize(forearmLength, armThickness * 0.9).setTint(definition.color).setAlpha(0.96);
+    const hand = this.add.image(forearmLength * 0.82, 0, COMBAT_CIRCLE_TEXTURE).setDisplaySize(Math.max(4, size * 0.2), Math.max(4, size * 0.2)).setTint(definition.accent).setAlpha(0.95);
+    const weapon = this.add.image(forearmLength * 0.74, 0, '__WHITE').setOrigin(0, 0.5).setDisplaySize(size * 0.95, Math.max(2, size * 0.07)).setTint(definition.accent).setAlpha(0.92);
+    const bowUpper = this.add.image(forearmLength * 0.95, -size * 0.12, '__WHITE').setDisplaySize(size * 0.42, Math.max(2, size * 0.06)).setTint(definition.accent).setRotation(-0.65);
+    const bowLower = this.add.image(forearmLength * 0.95, size * 0.12, '__WHITE').setDisplaySize(size * 0.42, Math.max(2, size * 0.06)).setTint(definition.accent).setRotation(0.65);
+    const bowString = this.add.image(forearmLength * 1.04, 0, '__WHITE').setDisplaySize(Math.max(1, size * 0.035), size * 0.52).setTint(definition.accent).setAlpha(0.82);
+    const clawTop = this.add.image(forearmLength * 1.04, -size * 0.09, '__WHITE').setOrigin(0, 0.5).setDisplaySize(size * 0.42, Math.max(2, size * 0.07)).setTint(definition.accent).setRotation(-0.28);
+    const clawMiddle = this.add.image(forearmLength * 1.04, 0, '__WHITE').setOrigin(0, 0.5).setDisplaySize(size * 0.46, Math.max(2, size * 0.07)).setTint(definition.accent);
+    const clawBottom = this.add.image(forearmLength * 1.04, size * 0.09, '__WHITE').setOrigin(0, 0.5).setDisplaySize(size * 0.42, Math.max(2, size * 0.07)).setTint(definition.accent).setRotation(0.28);
+    const energy = this.add.image(forearmLength * 1.06, 0, COMBAT_CIRCLE_TEXTURE)
+      .setDisplaySize(size * (style === 'cast' ? 0.34 : 0.46), size * (style === 'cast' ? 0.34 : 0.46))
+      .setTint(definition.accent)
+      .setAlpha(style === 'cast' ? 0.42 : 0.78);
 
     weapon.setVisible(style === 'slash' || style === 'thrust' || style === 'crush');
-    bow.setVisible(style === 'shoot');
-    claw.setVisible(style === 'lunge');
-    energy.setVisible(style === 'cast');
-    forearm.add([lowerArm, hand, weapon, bow, claw, energy]);
-    root.add([upperArm, forearm]);
+    for (const bowPart of [bowUpper, bowLower, bowString]) bowPart.setVisible(style === 'shoot');
+    for (const clawPart of [clawTop, clawMiddle, clawBottom]) clawPart.setVisible(style === 'lunge');
+    energy.setVisible(style === 'cast' || style === 'breath');
+    forearm.add([lowerArm, hand, weapon, bowUpper, bowLower, bowString, clawTop, clawMiddle, clawBottom, energy]);
+    if (style === 'breath') {
+      upperArm.setVisible(false);
+      forearm.setVisible(false);
+      forearm.remove(energy);
+      energy.setPosition(size * 0.58, -size * 0.18).setDisplaySize(size * 0.62, size * 0.62).setTint(0x78d65f).setAlpha(0.55);
+      root.add([upperArm, forearm, energy]);
+    } else {
+      root.add([upperArm, forearm]);
+    }
     return { style, root, forearm, weapon, energy, direction, baseX, baseY };
   }
 
@@ -568,7 +688,7 @@ export class BattleScene extends Phaser.Scene {
     if (this.ended || this.isPaused) return;
     if (!this.equippedUnits.includes(id)) return;
     const base = troopDefinitions[id];
-    const commandCost = soldierCommandCost(base.cost, this.castleStats.summonCostMultiplier);
+    const commandCost = soldierCommandCost(base.cost, this.castleStats.summonCostMultiplier, base.commandCostCap);
     const capacity = unitDeploymentCapacity(base, this.activeUnitCount('player', id));
     if (!base || this.command < commandCost || (this.spawnCooldowns[id] ?? 0) > 0 || capacity <= 0) return;
     this.command -= commandCost;
@@ -587,26 +707,24 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private processEnemySpawns(): void {
-    while (this.spawnOrderIndex < this.spawnOrders.length && this.spawnOrders[this.spawnOrderIndex].at <= this.elapsed) {
+    let deploymentsThisFrame = 0;
+    while (deploymentsThisFrame < 2 && this.spawnOrderIndex < this.spawnOrders.length && this.spawnOrders[this.spawnOrderIndex].at <= this.elapsed) {
       const order = this.spawnOrders[this.spawnOrderIndex++];
       this.spawnEnemySquad(order.id);
+      deploymentsThisFrame += 1;
     }
   }
 
   private processEnemyReinforcements(): void {
     const reinforcement = this.stageDefinition.reinforcement;
     if (!reinforcement || !enemyFortressCanReinforce(this.stageDefinition, this.enemyHp)) return;
-    while (this.elapsed >= this.nextReinforcementAt) {
-      this.nextReinforcementAt += reinforcement.intervalMs;
-      let activeEnemies = 0;
-      for (const unit of this.units) {
-        if (unit.alive && unit.side === 'enemy' && !unit.isBoss) activeEnemies += 1;
-      }
-      if (activeEnemies >= reinforcement.maxAlive) continue;
-      const id = reinforcement.unitIds[this.reinforcementIndex % reinforcement.unitIds.length];
-      this.reinforcementIndex += 1;
-      this.spawnEnemySquad(id, reinforcement.maxAlive - activeEnemies);
-    }
+    if (this.elapsed < this.nextReinforcementAt) return;
+    this.nextReinforcementAt += reinforcement.intervalMs;
+    const activeEnemies = this.livingSoldierCounts.enemy;
+    if (activeEnemies >= reinforcement.maxAlive) return;
+    const id = reinforcement.unitIds[this.reinforcementIndex % reinforcement.unitIds.length];
+    this.reinforcementIndex += 1;
+    this.spawnEnemySquad(id, reinforcement.maxAlive - activeEnemies);
   }
 
   private spawnEnemySquad(id: EnemyId, capacity = Number.POSITIVE_INFINITY): void {
@@ -625,11 +743,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private activeUnitCount(side: Side, id: UnitId): number {
-    let count = 0;
-    for (const unit of this.units) {
-      if (unit.alive && !unit.isHero && !unit.isBoss && unit.side === side && unit.definition.id === id) count += 1;
-    }
-    return count;
+    return this.livingUnitCounts[side][id] ?? 0;
   }
 
   private spawnEliteGuard(elite: NonNullable<StageDefinition['eliteGuards']>[number]): void {
@@ -661,19 +775,21 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  private updateUnit(unit: CombatUnit, delta: number): void {
+  private updateUnit(unit: CombatUnit, delta: number, aura: HeroAuraValues): void {
     unit.retreatCooldownMs = Math.max(0, unit.retreatCooldownMs - delta);
     if (unit.attackRecoveryLocked) {
       if (unit.attackTimer > 0) return;
       unit.attackRecoveryLocked = false;
     }
-    const aura = this.heroAuraFor(unit);
-    const healTarget = this.findHealTarget(unit);
-    if (healTarget && unit.attackTimer <= 0) {
+    // Keep the enclosing combatant planted until its visible strike has ended.
+    // Dead-zone skirmishers such as Neris may retreat only after the cast is complete.
+    if (unit.attackMotionMs > 0) return;
+    const healTarget = unit.attackTimer <= 0 ? this.findHealTarget(unit) : undefined;
+    if (healTarget) {
       this.beginAttack(unit, 'heal', healTarget);
       return;
     }
-    const target = this.findTarget(unit);
+    const target = this.findTarget(unit, aura.rangeBonus);
     if (target) {
       const distance = Math.abs(target.container.x - unit.container.x) - target.definition.size - unit.definition.size;
       if (isWithinAttackBand(unit.definition, distance, aura.rangeBonus)) {
@@ -684,7 +800,7 @@ export class BattleScene extends Phaser.Scene {
         return;
       }
       if (distance < unit.definition.minimumAttackRange) {
-        if (retreatsFromDeadZone(unit.definition)) this.stepBackFrom(unit, target.container.x, distance, delta);
+        if (retreatsFromDeadZone(unit.definition)) this.stepBackFrom(unit, target.container.x, distance, delta, aura.moveSpeedBonus);
         return;
       }
     }
@@ -693,7 +809,7 @@ export class BattleScene extends Phaser.Scene {
     const rallyDestination = this.rallyDestinationFor(unit);
     if (rallyDestination !== undefined) {
       if (Math.abs(rallyDestination - unit.container.x) > rallyCommandTuning.arrivalRadius) {
-        this.moveUnitToward(unit, rallyDestination, delta, this.castleStats.rallyMoveSpeedMultiplier);
+        this.moveUnitToward(unit, rallyDestination, delta, this.castleStats.rallyMoveSpeedMultiplier, aura.moveSpeedBonus);
       }
       return;
     }
@@ -714,14 +830,14 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
     if (castleEdgeDistance < unit.definition.minimumAttackRange) {
-      if (retreatsFromDeadZone(unit.definition)) this.stepBackFrom(unit, destination, castleEdgeDistance, delta);
+      if (retreatsFromDeadZone(unit.definition)) this.stepBackFrom(unit, destination, castleEdgeDistance, delta, aura.moveSpeedBonus);
       return;
     }
 
-    this.moveUnitToward(unit, destination, delta);
+    this.moveUnitToward(unit, destination, delta, 1, aura.moveSpeedBonus);
   }
 
-  private stepBackFrom(unit: CombatUnit, threatX: number, currentDistance: number, delta: number): void {
+  private stepBackFrom(unit: CombatUnit, threatX: number, currentDistance: number, delta: number, auraMoveSpeedBonus: number): void {
     if (unit.retreatCooldownMs > 0) return;
     unit.retreatDestination ??= deadZoneRetreatDestination(
       unit.container.x,
@@ -732,7 +848,7 @@ export class BattleScene extends Phaser.Scene {
       WORLD_WIDTH - 20,
     );
     const previousX = unit.container.x;
-    this.moveUnitToward(unit, unit.retreatDestination, delta);
+    this.moveUnitToward(unit, unit.retreatDestination, delta, 1, auraMoveSpeedBonus);
     if (Math.abs(unit.retreatDestination - unit.container.x) <= 1 || unit.container.x === previousX) {
       unit.retreatDestination = undefined;
       unit.retreatCooldownMs = deadZoneRetreatTuning.cooldownMs;
@@ -754,40 +870,51 @@ export class BattleScene extends Phaser.Scene {
     );
   }
 
-  private moveUnitToward(unit: CombatUnit, destination: number, delta: number, rallySpeedMultiplier = 1): void {
+  private moveUnitToward(unit: CombatUnit, destination: number, delta: number, rallySpeedMultiplier: number, auraMoveSpeedBonus: number): void {
     const deltaX = destination - unit.container.x;
     if (Math.abs(deltaX) <= 1) return;
     const direction = Math.sign(deltaX);
     const speedModifier = unit.isBoss && this.bossPhase === 2 ? bossCombatTuning.phaseTwoMoveSpeedMultiplier : 1;
-    const aura = this.heroAuraFor(unit);
-    unit.container.x += direction * (unit.definition.moveSpeed + aura.moveSpeedBonus) * speedModifier * rallySpeedMultiplier * delta / 1000;
-    const flying = unit.definition.tags.includes('flying');
-    unit.container.y = GROUND_Y - (flying ? 112 : 0) + Math.sin(this.elapsed * (flying ? 0.004 : 0.008) + unit.id) * (flying ? 7 : 2);
-    const nextDepth = flying ? 650 : Math.round(unit.container.y);
-    if (unit.container.depth !== nextDepth) unit.container.setDepth(nextDepth);
+    unit.container.x += direction * (unit.definition.moveSpeed + auraMoveSpeedBonus) * speedModifier * rallySpeedMultiplier * delta / 1000;
+    if (unit.isFlying) unit.container.y = GROUND_Y - 112 + Math.sin(this.elapsed * 0.004 + unit.id) * 7;
   }
 
-  private findTarget(unit: CombatUnit): CombatUnit | undefined {
+  private findTarget(unit: CombatUnit, rangeBonus: number): CombatUnit | undefined {
     let best: CombatUnit | undefined;
     let bestDistance = Number.POSITIVE_INFINITY;
+    let bestBacklineTarget: CombatUnit | undefined;
+    let bestBacklineDistance = Number.POSITIVE_INFINITY;
     let bestGroundBurstTarget: CombatUnit | undefined;
     let bestGroundBurstScore = -1;
     const groundBurst = unit.attackTimer <= 0 && unit.definition.attackPattern.kind === 'groundBurst'
       ? unit.definition.attackPattern
       : undefined;
-    const rangeBonus = this.heroAuraFor(unit).rangeBonus;
+    if (!groundBurst && unit.trackedTargetId !== 0) {
+      const tracked = this.unitsById.get(unit.trackedTargetId);
+      if (tracked && this.canTrackTarget(unit, tracked) && unit.targetSearchCooldownMs > 0) return tracked;
+      if (!tracked || !this.canTrackTarget(unit, tracked)) {
+        unit.trackedTargetId = 0;
+        unit.targetSearchCooldownMs = 0;
+      }
+    }
+    if (!groundBurst && unit.trackedTargetId === 0 && unit.targetSearchCooldownMs > 0) return undefined;
+    unit.targetSearchCooldownMs = TARGET_SEARCH_INTERVAL_MS;
+    const wantsBackline = unit.definition.rangedTargeting === 'backline';
     for (const candidate of this.units) {
-      if (!candidate.alive || candidate.side === unit.side || candidate.id === unit.id) continue;
-      if (!canAttackTarget(unit.definition, candidate.definition)) continue;
-      if (candidate.side === 'player' && isBehindLivingFortress('player', candidate.container.x, PLAYER_CASTLE_X, this.playerCastleHp)) continue;
-      if (!this.stageDefinition.challenge && candidate.side === 'enemy' && isBehindLivingFortress('enemy', candidate.container.x, this.enemyCastleX, this.enemyHp)) continue;
+      if (!this.canTrackTarget(unit, candidate)) continue;
       const deltaX = candidate.container.x - unit.container.x;
-      if (unit.side === 'player' && deltaX < -20) continue;
-      if (unit.side === 'enemy' && deltaX > 20) continue;
       const distance = Math.abs(deltaX);
       if (distance < bestDistance) {
         bestDistance = distance;
         best = candidate;
+      }
+      if (wantsBackline && distance < bestBacklineDistance
+        && (candidate.definition.tags.includes('ranged') || candidate.definition.tags.includes('support'))) {
+        const edgeDistance = distance - candidate.definition.size - unit.definition.size;
+        if (isWithinAttackBand(unit.definition, edgeDistance, rangeBonus)) {
+          bestBacklineTarget = candidate;
+          bestBacklineDistance = distance;
+        }
       }
       if (!groundBurst) continue;
       const edgeDistance = distance - candidate.definition.size - unit.definition.size;
@@ -796,7 +923,9 @@ export class BattleScene extends Phaser.Scene {
       for (const neighbor of this.units) {
         if (!neighbor.alive || neighbor.side === unit.side || this.isProtectedByLivingFortress(neighbor)) continue;
         if (!canAttackTarget(unit.definition, neighbor.definition)) continue;
-        if (Math.abs(neighbor.container.x - candidate.container.x) - neighbor.definition.size <= groundBurst.radius) clusteredBodies += 1;
+        if (Math.abs(neighbor.container.x - candidate.container.x) - neighbor.definition.size > groundBurst.radius) continue;
+        clusteredBodies += 1;
+        if (clusteredBodies >= groundBurst.maxTargets) break;
       }
       const score = clusteredBodies * 10_000 + distance;
       if (score > bestGroundBurstScore) {
@@ -804,7 +933,16 @@ export class BattleScene extends Phaser.Scene {
         bestGroundBurstTarget = candidate;
       }
     }
-    return bestGroundBurstTarget ?? best;
+    const selected = bestGroundBurstTarget ?? bestBacklineTarget ?? best;
+    unit.trackedTargetId = selected?.id ?? 0;
+    return selected;
+  }
+
+  private canTrackTarget(attacker: CombatUnit, target: CombatUnit): boolean {
+    if (!target.alive || target.side === attacker.side || target.id === attacker.id) return false;
+    if (!canAttackTarget(attacker.definition, target.definition) || this.isProtectedByLivingFortress(target)) return false;
+    const deltaX = target.container.x - attacker.container.x;
+    return attacker.side === 'player' ? deltaX >= -20 : deltaX <= 20;
   }
 
   private findHealTarget(healer: CombatUnit): CombatUnit | undefined {
@@ -824,16 +962,14 @@ export class BattleScene extends Phaser.Scene {
     return best;
   }
 
-  private heroAuraFor(unit: CombatUnit): { attackBonus: number; defenseBonus: number; rangeBonus: number; moveSpeedBonus: number; healingPerSecond: number } {
-    const aura = heroAuraBonuses(this.heroId, this.heroMasteryLevel);
-    if (unit.side !== 'player' || unit.isHero || !this.hero?.alive || Math.abs(this.hero.container.x - unit.container.x) > aura.radius) {
-      return { attackBonus: 0, defenseBonus: 0, rangeBonus: 0, moveSpeedBonus: 0, healingPerSecond: 0 };
+  private heroAuraFor(unit: CombatUnit): HeroAuraValues {
+    if (unit.side !== 'player' || unit.isHero || !this.hero?.alive || Math.abs(this.hero.container.x - unit.container.x) > this.heroAura.radius) {
+      return NO_HERO_AURA;
     }
-    return aura;
+    return this.heroAura;
   }
 
-  private applyPassiveAuraHealing(unit: CombatUnit, delta: number): void {
-    const healingPerSecond = this.heroAuraFor(unit).healingPerSecond;
+  private applyPassiveAuraHealing(unit: CombatUnit, delta: number, healingPerSecond: number): void {
     if (healingPerSecond > 0 && unit.hp < unit.maxHp) {
       this.healUnit(unit, healingPerSecond * delta / 1000);
     }
@@ -854,9 +990,10 @@ export class BattleScene extends Phaser.Scene {
     attacker.pendingAttackKind = kind;
     attacker.pendingTargetId = target?.id ?? 0;
     attacker.pendingTargetX = target?.container.x ?? 0;
+    attacker.pendingTargetGroundY = target ? this.unitGroundY(target) : GROUND_Y;
     if (kind === 'unit' && target && attacker.definition.attackPattern.kind === 'groundBurst') {
       const pattern = attacker.definition.attackPattern;
-      this.showGroundTelegraph(attacker, target.container.x, pattern.radius, windupMs, attacker.definition.accent);
+      this.showGroundTelegraph(attacker, target.container.x, attacker.pendingTargetGroundY, pattern.radius, windupMs, attacker.definition.accent);
     }
     this.startAttackMotion(attacker, Math.max(windupMs, attackMotionDurationMs(attacker.attackRig.style)));
     if (windupMs <= 0) this.resolvePendingAttack(attacker);
@@ -873,18 +1010,28 @@ export class BattleScene extends Phaser.Scene {
     const kind = attacker.pendingAttackKind;
     const targetId = attacker.pendingTargetId;
     const targetX = attacker.pendingTargetX;
+    const targetGroundY = attacker.pendingTargetGroundY;
     attacker.pendingAttackKind = 'none';
     attacker.pendingTargetId = 0;
     attacker.pendingTargetX = 0;
+    attacker.pendingTargetGroundY = GROUND_Y;
     attacker.attackWindupRemainingMs = 0;
 
     if (kind === 'unit') {
       if (attacker.definition.attackPattern.kind === 'groundBurst') {
-        this.attackGroundBurst(attacker, targetId, targetX);
+        this.attackGroundBurst(attacker, targetId, targetX, targetGroundY);
         return;
       }
       const target = this.unitById(targetId);
-      if (target && this.canResolveAttackAgainst(attacker, target)) this.attackUnit(attacker, target);
+      if (target && this.canResolveAttackAgainst(attacker, target)) {
+        this.attackUnit(attacker, target);
+        return;
+      }
+      if (attacker.definition.tags.includes('ranged')) {
+        const replacement = this.findCommittedPierceTarget(attacker);
+        if (replacement) this.attackUnit(attacker, replacement);
+        else this.launchCommittedProjectileMiss(attacker, targetX, targetGroundY);
+      }
       return;
     }
     if (kind === 'heal') {
@@ -905,15 +1052,105 @@ export class BattleScene extends Phaser.Scene {
     const edgeDistance = Math.max(0, Math.abs(castleX - attacker.container.x) - edgeOffset);
     if (!castleAlive || !isWithinAttackBand(attacker.definition, edgeDistance, this.heroAuraFor(attacker).rangeBonus)) return;
     this.damageCastle(targetsEnemyCastle ? 'enemy' : 'player', this.attackDamage(attacker));
-    this.showStrike(attacker.container.x + (targetsEnemyCastle ? 30 : -30), attacker.container.y, attacker.definition.color);
+    const rearTargets = this.fortressPierceTargets(attacker, targetsEnemyCastle);
+    for (const rearTarget of rearTargets) {
+      const pattern = attacker.definition.attackPattern;
+      if (pattern.kind !== 'pierce') break;
+      const damage = Math.round((calculateDamage(attacker.definition, rearTarget.definition) + this.heroAuraFor(attacker).attackBonus) * pattern.secondaryDamageMultiplier);
+      this.damageUnit(rearTarget, damage);
+      if (rearTarget.definition.guardProtection?.stopsPierce) {
+        this.showGuardInterception(attacker, rearTarget);
+        break;
+      }
+    }
+    if (attacker.definition.tags.includes('ranged')) {
+      const projectileEnd = rearTargets.at(-1);
+      this.launchPooledProjectileTo(
+        attacker.container.x,
+        attacker.container.y - 5,
+        projectileEnd?.container.x ?? castleX + (targetsEnemyCastle ? -35 : 35),
+        projectileEnd ? projectileEnd.container.y - 4 : GROUND_Y - 85,
+        attacker.definition.accent,
+        180,
+        projectileVisualStyle(attacker.definition),
+        attacker.definition.projectileArcHeight ?? 0,
+        attacker.definition.grade === 5,
+      );
+    } else {
+      this.showStrike(castleX + (targetsEnemyCastle ? -35 : 35), GROUND_Y - 40, attacker.definition.color);
+      if (attacker.definition.grade === 5) {
+        this.showTranscendentImpact(castleX + (targetsEnemyCastle ? -35 : 35), GROUND_Y - 40, attacker.definition.accent);
+      }
+    }
     musicEngine.playEffect(attacker.definition.tags.includes('flying') ? 'air' : attacker.definition.tags.includes('ranged') ? 'ranged' : 'melee');
   }
 
-  private unitById(id: number): CombatUnit | undefined {
-    for (const unit of this.units) {
-      if (unit.id === id) return unit;
+  private findCommittedPierceTarget(attacker: CombatUnit): CombatUnit | undefined {
+    const pattern = attacker.definition.attackPattern;
+    if (pattern.kind !== 'pierce') return undefined;
+    const direction = attacker.side === 'player' ? 1 : -1;
+    let best: CombatUnit | undefined;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (const candidate of this.units) {
+      if (!candidate.alive || candidate.side === attacker.side || !canAttackTarget(attacker.definition, candidate.definition)) continue;
+      if (this.isProtectedByLivingFortress(candidate) && !pattern.piercesFortress) continue;
+      const forwardDistance = (candidate.container.x - attacker.container.x) * direction;
+      if (forwardDistance < 0) continue;
+      const edgeDistance = forwardDistance - candidate.definition.size - attacker.definition.size;
+      if (!isWithinAttackBand(attacker.definition, edgeDistance, this.heroAuraFor(attacker).rangeBonus)) continue;
+      if (forwardDistance < bestDistance) {
+        bestDistance = forwardDistance;
+        best = candidate;
+      }
     }
-    return undefined;
+    return best;
+  }
+
+  private launchCommittedProjectileMiss(attacker: CombatUnit, lockedTargetX: number, lockedGroundY: number): void {
+    const direction = attacker.side === 'player' ? 1 : -1;
+    const pattern = attacker.definition.attackPattern;
+    const endpointX = pattern.kind === 'pierce'
+      ? attacker.container.x + direction * (attacker.definition.attackRange + attacker.definition.size)
+      : lockedTargetX;
+    this.launchPooledProjectileTo(
+      attacker.container.x,
+      attacker.container.y - 5,
+      endpointX,
+      lockedGroundY - 4,
+      attacker.definition.accent,
+      220,
+      projectileVisualStyle(attacker.definition),
+      attacker.definition.projectileArcHeight ?? 0,
+      attacker.definition.grade === 5,
+    );
+  }
+
+  private fortressPierceTargets(attacker: CombatUnit, targetsEnemyCastle: boolean): CombatUnit[] {
+    const pattern = attacker.definition.attackPattern;
+    if (!attacker.definition.tags.includes('ranged') || pattern.kind !== 'pierce' || !pattern.piercesFortress) return [];
+    const castleX = targetsEnemyCastle ? this.enemyCastleX : PLAYER_CASTLE_X;
+    const direction = targetsEnemyCastle ? 1 : -1;
+    const candidates = this.units
+      .filter((candidate) => candidate.alive
+        && candidate.side !== attacker.side
+        && canAttackTarget(attacker.definition, candidate.definition)
+        && (candidate.container.x - castleX) * direction > 0
+        && (candidate.container.x - castleX) * direction <= pattern.followThroughRange)
+      .sort((left, right) => (left.container.x - right.container.x) * direction);
+    const targets: CombatUnit[] = [];
+    for (const candidate of candidates) {
+      targets.push(candidate);
+      if (candidate.definition.guardProtection?.stopsPierce || targets.length >= pattern.maxTargets - 1) break;
+    }
+    return targets;
+  }
+
+  private unitById(id: number): CombatUnit | undefined {
+    return this.unitsById.get(id);
+  }
+
+  private unitGroundY(unit: CombatUnit): number {
+    return unit.container.y + unit.shadow.y * unit.container.scaleY;
   }
 
   private canResolveAttackAgainst(attacker: CombatUnit, target: CombatUnit): boolean {
@@ -933,6 +1170,14 @@ export class BattleScene extends Phaser.Scene {
 
   private attackUnit(attacker: CombatUnit, target: CombatUnit): void {
     const targets = this.attackTargets(attacker, target);
+    const ranged = attacker.definition.tags.includes('ranged');
+    if (ranged) {
+      const pattern = attacker.definition.attackPattern;
+      const projectileTarget = pattern.kind === 'pierce' || pattern.kind === 'directional'
+        ? targets[targets.length - 1] ?? target
+        : target;
+      this.launchProjectile(attacker, projectileTarget);
+    }
     const primaryDamage = this.attackDamage(attacker, target.definition);
     const secondaryDamageMultiplier = attacker.definition.attackPattern.kind === 'single'
       ? 1
@@ -942,8 +1187,10 @@ export class BattleScene extends Phaser.Scene {
       const damage = hitTarget.id === target.id
         ? primaryDamage
         : Math.round((calculateDamage(attacker.definition, hitTarget.definition) + this.heroAuraFor(attacker).attackBonus) * secondaryDamageMultiplier);
-      if (attacker.definition.tags.includes('ranged')) this.launchProjectile(attacker, hitTarget);
-      else this.showStrike(hitTarget.container.x, hitTarget.container.y, attacker.definition.color);
+      if (!ranged) {
+        this.showStrike(hitTarget.container.x, hitTarget.container.y, attacker.definition.color);
+        if (attacker.definition.grade === 5) this.showTranscendentImpact(hitTarget.container.x, hitTarget.container.y, attacker.definition.accent);
+      }
       if (this.guardStopsAttack(attacker, target, hitTarget)) this.showGuardInterception(attacker, hitTarget);
       this.damageUnit(hitTarget, damage);
     }
@@ -962,7 +1209,7 @@ export class BattleScene extends Phaser.Scene {
     return protection.protectedDomains.includes(traversalDomain);
   }
 
-  private attackGroundBurst(attacker: CombatUnit, primaryTargetId: number, targetX: number): void {
+  private attackGroundBurst(attacker: CombatUnit, primaryTargetId: number, targetX: number, targetGroundY: number): void {
     const pattern = attacker.definition.attackPattern;
     if (pattern.kind !== 'groundBurst') return;
     this.targetingAttacker = attacker;
@@ -971,12 +1218,13 @@ export class BattleScene extends Phaser.Scene {
       this.units,
       pattern.radius,
       pattern.targetDomain,
+      pattern.maxTargets,
       this.combatTargetAccess,
       this.attackTargetBuffer,
     );
-    if (targets.length === 0) return;
     musicEngine.playEffect('skill');
-    this.flashAt(targetX, GROUND_Y, attacker.definition.accent);
+    this.showGroundBurstImpact(targetX, targetGroundY, pattern.radius, attacker.definition.accent);
+    if (targets.length === 0) return;
     for (const hitTarget of targets) {
       const baseDamage = calculateDamage(attacker.definition, hitTarget.definition) + this.heroAuraFor(attacker).attackBonus;
       const damage = Math.round(baseDamage * (hitTarget.id === primaryTargetId ? 1 : pattern.secondaryDamageMultiplier));
@@ -988,7 +1236,7 @@ export class BattleScene extends Phaser.Scene {
   private startAttackMotion(unit: CombatUnit, durationMs = attackMotionDurationMs(unit.attackRig.style)): void {
     unit.attackMotionDurationMs = durationMs;
     unit.attackMotionMs = durationMs;
-    unit.attackRig.root.setAlpha(1);
+    unit.attackRig.root.setVisible(true).setAlpha(1);
   }
 
   private attackTargets(attacker: CombatUnit, primary: CombatUnit): CombatUnit[] {
@@ -1068,7 +1316,9 @@ export class BattleScene extends Phaser.Scene {
       damage -= absorbed;
     }
     target.hp -= Math.round(damage);
-    target.hpBar.scaleX = Phaser.Math.Clamp(target.hp / target.maxHp, 0, 1);
+    target.hpBar.displayWidth = target.hpBarFullWidth * Phaser.Math.Clamp(target.hp / target.maxHp, 0, 1);
+    target.hpBg.setVisible(true);
+    target.hpBar.setVisible(true);
     target.damageFlashMs = 70;
     target.container.setAlpha(0.55);
 
@@ -1083,13 +1333,23 @@ export class BattleScene extends Phaser.Scene {
   private healUnit(target: CombatUnit, amount: number, showEffect = false): void {
     if (!target.alive || amount <= 0 || target.hp >= target.maxHp) return;
     target.hp = healedHp(target.hp, target.maxHp, amount);
-    target.hpBar.scaleX = Phaser.Math.Clamp(target.hp / target.maxHp, 0, 1);
+    target.hpBar.displayWidth = target.hpBarFullWidth * Phaser.Math.Clamp(target.hp / target.maxHp, 0, 1);
+    if (!target.alwaysShowHealthBar && target.hp >= target.maxHp) {
+      target.hpBg.setVisible(false);
+      target.hpBar.setVisible(false);
+    }
     if (showEffect) this.flashAt(target.container.x, target.container.y, 0xffefad);
   }
 
   private killUnit(unit: CombatUnit): void {
     if (!unit.alive) return;
     unit.alive = false;
+    this.unitsById.delete(unit.id);
+    if (!unit.isHero && !unit.isBoss) {
+      const id = unit.definition.id as UnitId;
+      this.livingSoldierCounts[unit.side] = Math.max(0, this.livingSoldierCounts[unit.side] - 1);
+      this.livingUnitCounts[unit.side][id] = Math.max(0, (this.livingUnitCounts[unit.side][id] ?? 0) - 1);
+    }
     this.pendingUnitRemovalIds.add(unit.id);
     if (unit.side === 'enemy' && !unit.isBoss) {
       this.kills += 1;
@@ -1123,7 +1383,10 @@ export class BattleScene extends Phaser.Scene {
     musicEngine.playEffect('castle');
     if (side === 'player') {
       this.playerCastleHp = Math.max(0, this.playerCastleHp - Math.max(1, amount - this.castleStats.damageReduction));
-      this.cameras.main.shake(80, 0.002);
+      if (this.elapsed - this.lastCastleShakeAt >= CASTLE_SHAKE_COOLDOWN_MS) {
+        this.lastCastleShakeAt = this.elapsed;
+        this.cameras.main.shake(80, 0.002);
+      }
       if (this.playerCastleHp <= 0) this.finish(false);
     } else {
       this.enemyHp = Math.max(0, this.enemyHp - amount);
@@ -1464,7 +1727,7 @@ export class BattleScene extends Phaser.Scene {
       for (const unit of this.units) {
         if (unit.alive && unit.side === 'player' && !unit.definition.tags.includes('flying') && Math.abs(unit.container.x - x) <= bossCombatTuning.stompRadius) {
           this.damageUnit(unit, stompDamage);
-          unit.container.x -= bossCombatTuning.stompKnockback;
+          unit.container.x = Math.max(20, unit.container.x - bossCombatTuning.stompKnockback * knockbackMultiplier(unit.definition));
         }
       }
     });
@@ -1523,31 +1786,67 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private launchProjectile(attacker: CombatUnit, target: CombatUnit): void {
+    const style = projectileVisualStyle(attacker.definition);
+    if (style === 'magicOrb' || style === 'magicSpear' || style === 'poisonBreath') {
+      this.flashAt(attacker.container.x, attacker.container.y - 5, attacker.definition.accent);
+    }
+    if (style === 'poisonBreath') {
+      const direction = attacker.side === 'player' ? 1 : -1;
+      this.launchPooledProjectileTo(
+        attacker.container.x,
+        attacker.container.y - 8,
+        attacker.container.x + direction * attacker.definition.attackRange,
+        attacker.container.y - 2,
+        attacker.definition.accent,
+        260,
+        style,
+      );
+      return;
+    }
     this.launchPooledProjectile(
       attacker.container.x,
       attacker.container.y - 5,
       target,
       attacker.definition.accent,
-      150,
-      projectileVisualStyle(attacker.definition),
+      style === 'magicOrb' || style === 'magicSpear' ? 220 : 150,
+      style,
+      attacker.definition.projectileArcHeight ?? 0,
+      attacker.definition.grade === 5,
     );
   }
 
-  private launchPooledProjectile(startX: number, startY: number, target: CombatUnit, color: number, durationMs: number, style: ProjectileVisualStyle): void {
+  private launchPooledProjectile(startX: number, startY: number, target: CombatUnit, color: number, durationMs: number, style: ProjectileVisualStyle, arcHeight = 0, transcendent = false): void {
+    this.launchPooledProjectileTo(startX, startY, target.container.x, target.container.y - 4, color, durationMs, style, arcHeight, transcendent);
+  }
+
+  private launchPooledProjectileTo(startX: number, startY: number, endX: number, endY: number, color: number, durationMs: number, style: ProjectileVisualStyle, arcHeight = 0, transcendent = false): void {
     const effect = this.projectileEffects.find((candidate) => !candidate.object.active);
     if (!effect) return;
     effect.elapsedMs = 0;
     effect.durationMs = durationMs;
     effect.startX = startX;
     effect.startY = startY;
-    effect.endX = target.container.x;
-    effect.endY = target.container.y - 4;
+    effect.endX = endX;
+    effect.endY = endY;
     effect.style = style;
+    effect.arcHeight = arcHeight;
+    effect.color = color;
+    effect.transcendent = transcendent;
     const angle = Math.atan2(effect.endY - effect.startY, effect.endX - effect.startX);
     effect.arrowShaft.setVisible(style === 'arrow').setFillStyle(0x9a6b36, 1);
     effect.arrowHead.setVisible(style === 'arrow').setFillStyle(color, 1);
-    effect.magicCore.setVisible(style === 'magic').setFillStyle(color, 0.95);
-    effect.magicRing.setVisible(style === 'magic').setStrokeStyle(2, color, 0.82);
+    effect.magicCore.setVisible(style === 'magicOrb').setFillStyle(color, 0.95);
+    effect.magicRing.setVisible(style === 'magicOrb').setStrokeStyle(2, color, 0.82);
+    effect.magicHalo.setVisible(style === 'magicOrb' || style === 'magicSpear').setFillStyle(color, 0.16).setStrokeStyle(1, color, 0.52);
+    effect.magicTrail.setVisible(style === 'magicOrb' || style === 'magicSpear').setFillStyle(color, style === 'magicOrb' ? 0.34 : 0.5);
+    effect.magicSpearShaft.setVisible(style === 'magicSpear').setFillStyle(color, 0.86);
+    effect.magicSpearHead.setVisible(style === 'magicSpear').setFillStyle(0xffffff, 0.96).setStrokeStyle(1, color, 0.95);
+    effect.magicSpearTail.setVisible(style === 'magicSpear').setFillStyle(color, 0.48);
+    effect.poisonStream.setVisible(style === 'poisonBreath').setFillStyle(0x72c95d, 0.56);
+    effect.poisonClouds.forEach((cloud, index) => cloud
+      .setVisible(style === 'poisonBreath')
+      .setFillStyle(index === 1 ? 0x9ee86f : 0x4eaa4c, 0.68 - index * 0.08)
+      .setStrokeStyle(1, color, 0.45));
     effect.bombBody.setVisible(style === 'bomb').setFillStyle(0x25242a, 1).setStrokeStyle(2, color, 0.9);
     effect.bombFuse.setVisible(style === 'bomb').setFillStyle(0xf2bd59, 1);
     effect.siegeShell.setVisible(style === 'siege').setFillStyle(color, 1);
@@ -1568,6 +1867,18 @@ export class BattleScene extends Phaser.Scene {
     effect.object.setPosition(x, y - 4).setFillStyle(color, 0.9).setAlpha(1).setAngle(0).setScale(1).setVisible(true).setActive(true);
   }
 
+  private showTranscendentImpact(x: number, y: number, color: number): void {
+    const effect = this.transcendentImpactEffects.find((candidate) => !candidate.object.active);
+    if (!effect) return;
+    effect.elapsedMs = 0;
+    effect.outerRing.setStrokeStyle(5, color, 0.9);
+    effect.innerRing.setStrokeStyle(3, 0xffffff, 0.92);
+    effect.core.setFillStyle(color, 0.88).setStrokeStyle(2, 0xffffff, 0.92);
+    effect.horizontalRay.setFillStyle(color, 0.72);
+    effect.verticalRay.setFillStyle(0xffffff, 0.72);
+    effect.object.setPosition(x, y).setRotation(0).setScale(0.35).setAlpha(1).setVisible(true).setActive(true);
+  }
+
   private flashAt(x: number, y: number, color: number): void {
     const effect = this.flashEffects.find((candidate) => !candidate.object.active);
     if (!effect) return;
@@ -1576,19 +1887,37 @@ export class BattleScene extends Phaser.Scene {
     effect.object.setPosition(x, y).setRadius(12).setFillStyle(color, 0.38).setAlpha(1).setVisible(true).setActive(true);
   }
 
-  private showGroundTelegraph(owner: CombatUnit, x: number, radius: number, durationMs: number, color: number): void {
+  private showGroundTelegraph(owner: CombatUnit, x: number, groundY: number, radius: number, durationMs: number, color: number): void {
     const effect = this.groundTelegraphEffects.find((candidate) => !candidate.object.active);
     if (!effect) return;
     effect.elapsedMs = 0;
     effect.durationMs = Math.max(1, durationMs);
-    effect.radius = radius;
     effect.owner = owner;
     effect.object
-      .setPosition(x, GROUND_Y + 4)
+      .setPosition(x, groundY + 2)
       .setRadius(radius)
       .setFillStyle(color, 0.08)
       .setStrokeStyle(3, color, 0.72)
       .setScale(0.72, 0.24)
+      .setAlpha(1)
+      .setVisible(true)
+      .setActive(true);
+  }
+
+  private showGroundBurstImpact(x: number, groundY: number, radius: number, color: number): void {
+    const effect = this.groundBurstEffects.find((candidate) => !candidate.object.active);
+    if (!effect) return;
+    effect.elapsedMs = 0;
+    effect.durationMs = 360;
+    effect.baseScale = Phaser.Math.Clamp(radius / 72, 0.85, 1.45);
+    effect.groundY = groundY;
+    effect.glow.setStrokeStyle(3, color, 0.86).setFillStyle(color, 0.1).setScale(1, 0.28);
+    effect.leftSpike.setFillStyle(color, 0.72).setStrokeStyle(1, 0xffffff, 0.45);
+    effect.centerSpike.setFillStyle(color, 0.9).setStrokeStyle(1, 0xffffff, 0.62);
+    effect.rightSpike.setFillStyle(color, 0.72).setStrokeStyle(1, 0xffffff, 0.45);
+    effect.object
+      .setPosition(x, groundY + 6)
+      .setScale(effect.baseScale, 0.12)
       .setAlpha(1)
       .setVisible(true)
       .setActive(true);
@@ -1625,10 +1954,21 @@ export class BattleScene extends Phaser.Scene {
       const arrowHead = this.add.triangle(11, 0, 0, -4, 0, 4, 7, 0, 0xffffff);
       const magicCore = this.add.star(0, 0, 6, 3, 8, 0xffffff, 0.95);
       const magicRing = this.add.circle(0, 0, 11, 0xffffff, 0).setStrokeStyle(2, 0xffffff, 0.82);
+      const magicHalo = this.add.circle(0, 0, 18, 0xffffff, 0.16).setStrokeStyle(1, 0xffffff, 0.52);
+      const magicTrail = this.add.triangle(-17, 0, 0, -9, 0, 9, -30, 0, 0xffffff, 0.42);
+      const magicSpearShaft = this.add.rectangle(0, 0, 34, 4, 0xffffff, 0.86).setOrigin(0.5);
+      const magicSpearHead = this.add.triangle(21, 0, 0, -7, 0, 7, 13, 0, 0xffffff, 0.96);
+      const magicSpearTail = this.add.triangle(-19, 0, 0, -7, 0, 7, -13, 0, 0xffffff, 0.48);
+      const poisonStream = this.add.rectangle(28, 0, 58, 9, 0x72c95d, 0.56).setOrigin(0, 0.5);
+      const poisonClouds = [
+        this.add.circle(24, -5, 9, 0x4eaa4c, 0.68),
+        this.add.circle(48, 3, 13, 0x9ee86f, 0.6),
+        this.add.circle(70, -2, 17, 0x4eaa4c, 0.52),
+      ];
       const bombBody = this.add.circle(0, 0, 7, 0x25242a).setStrokeStyle(2, 0xffffff, 0.9);
       const bombFuse = this.add.rectangle(4, -8, 2, 7, 0xf2bd59).setRotation(-0.6);
       const siegeShell = this.add.rectangle(0, 0, 15, 6, 0xffffff).setOrigin(0.5).setStrokeStyle(1, 0x3d2730, 0.9);
-      const object = this.add.container(0, 0, [arrowShaft, arrowHead, magicRing, magicCore, bombBody, bombFuse, siegeShell])
+      const object = this.add.container(0, 0, [magicTrail, magicHalo, arrowShaft, arrowHead, magicRing, magicCore, magicSpearTail, magicSpearShaft, magicSpearHead, poisonStream, ...poisonClouds, bombBody, bombFuse, siegeShell])
         .setDepth(600)
         .setVisible(false)
         .setActive(false);
@@ -1636,6 +1976,13 @@ export class BattleScene extends Phaser.Scene {
       arrowHead.setVisible(false);
       magicCore.setVisible(false);
       magicRing.setVisible(false);
+      magicHalo.setVisible(false);
+      magicTrail.setVisible(false);
+      magicSpearShaft.setVisible(false);
+      magicSpearHead.setVisible(false);
+      magicSpearTail.setVisible(false);
+      poisonStream.setVisible(false);
+      poisonClouds.forEach((cloud) => cloud.setVisible(false));
       bombBody.setVisible(false);
       bombFuse.setVisible(false);
       siegeShell.setVisible(false);
@@ -1645,16 +1992,26 @@ export class BattleScene extends Phaser.Scene {
         arrowHead,
         magicCore,
         magicRing,
+        magicHalo,
+        magicTrail,
+        magicSpearShaft,
+        magicSpearHead,
+        magicSpearTail,
+        poisonStream,
+        poisonClouds,
         bombBody,
         bombFuse,
         siegeShell,
-        style: 'magic',
+        style: 'magicOrb',
         elapsedMs: 0,
         durationMs: 150,
         startX: 0,
         startY: 0,
         endX: 0,
         endY: 0,
+        arcHeight: 0,
+        color: 0xffffff,
+        transcendent: false,
       });
     }
     for (let index = 0; index < 8; index += 1) {
@@ -1667,13 +2024,36 @@ export class BattleScene extends Phaser.Scene {
         .setDepth(495)
         .setVisible(false)
         .setActive(false);
-      this.groundTelegraphEffects.push({ object, elapsedMs: 0, durationMs: 1, radius: 20 });
+      this.groundTelegraphEffects.push({ object, elapsedMs: 0, durationMs: 1 });
+    }
+    for (let index = 0; index < 16; index += 1) {
+      const glow = this.add.circle(0, 2, 34, 0xffffff, 0.1).setStrokeStyle(3, 0xffffff, 0.86).setScale(1, 0.28);
+      const leftSpike = this.add.triangle(-22, -4, -9, 11, 0, -38, 9, 11, 0xffffff, 0.72);
+      const centerSpike = this.add.triangle(0, -8, -11, 13, 0, -72, 11, 13, 0xffffff, 0.9);
+      const rightSpike = this.add.triangle(22, -4, -9, 11, 0, -38, 9, 11, 0xffffff, 0.72);
+      const object = this.add.container(0, 0, [glow, leftSpike, centerSpike, rightSpike])
+        .setDepth(620)
+        .setVisible(false)
+        .setActive(false);
+      this.groundBurstEffects.push({ object, glow, leftSpike, centerSpike, rightSpike, elapsedMs: 0, durationMs: 360, baseScale: 1, groundY: GROUND_Y });
     }
     for (let index = 0; index < 12; index += 1) {
       const ring = this.add.circle(0, 0, 25, 0xffffff, 0).setStrokeStyle(4, 0xffffff, 0.92);
       const wake = this.add.rectangle(28, 0, 48, 14, 0xffffff, 0.3).setOrigin(0, 0.5);
       const object = this.add.container(0, 0, [wake, ring]).setDepth(610).setVisible(false).setActive(false);
       this.guardEffects.push({ object, ring, wake, elapsedMs: 0, durationMs: 300 });
+    }
+    for (let index = 0; index < 12; index += 1) {
+      const horizontalRay = this.add.rectangle(0, 0, 104, 5, 0xffffff, 0.72);
+      const verticalRay = this.add.rectangle(0, 0, 5, 104, 0xffffff, 0.72);
+      const outerRing = this.add.circle(0, 0, 38, 0xffffff, 0).setStrokeStyle(5, 0xffffff, 0.9);
+      const innerRing = this.add.circle(0, 0, 20, 0xffffff, 0).setStrokeStyle(3, 0xffffff, 0.92);
+      const core = this.add.star(0, 0, 8, 8, 23, 0xffffff, 0.88).setStrokeStyle(2, 0xffffff, 0.92);
+      const object = this.add.container(0, 0, [horizontalRay, verticalRay, outerRing, innerRing, core])
+        .setDepth(625)
+        .setVisible(false)
+        .setActive(false);
+      this.transcendentImpactEffects.push({ object, outerRing, innerRing, core, horizontalRay, verticalRay, elapsedMs: 0, durationMs: 430 });
     }
   }
 
@@ -1689,17 +2069,41 @@ export class BattleScene extends Phaser.Scene {
       if (!effect.object.active) continue;
       effect.elapsedMs = Math.min(effect.durationMs, effect.elapsedMs + delta);
       const progress = effect.elapsedMs / effect.durationMs;
-      const flightArc = effect.style === 'bomb' ? 18 : effect.style === 'magic' ? 7 : 0;
-      effect.object.setPosition(
-        Phaser.Math.Linear(effect.startX, effect.endX, progress),
-        Phaser.Math.Linear(effect.startY, effect.endY, progress) - Math.sin(progress * Math.PI) * flightArc,
-      );
-      if (effect.style === 'magic') {
-        effect.object.setRotation(effect.object.rotation + delta * 0.012).setScale(0.9 + Math.sin(progress * Math.PI) * 0.3);
+      const styleArc = effect.style === 'bomb' ? 18 : effect.style === 'magicOrb' ? 7 : effect.style === 'magicSpear' ? 3 : 0;
+      const flightArc = Math.max(effect.arcHeight, styleArc);
+      if (effect.style === 'poisonBreath') {
+        const distance = Math.max(40, Math.hypot(effect.endX - effect.startX, effect.endY - effect.startY));
+        const spread = Math.sin(progress * Math.PI);
+        effect.object
+          .setPosition(effect.startX, effect.startY)
+          .setScale(distance / 82 * (0.18 + progress * 0.82), 0.72 + spread * 0.48)
+          .setAlpha(progress < 0.68 ? 0.92 : (1 - progress) / 0.32);
+        effect.poisonClouds.forEach((cloud, index) => cloud.setY(Math.sin(progress * Math.PI * 3 + index * 1.7) * (4 + index * 2)));
+      } else {
+        effect.object.setPosition(
+          Phaser.Math.Linear(effect.startX, effect.endX, progress),
+          Phaser.Math.Linear(effect.startY, effect.endY, progress) - Math.sin(progress * Math.PI) * flightArc,
+        );
+      }
+      if (effect.style === 'arrow' || effect.style === 'magicSpear' || effect.style === 'siege') {
+        const tangentX = effect.endX - effect.startX;
+        const tangentY = effect.endY - effect.startY - Math.cos(progress * Math.PI) * Math.PI * flightArc;
+        effect.object.setRotation(Math.atan2(tangentY, tangentX));
+      }
+      if (effect.style === 'magicOrb') {
+        effect.object.setRotation(effect.object.rotation + delta * 0.012).setScale(1.05 + Math.sin(progress * Math.PI) * 0.42);
+        effect.magicHalo.setScale(0.9 + Math.sin(progress * Math.PI * 3) * 0.18);
+      } else if (effect.style === 'magicSpear') {
+        effect.object.setScale(0.95 + Math.sin(progress * Math.PI) * 0.45, 1 + Math.sin(progress * Math.PI) * 0.18);
+        effect.magicHalo.setScale(0.8 + Math.sin(progress * Math.PI * 2) * 0.22, 0.65);
       } else if (effect.style === 'bomb') {
         effect.object.setRotation(effect.object.rotation + delta * 0.01);
       }
-      if (progress >= 1) effect.object.setVisible(false).setActive(false);
+      if (progress >= 1) {
+        if (effect.style === 'magicOrb' || effect.style === 'magicSpear') this.showStrike(effect.endX, effect.endY, effect.color);
+        if (effect.transcendent) this.showTranscendentImpact(effect.endX, effect.endY, effect.color);
+        effect.object.setVisible(false).setActive(false);
+      }
     }
     for (const effect of this.flashEffects) {
       if (!effect.object.active) continue;
@@ -1719,13 +2123,39 @@ export class BattleScene extends Phaser.Scene {
       const progress = effect.elapsedMs / effect.durationMs;
       const pulse = 0.82 + Math.sin(progress * Math.PI * 5) * 0.05;
       effect.object
-        .setRadius(effect.radius)
         .setScale((0.72 + progress * 0.28) * pulse, (0.24 + progress * 0.05) * pulse)
         .setAlpha(0.4 + progress * 0.6);
       if (progress >= 1) {
         effect.owner = undefined;
         effect.object.setVisible(false).setActive(false);
       }
+    }
+    for (const effect of this.groundBurstEffects) {
+      if (!effect.object.active) continue;
+      effect.elapsedMs = Math.min(effect.durationMs, effect.elapsedMs + delta);
+      const progress = effect.elapsedMs / effect.durationMs;
+      const eruption = Math.sin(progress * Math.PI);
+      effect.object
+        .setY(effect.groundY + 6 - eruption * 24)
+        .setScale(effect.baseScale * (0.78 + progress * 0.3), effect.baseScale * (0.12 + eruption * 1.05))
+        .setAlpha(progress < 0.62 ? 1 : (1 - progress) / 0.38);
+      effect.glow.setScale(0.8 + progress * 0.6, 0.24 + progress * 0.16);
+      if (progress >= 1) effect.object.setVisible(false).setActive(false);
+    }
+    for (const effect of this.transcendentImpactEffects) {
+      if (!effect.object.active) continue;
+      effect.elapsedMs = Math.min(effect.durationMs, effect.elapsedMs + delta);
+      const progress = effect.elapsedMs / effect.durationMs;
+      const flare = Math.sin(progress * Math.PI);
+      effect.object
+        .setRotation(progress * 0.42)
+        .setScale(0.35 + progress * 1.45)
+        .setAlpha(progress < 0.42 ? 1 : (1 - progress) / 0.58);
+      effect.core.setScale(0.7 + flare * 0.8);
+      effect.innerRing.setScale(0.75 + progress * 0.55);
+      effect.horizontalRay.setScale(0.7 + flare * 0.8, 1 - progress * 0.45);
+      effect.verticalRay.setScale(1 - progress * 0.45, 0.7 + flare * 0.8);
+      if (progress >= 1) effect.object.setVisible(false).setActive(false);
     }
     for (const effect of this.guardEffects) {
       if (!effect.object.active) continue;
@@ -1753,15 +2183,19 @@ export class BattleScene extends Phaser.Scene {
       rig.forearm.setAngle(pose.elbowAngle);
       rig.weapon.setAngle(pose.weaponAngle);
       rig.energy.setScale(pose.energyScale);
-      if (unit.attackMotionMs === 0) rig.root.setAlpha(0);
-    } else if (unit.attackRig.root.alpha !== 0) {
-      unit.attackRig.root.setAlpha(0);
+      if (unit.attackMotionMs === 0) rig.root.setVisible(false);
+    } else if (unit.attackRig.root.visible) {
+      unit.attackRig.root.setVisible(false);
     }
   }
 
   private updateBars(): void {
-    this.playerCastleBar.scaleX = Phaser.Math.Clamp(this.playerCastleHp / this.playerCastleMaxHp, 0, 1);
-    if (!this.stageDefinition.challenge && this.enemyBar) this.enemyBar.scaleX = Phaser.Math.Clamp(this.enemyHp / this.enemyMaxHp, 0, 1);
+    const playerScale = Phaser.Math.Clamp(this.playerCastleHp / this.playerCastleMaxHp, 0, 1);
+    if (this.playerCastleBar.scaleX !== playerScale) this.playerCastleBar.scaleX = playerScale;
+    if (!this.stageDefinition.challenge && this.enemyBar) {
+      const enemyScale = Phaser.Math.Clamp(this.enemyHp / this.enemyMaxHp, 0, 1);
+      if (this.enemyBar.scaleX !== enemyScale) this.enemyBar.scaleX = enemyScale;
+    }
   }
 
   private togglePause(): void {
@@ -1784,6 +2218,10 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private emitHud(): void {
+    const activeUnitCounts: Partial<Record<UnitId, number>> = {};
+    for (const id of this.equippedUnits) activeUnitCounts[id] = this.activeUnitCount('player', id);
+    const playerUnitCount = this.livingSoldierCounts.player + (this.hero?.alive ? 1 : 0);
+    const enemyUnitCount = this.livingSoldierCounts.enemy + (this.boss?.alive ? 1 : 0);
     const state: BattleHudState = {
       command: Math.floor(this.command), maxCommand: this.castleStats.maxCommand,
       playerCastleHp: Math.ceil(this.playerCastleHp), playerCastleMaxHp: this.playerCastleMaxHp,
@@ -1808,8 +2246,11 @@ export class BattleScene extends Phaser.Scene {
       rallyCooldownMs: this.rallyCooldown,
       rallyCooldownMaxMs: this.castleStats.rallyCooldownMs,
       spawnCooldowns: { ...this.spawnCooldowns },
-      unitCosts: Object.fromEntries(this.equippedUnits.map((id) => [id, soldierCommandCost(troopDefinitions[id].cost, this.castleStats.summonCostMultiplier)])),
-      activeUnitCounts: Object.fromEntries(this.equippedUnits.map((id) => [id, this.activeUnitCount('player', id)])),
+      unitCosts: this.hudUnitCosts,
+      activeUnitCounts,
+      playerUnitCount,
+      enemyUnitCount,
+      framesPerSecond: this.framesPerSecond,
       elapsedMs: this.elapsed,
       bossAwake: this.bossAwake, bossPhase: this.bossPhase,
       bossHp: this.boss?.alive ? Math.max(0, Math.ceil(this.boss.hp)) : 0,
@@ -1849,11 +2290,18 @@ export class BattleScene extends Phaser.Scene {
     battleEvents.off(BattleEvent.SPEED, this.setBattleSpeed, this);
     this.input.off('pointerdown', this.placeRallyFlag, this);
     this.pendingUnitRemovalIds.clear();
+    this.unitsById.clear();
+    this.livingSoldierCounts.player = 0;
+    this.livingSoldierCounts.enemy = 0;
+    this.livingUnitCounts.player = {};
+    this.livingUnitCounts.enemy = {};
     this.attackTargetBuffer.length = 0;
     this.strikeEffects.length = 0;
     this.projectileEffects.length = 0;
     this.flashEffects.length = 0;
     this.groundTelegraphEffects.length = 0;
     this.guardEffects.length = 0;
+    this.groundBurstEffects.length = 0;
+    this.transcendentImpactEffects.length = 0;
   }
 }

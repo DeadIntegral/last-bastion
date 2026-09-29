@@ -10,7 +10,7 @@ describe('war codex', () => {
   });
 
   it('derives the total completion target from structured entries', () => {
-    expect(CODEX_TOTAL).toBe(59);
+    expect(CODEX_TOTAL).toBe(60);
   });
 
   it('counts a troop only once when it is both acquired and encountered', () => {

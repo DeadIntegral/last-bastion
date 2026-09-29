@@ -34,7 +34,7 @@ describe('castle technology tree', () => {
     expect(stats.bombardRange).toBe(1240);
     expect(stats.summonCooldownMultiplier).toBe(0.9);
     expect(stats.summonCostMultiplier).toBe(0.94);
-    expect(stats.commandPerKill).toBe(9);
+    expect(stats.commandPerKill).toBe(4.5);
     expect(stats.battleGoldMultiplier).toBe(1.1);
     expect(stats.masteryXpMultiplier).toBe(1.15);
     expect(stats.towerRange).toBe(400);
@@ -58,8 +58,8 @@ describe('castle technology tree', () => {
     levels.war_tithe = 5;
     levels.mending_stone = 5;
     const stats = castleBattleStats(levels);
-    expect(fortressResearchTuning.warTitheCommandPerRank).toBe(1);
-    expect(stats.commandPerKill).toBe(11);
+    expect(fortressResearchTuning.warTitheCommandPerRank).toBe(0.5);
+    expect(stats.commandPerKill).toBe(5.5);
     expect(fortressResearchTuning.mendingStoneRegenPerRank).toBe(4);
     expect(stats.castleRegenPerSecond).toBe(20);
   });
@@ -132,9 +132,13 @@ describe('castle technology tree', () => {
   });
 
   it('reduces soldier Command costs with ceiling rounding and a minimum floor', () => {
-    expect(soldierCommandCost(55, 1)).toBe(55);
-    expect(soldierCommandCost(55, 0.85)).toBe(47);
+    expect(soldierCommandCost(55, 1)).toBe(61);
+    expect(soldierCommandCost(55, 0.85)).toBe(52);
+    expect(soldierCommandCost(90, 1)).toBe(99);
     expect(soldierCommandCost(8, 0.85)).toBe(10);
+    expect(soldierCommandCost(200, 1)).toBe(200);
+    expect(soldierCommandCost(300, 1, 300)).toBe(300);
+    expect(soldierCommandCost(300, 0.85, 300)).toBe(281);
   });
 
   it('tracks promotion requirements from accumulated research ranks', () => {

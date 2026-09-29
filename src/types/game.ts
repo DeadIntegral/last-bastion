@@ -5,6 +5,7 @@ export const UNIT_IDS = [
   'fireSpirit', 'iceSpirit', 'earthSpirit', 'lightSpirit', 'darkSpirit',
   'direwolf', 'giantEagle', 'treant', 'golem', 'hydra',
   'imp', 'succubus', 'demonGuard', 'demonMage', 'gargoyle', 'cerberus', 'ifrit', 'reaper', 'abyssKnight', 'dragon',
+  'allianceGuardian',
 ] as const;
 export type UnitId = typeof UNIT_IDS[number];
 export type EnemyId = UnitId;
@@ -35,11 +36,11 @@ export interface GuardProtection {
 }
 export type AttackPattern =
   | { kind: 'single' }
-  | { kind: 'pierce'; maxTargets: 2 | 3; followThroughRange: number; secondaryDamageMultiplier: number }
+  | { kind: 'pierce'; maxTargets: 2 | 3; followThroughRange: number; secondaryDamageMultiplier: number; piercesFortress?: boolean }
   | { kind: 'cleave'; secondaryDamageMultiplier: number }
   | { kind: 'splash'; radius: number; secondaryDamageMultiplier: number; targetDomain: 'ground' | 'all' }
   | { kind: 'directional'; length: number; secondaryDamageMultiplier: number; targetDomain: 'ground' | 'all' }
-  | { kind: 'groundBurst'; radius: number; secondaryDamageMultiplier: number; targetDomain: 'ground' | 'all'; telegraphMs: number };
+  | { kind: 'groundBurst'; radius: number; maxTargets: number; secondaryDamageMultiplier: number; targetDomain: 'ground' | 'all'; telegraphMs: number };
 export type Side = 'player' | 'enemy';
 export type BattleSpeed = 1 | 1.5;
 export type Screen = 'menu' | 'opening' | 'credits' | 'stages' | 'merchant' | 'monument' | 'armory' | 'heroes' | 'fortress' | 'achievements' | 'codex' | 'battle' | 'result';
@@ -51,6 +52,7 @@ export interface UnitDefinition {
   id: UnitId | EnemyId | HeroId | 'boss';
   name: string;
   cost: number;
+  commandCostCap?: number;
   maxHp: number;
   defense?: number;
   attackDamage: number;
@@ -71,14 +73,19 @@ export interface UnitDefinition {
   equipmentGrowth: EquipmentGrowth;
   recruitCost?: number;
   requiredFortressTier?: FortressTier;
+  requiredClearedStage?: number;
   requiresEncounter?: boolean;
-  recruitSource?: 'encounter' | 'fortress' | 'challenge';
+  recruitSource?: 'encounter' | 'fortress' | 'challenge' | 'campaign';
   maxActivePerSide?: number;
   guardProtection?: GuardProtection;
   healingPower?: number;
   healingRange?: number;
   grade?: UnitGrade;
   retreatsInsideMinimumRange?: boolean;
+  rangedTargeting?: 'nearest' | 'backline';
+  projectileArcHeight?: number;
+  attackName?: string;
+  attackVisual?: 'poisonBreath';
 }
 
 export type TroopDefinition = UnitDefinition & { id: UnitId; grade: UnitGrade };
@@ -211,6 +218,9 @@ export interface BattleHudState {
   spawnCooldowns: Partial<Record<UnitId, number>>;
   unitCosts: Partial<Record<UnitId, number>>;
   activeUnitCounts: Partial<Record<UnitId, number>>;
+  playerUnitCount: number;
+  enemyUnitCount: number;
+  framesPerSecond: number;
   elapsedMs: number;
   bossAwake: boolean;
   bossPhase: number;

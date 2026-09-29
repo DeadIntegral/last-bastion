@@ -21,7 +21,7 @@ const standaloneSheets = [
 const individualSourceSheets = [
   {
     directory: 'hero-sources',
-    sources: ['karuk-source.png', 'neris-source.png'],
+    sources: ['karuk-source.png', 'neris-source.png', 'alliance-guardian-source.png'],
     output: 'alliance-atlas.png',
   },
 ];
@@ -122,6 +122,17 @@ function compositeFrame(atlas, image, frameIndex, region) {
   }
 }
 
+function clearAtlasFrame(atlas, frameIndex) {
+  const frameColumn = frameIndex % 4;
+  const frameRow = Math.floor(frameIndex / 4);
+  const startX = frameColumn * frameWidth;
+  const startY = frameRow * frameHeight;
+  for (let y = 0; y < frameHeight; y += 1) {
+    const rowStart = ((startY + y) * atlasWidth + startX) * 4;
+    atlas.fill(0, rowStart, rowStart + frameWidth * 4);
+  }
+}
+
 const crcTable = Array.from({ length: 256 }, (_, entry) => {
   let value = entry;
   for (let bit = 0; bit < 8; bit += 1) value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1;
@@ -204,6 +215,15 @@ function writeAtlas(atlasPixels, destinationPath) {
 }
 
 writeAtlas(atlas, outputPath);
+
+const coreBase = decodeRgbaPng(path.join(root, 'public/assets/characters/roster-atlas-base-v2.png'));
+if (coreBase.width !== atlasWidth || coreBase.height !== atlasHeight) throw new Error('Core base atlas must preserve the 612 × 640 runtime geometry.');
+const coreAtlas = Buffer.from(coreBase.pixels);
+clearAtlasFrame(coreAtlas, 0);
+compositeFrame(coreAtlas, decodeRgbaPng(path.join(root, 'public/assets/characters/core-replacements/militia-v3-source.png')), 0);
+clearAtlasFrame(coreAtlas, 4);
+compositeFrame(coreAtlas, decodeRgbaPng(path.join(root, 'public/assets/characters/core-replacements/raider-v3-source.png')), 4);
+writeAtlas(coreAtlas, path.join(root, 'public/assets/characters/roster-atlas.png'));
 
 for (const sheet of generatedSheets) {
   const sourcePath = path.join(root, 'public/assets/characters', sheet.source);

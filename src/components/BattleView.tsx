@@ -24,6 +24,7 @@ const initialHud: BattleHudState = {
   enemyHp: 1, enemyMaxHp: 1, enemyName: '적 성채', heroHp: 520, heroMaxHp: 520,
   heroRespawnMs: 0, heroSkillCooldownMs: 0, spawnCooldowns: {}, elapsedMs: 0,
   unitCosts: {}, activeUnitCounts: {},
+  playerUnitCount: 1, enemyUnitCount: 0, framesPerSecond: 60,
   heroSkillMaxCooldownMs: 25_000, heroName: '에드릭 · 철벽의 기사', heroSkillName: '수호의 결계', heroIcon: '♛',
   castleSkillCooldownMs: 0, castleSkillMaxCooldownMs: 32_000,
   mobilizationUses: 0, mobilizationMaxUses: battleMobilizationTuning.maxUses,
@@ -45,6 +46,7 @@ function PercentBar({ value, max, tone }: { value: number; max: number; tone: 'b
 export function BattleView({ stageId, onResult, onExit }: BattleViewProps) {
   const equipmentLevels = useGameStore((state) => state.equipmentLevels);
   const equippedUnits = useGameStore((state) => state.equippedUnits);
+  const formationSlots = useGameStore((state) => state.formationSlots);
   const unitMasteryXp = useGameStore((state) => state.unitMasteryXp);
   const selectedHero = useGameStore((state) => state.selectedHero);
   const heroEquipmentLevel = useGameStore((state) => state.heroEquipmentLevels[state.selectedHero]);
@@ -95,7 +97,8 @@ export function BattleView({ stageId, onResult, onExit }: BattleViewProps) {
       if (!action) return;
       event.preventDefault();
       if (action.type === 'spawn') {
-        if (action.index < equippedUnits.length) battleEvents.emit(BattleEvent.SPAWN, equippedUnits[action.index]);
+        const id = formationSlots[action.index];
+        if (id) battleEvents.emit(BattleEvent.SPAWN, id);
       } else if (action.type === 'heroSkill') battleEvents.emit(BattleEvent.SKILL);
       else if (action.type === 'mobilize') battleEvents.emit(BattleEvent.MOBILIZE);
       else if (action.type === 'rally') battleEvents.emit(BattleEvent.RALLY_MODE);
@@ -103,7 +106,7 @@ export function BattleView({ stageId, onResult, onExit }: BattleViewProps) {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [equippedUnits, exitConfirmationOpen]);
+  }, [formationSlots, exitConfirmationOpen]);
 
   const spawn = (id: UnitId) => battleEvents.emit(BattleEvent.SPAWN, id);
   const pause = () => {
@@ -139,6 +142,7 @@ export function BattleView({ stageId, onResult, onExit }: BattleViewProps) {
           <span className="eyebrow">STAGE {stageId}</span>
           <strong>{formatTime(hud.elapsedMs)}</strong>
           <small>{stage.terrain.name}</small>
+          <span className="battle-population"><b>아군 {hud.playerUnitCount}</b><b>적군 {hud.enemyUnitCount}</b><i>{hud.framesPerSecond} FPS</i></span>
         </div>
         <div className="fortress-status enemy-status">
           <div className="status-row"><strong>{hud.enemyHp}</strong><span>{hud.enemyName}</span></div>
@@ -183,8 +187,9 @@ export function BattleView({ stageId, onResult, onExit }: BattleViewProps) {
               title={mobilizationComplete ? '이번 전투의 동원령을 모두 사용했습니다.' : `지휘력 ${nextMobilizationCost} 소모 · 최대 +${battleCastleStats.mobilizationMaxCommandBonus}${battleCastleStats.mobilizationCommandRegenBonus > 0 ? ` · 회복 +${battleCastleStats.mobilizationCommandRegenBonus}/초` : ''} (E)`}
             ><kbd>E</kbd><span>{mobilizationComplete ? '동원 완료' : `${hud.mobilizationUses}/${hud.mobilizationMaxUses} · ${nextMobilizationCost}`}</span></button>
           </div>
-          <div className="unit-buttons" style={{ '--formation-slots': Math.max(4, equippedUnits.length) } as CSSProperties}>
-            {equippedUnits.map((id, index) => {
+          <div className="unit-buttons" style={{ '--formation-slots': formationSlots.length } as CSSProperties}>
+            {formationSlots.map((id, index) => {
+              if (!id) return <button key={`empty-${index}`} className="unit-command unit-command-empty" disabled aria-label={`${index + 1}번 빈 편성 슬롯`}><span className="hotkey">{index + 1}</span><span className="empty-slot-mark">+</span><span className="unit-name">빈 슬롯</span></button>;
               const unit = troopDefinitions[id];
               const deploymentSize = upgradedStats(unit, equipmentLevels[id]).squadSize;
               const cooldown = hud.spawnCooldowns[id] ?? 0;

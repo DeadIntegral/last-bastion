@@ -3,7 +3,7 @@ import { allTroopOrder, troopDefinitions } from './units';
 
 const authoredTroopCodex: Partial<Record<UnitId, CodexEntry>> = {
   militia: { id: 'militia', kind: 'unit', title: '푸른 깃발 민병대', role: '3인 저비용 근접 분대', description: '한 번에 셋이 집결해 전선을 넓게 만들지만 개별 병사는 약합니다.', lore: '왕국의 부름에 농기구를 내려놓고 모인 변경의 주민들입니다.' },
-  guardian: { id: 'guardian', kind: 'unit', title: '왕실 방패병', role: '2인 관통 차단 방어 분대', description: '관통 공격을 몸으로 멈추고 뒤쪽 지상 병력까지 닿는 전방 파동의 남은 사거리를 65% 줄입니다.', lore: '무너진 수도의 마지막 방패를 나누어 든 왕실 근위대입니다.' },
+  guardian: { id: 'guardian', kind: 'unit', title: '왕실 방패병', role: '2인 초급 수호 분대', description: '관통 공격은 통과하지만 뒤쪽 지상 병력까지 닿는 전방 파동의 남은 사거리를 35% 줄입니다.', lore: '무너진 수도의 마지막 방패를 나누어 든 왕실 근위대입니다.' },
   archer: { id: 'archer', kind: 'unit', title: '녹림 궁수단', role: '장거리 2인 집중사격', description: '석궁병보다 훨씬 먼 거리에서 둘이 한 대상을 집중 사격하지만 개별 체력이 낮아 근접전에 취약합니다.', lore: '서부 숲의 길을 지키던 파수꾼들이 원정대에 합류했습니다.' },
   lancer: { id: 'lancer', kind: 'unit', title: '황금 창병대', role: '2명 관통 대형 대응병', description: '한 번의 찌르기로 최대 2명을 관통하며 대형 적과 보스에게 75% 추가 피해를 줍니다.', lore: '거인의 갑주 틈을 찌르는 기술을 세대에 걸쳐 전승했습니다.' },
   raider: { id: 'raider', kind: 'unit', title: '고블린 약탈병', role: '3인 고속 근접 분대', description: '한 번에 셋이 배치되어 빠르게 빈틈을 파고들지만 개별 전투력은 낮습니다.', lore: '마왕군의 식량 약속에 이끌려 국경 마을을 습격하기 시작한 고블린 무리입니다.' },
@@ -15,6 +15,8 @@ const authoredTroopCodex: Partial<Record<UnitId, CodexEntry>> = {
   spirit: { id: 'spirit', kind: 'unit', title: '폭풍 정령', role: '공중 관통 마법병', description: '원거리 병종만 맞설 수 있으며 번개가 일렬로 선 두 대상을 관통합니다.', lore: '마왕군이 폭풍의 눈을 봉인해 병기로 삼았지만 계약이 끊기면 스스로 주인을 선택합니다.' },
   hellhound: { id: 'hellhound', kind: 'unit', title: '심연의 마염견', role: '고속 근접 악마수', description: '빠른 돌진과 화염을 두른 범위 공격으로 후열을 흔듭니다.', lore: '마계 균열에서 태어난 사냥개입니다. 힘을 인정한 지휘관의 명령만 따릅니다.' },
   dragon: { id: 'dragon', kind: 'unit', title: '창공의 고룡', role: '5성 초월 공중 제압병', description: '하나의 전장에 한 마리만 유지하며, 긴 사거리의 마력 숨결이 일렬의 적 세 명을 관통합니다.', lore: '마왕군도 완전히 굴복시키지 못한 하늘의 왕입니다. 대륙을 되찾은 지휘관의 힘을 시험한 뒤에야 맹약을 허락합니다.' },
+  hydra: { id: 'hydra', kind: 'unit', title: '늪지 히드라', role: '4성 지상 맹독 제압병', description: '여러 머리가 지상 전방 145 범위에 맹독 숨결을 토해 전열 뒤까지 공격하지만, 수호병 뒤에서는 독기의 도달 거리가 크게 줄어듭니다.', lore: '마왕군이 오염시킨 늪에서 살아남으며 독을 먹고 자란 고대 다두수입니다.' },
+  allianceGuardian: { id: 'allianceGuardian', kind: 'unit', title: '대륙연합 수호자', role: '5성 인간 초월 수호병', description: '한 명만 전장에 설 수 있으며 관통을 끊고 후방 파동을 크게 줄인 채 근접 전열 전체를 휩씁니다.', lore: '최후의 성채를 끝까지 지킨 인간 왕국의 용사입니다. 대륙 탈환 뒤 왕국과 동맹 장인들이 함께 벼린 갑주를 입고 반격군의 선봉에 섰습니다.' },
 };
 
 const generatedRole = (id: UnitId): string => {

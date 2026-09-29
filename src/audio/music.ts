@@ -40,6 +40,9 @@ export const musicPatterns: Record<MusicScene, MusicPattern> = {
   },
 };
 
+const MAX_ACTIVE_AUDIO_VOICES = 14;
+const MIN_EFFECT_SPACING_MS = 28;
+
 type AudioWindow = Window & typeof globalThis & { webkitAudioContext?: typeof AudioContext };
 
 class ProceduralMusicEngine {
@@ -52,6 +55,7 @@ class ProceduralMusicEngine {
   private visible = true;
   private voices = new Set<OscillatorNode>();
   private lastEffectAt: Partial<Record<SoundEffect, number>> = {};
+  private lastAnyEffectAt = 0;
 
   setScene(scene: MusicScene): void {
     if (this.scene === scene) return;
@@ -101,7 +105,10 @@ class ProceduralMusicEngine {
     if (!this.context || !this.master || this.muted || !this.visible || this.context.state !== 'running') return;
     const nowMs = performance.now();
     const cooldown = effect === 'castle' || effect === 'heavy' ? 120 : 55;
-    if (nowMs - (this.lastEffectAt[effect] ?? 0) < cooldown) return;
+    if (this.voices.size >= MAX_ACTIVE_AUDIO_VOICES
+      || nowMs - this.lastAnyEffectAt < MIN_EFFECT_SPACING_MS
+      || nowMs - (this.lastEffectAt[effect] ?? 0) < cooldown) return;
+    this.lastAnyEffectAt = nowMs;
     this.lastEffectAt[effect] = nowMs;
     const variation = 0.94 + Math.random() * 0.12;
     if (effect === 'melee') this.playSweep(135 * variation, 62 * variation, 0.07, 'square', 0.1);

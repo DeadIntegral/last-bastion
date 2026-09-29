@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { heroMasteryGrowth, heroSkillPower, soldierMasteryGrowth } from '../data/mastery';
+import { heroAwakeningSelfBonuses, heroMasteryGrowth, heroSkillPower, soldierMasteryGrowth } from '../data/mastery';
 import { allTroopOrder, bossCombatTuning, bossDefinition, heroDefinitions, troopDefinitions } from '../data/units';
 import { challengeStages, stages } from '../data/stages';
-import { ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL, STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS, applyEnemyTerrain, applyTriumphMonumentStats, attackPatternLabel, attackRangeLabel, attackRecoveryMs, attackTimingLabel, calculateDamage, canActivateMobilization, canAttackTarget, canReceiveRallyOrder, cooldownFillRatio, deadZoneRetreatDestination, enemyFortressCanReinforce, enemyObjectiveDefeated, equipmentCost, fortressRearSpawnX, guardProtectionLabel, hasEquipmentCapstone, healedHp, heroAuraBonuses, heroAwakeningRank, heroMasteryLevelFromXp, isBehindLivingFortress, isWithinAttackBand, masteryLevelFromXp, mobilizedCommandStats, regenerateCommand, retreatsFromDeadZone, scaledBattleDelta, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, spacingTraitLabel, unitDeploymentCapacity, upgradedStats, upgradeCost, usesStatEquipmentCapstone } from './rules';
+import { ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL, STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS, applyEnemyTerrain, applyTriumphMonumentStats, attackPatternLabel, attackRangeLabel, attackRecoveryMs, attackTimingLabel, calculateDamage, canActivateMobilization, canAttackTarget, canReceiveRallyOrder, cooldownFillRatio, deadZoneRetreatDestination, enemyFortressCanReinforce, enemyObjectiveDefeated, equipmentCost, fortressRearSpawnX, guardProtectionLabel, hasEquipmentCapstone, healedHp, heroAuraBonuses, heroAwakeningRank, heroMasteryLevelFromXp, heroSelfAwakeningBonuses, isBehindLivingFortress, isWithinAttackBand, knockbackMultiplier, masteryLevelFromXp, mobilizedCommandStats, regenerateCommand, retreatsFromDeadZone, scaledBattleDelta, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, spacingTraitLabel, unitDeploymentCapacity, upgradedStats, upgradeCost, usesStatEquipmentCapstone } from './rules';
 
 describe('combat rules', () => {
   it('applies anti-large damage bonus', () => {
@@ -43,6 +43,19 @@ describe('combat rules', () => {
     expect(canAttackTarget(troopDefinitions.fireSpirit, troopDefinitions.griffin)).toBe(true);
     expect(canAttackTarget(troopDefinitions.mage, troopDefinitions.griffin)).toBe(false);
     expect(canAttackTarget(troopDefinitions.archmage, troopDefinitions.griffin)).toBe(true);
+    expect(canAttackTarget(troopDefinitions.hydra, troopDefinitions.griffin)).toBe(false);
+    expect(troopDefinitions.ifrit.tags).toContain('ground');
+    expect(troopDefinitions.ifrit.tags).not.toContain('flying');
+    expect(canAttackTarget(troopDefinitions.militia, troopDefinitions.ifrit)).toBe(true);
+  });
+
+  it('reduces stomp knockback for large bodies and makes ground transcendents immune', () => {
+    expect(knockbackMultiplier(troopDefinitions.militia)).toBe(1);
+    expect(knockbackMultiplier(troopDefinitions.brute)).toBe(0.6);
+    expect(knockbackMultiplier(troopDefinitions.golem)).toBe(0.3);
+    expect(knockbackMultiplier(troopDefinitions.ifrit)).toBe(0);
+    expect(knockbackMultiplier(troopDefinitions.griffin)).toBe(0);
+    expect(knockbackMultiplier(heroDefinitions.orcChampion)).toBe(0.6);
   });
 
   it('describes squad deployments and bounded multi-target attacks from unit data', () => {
@@ -52,9 +65,14 @@ describe('combat rules', () => {
     expect(attackPatternLabel(troopDefinitions.crossbow)).toBe('2명 관통');
     expect(attackPatternLabel(troopDefinitions.brute)).toBe('근접 범위 전체 공격');
     expect(attackPatternLabel(troopDefinitions.goblinBomber)).toBe('착탄 범위 공격 · 반경 82');
-    expect(attackPatternLabel(troopDefinitions.mage)).toBe('지면 발현 · 반경 72');
+    expect(attackPatternLabel(troopDefinitions.mage)).toBe('지면 발현 · 최대 4명 · 반경 72');
     expect(attackPatternLabel(troopDefinitions.archmage)).toBe('전방 파동 · 길이 245');
-    expect(guardProtectionLabel(troopDefinitions.guardian)).toBe('관통 차단 · 지상 후방 파동 65% 감쇠');
+    expect(attackPatternLabel(troopDefinitions.hydra)).toBe('맹독 브레스 · 지상 전방 145');
+    expect(attackPatternLabel(troopDefinitions.ifrit)).toBe('3명 관통 · 성채 관통');
+    expect(troopDefinitions.hydra.attackPattern).toEqual({ kind: 'directional', length: 145, secondaryDamageMultiplier: 0.82, targetDomain: 'ground' });
+    expect(troopDefinitions.guardian.guardProtection).toEqual({ stopsPierce: false, rearRangeMultiplier: 0.65, protectedDomains: ['ground'] });
+    expect(guardProtectionLabel(troopDefinitions.guardian)).toBe('관통 통과 · 지상 후방 파동 35% 감쇠');
+    expect(troopDefinitions.earthSpirit.guardProtection).toEqual({ stopsPierce: true, rearRangeMultiplier: 0.35, protectedDomains: ['ground'] });
   });
 
   it('defines a valid windup, recovery, and optional close-range dead zone for every combatant', () => {
@@ -86,7 +104,8 @@ describe('combat rules', () => {
     expect(skirmishers.every(retreatsFromDeadZone)).toBe(true);
     expect(stationaryRanged.every((definition) => !retreatsFromDeadZone(definition))).toBe(true);
     expect(spacingTraitLabel(troopDefinitions.scout)).toContain('후퇴 사격');
-    expect(spacingTraitLabel(troopDefinitions.archer)).toBeUndefined();
+    expect(spacingTraitLabel(troopDefinitions.archer)).toContain('곡사');
+    expect(spacingTraitLabel(troopDefinitions.crossbow)).toBeUndefined();
   });
 
   it('computes one bounded retreat destination instead of moving the goal every frame', () => {
@@ -207,20 +226,20 @@ describe('combat rules', () => {
   it('gives hero mastery stronger stats, active power, and bounded respawn reduction', () => {
     const level = 10;
     const warden = upgradedStats(heroDefinitions.warden, 0, level);
-    expect(warden.maxHp).toBe(heroDefinitions.warden.maxHp + heroMasteryGrowth.warden.hp * 9);
-    expect(warden.attackDamage).toBe(heroDefinitions.warden.attackDamage + heroMasteryGrowth.warden.attack * 9);
+    expect(warden.maxHp).toBe(heroDefinitions.warden.maxHp + heroMasteryGrowth.warden.hp * 9 + heroAwakeningSelfBonuses.warden.hpPerRank);
+    expect(warden.attackDamage).toBe(heroDefinitions.warden.attackDamage + heroMasteryGrowth.warden.attack * 9 + heroAwakeningSelfBonuses.warden.attackPerRank);
     expect(heroAwakeningRank(9)).toBe(0);
     expect(heroAwakeningRank(10)).toBe(1);
     expect(heroAwakeningRank(20)).toBe(2);
     expect(heroAwakeningRank(30)).toBe(3);
-    expect(scaledHeroSkillPower(heroSkillPower.warden.shield, heroSkillPower.warden.shieldPerRank, heroSkillPower.warden.shieldPerAwakening, level)).toBe(240);
+    expect(scaledHeroSkillPower(heroSkillPower.warden.shield, heroSkillPower.warden.shieldPerRank, heroSkillPower.warden.shieldPerAwakening, level)).toBe(430);
     expect(scaledHeroSkillCooldownMs(heroDefinitions.warden, level)).toBe(23_500);
     expect(scaledHeroRespawnMs(heroDefinitions.warden, level)).toBe(17_300);
     expect(scaledHeroRespawnMs(heroDefinitions.warden, 30)).toBe(13_000);
-    expect(scaledHeroSkillPower(heroSkillPower.pyromancer.unitDamage, heroSkillPower.pyromancer.unitDamagePerRank, heroSkillPower.pyromancer.unitDamagePerAwakening, 30)).toBe(1_004);
+    expect(scaledHeroSkillPower(heroSkillPower.pyromancer.unitDamage, heroSkillPower.pyromancer.unitDamagePerRank, heroSkillPower.pyromancer.unitDamagePerAwakening, 30)).toBe(2_300);
     expect(scaledHeroSkillPower(heroSkillPower.pyromancer.castleDamage, heroSkillPower.pyromancer.castleDamagePerRank, heroSkillPower.pyromancer.castleDamagePerAwakening, 30)).toBe(630);
-    expect(scaledHeroSkillPower(heroSkillPower.huntress.unitDamage, heroSkillPower.huntress.unitDamagePerRank, heroSkillPower.huntress.unitDamagePerAwakening, 30)).toBe(472);
-    expect(scaledHeroSkillPower(heroSkillPower.huntress.bossDamage, heroSkillPower.huntress.bossDamagePerRank, heroSkillPower.huntress.bossDamagePerAwakening, 30)).toBe(698);
+    expect(scaledHeroSkillPower(heroSkillPower.huntress.unitDamage, heroSkillPower.huntress.unitDamagePerRank, heroSkillPower.huntress.unitDamagePerAwakening, 30)).toBe(987);
+    expect(scaledHeroSkillPower(heroSkillPower.huntress.bossDamage, heroSkillPower.huntress.bossDamagePerRank, heroSkillPower.huntress.bossDamagePerAwakening, 30)).toBe(1_507);
   });
 
   it('unlocks and scales distinct hero auras only at awakening milestones', () => {
@@ -230,6 +249,17 @@ describe('combat rules', () => {
     expect(heroAuraBonuses('huntress', 30).rangeBonus).toBe(45);
     expect(heroAuraBonuses('saint', 30).healingPerSecond).toBe(12);
     expect(heroAuraBonuses('marshal', 30).moveSpeedBonus).toBe(12);
+  });
+
+  it('gives every awakening a hero-specific self bonus in addition to the allied aura', () => {
+    expect(heroSelfAwakeningBonuses('warden', 9)).toEqual({ hp: 0, attack: 0, defense: 0, range: 0, moveSpeed: 0, healing: 0 });
+    expect(heroSelfAwakeningBonuses('warden', 30)).toEqual({ hp: 1_350, attack: 15, defense: 9, range: 0, moveSpeed: 0, healing: 0 });
+    expect(heroSelfAwakeningBonuses('huntress', 30).range).toBe(24);
+    expect(heroSelfAwakeningBonuses('saint', 30).healing).toBe(36);
+    const warden = upgradedStats(heroDefinitions.warden, 0, 30);
+    const huntress = upgradedStats(heroDefinitions.huntress, 0, 30);
+    expect(warden).toMatchObject({ maxHp: 3_175, attackDamage: 102, defense: 9 });
+    expect(huntress).toMatchObject({ maxHp: 1_994, attackDamage: 171, attackRange: 254 });
   });
 
   it('defines a bounded shared healer whose weapon and mastery also improve healing', () => {
@@ -266,7 +296,7 @@ describe('combat rules', () => {
     expect(canReceiveRallyOrder(troopDefinitions.griffin, false, fullCommand)).toBe(true);
     expect(canReceiveRallyOrder(troopDefinitions.ifrit, false, fullCommand)).toBe(true);
     expect(allTroopOrder.every((id) => troopDefinitions[id].grade >= 1 && troopDefinitions[id].grade <= 5)).toBe(true);
-    expect(allTroopOrder.filter((id) => troopDefinitions[id].grade === 5)).toEqual(['ifrit', 'dragon']);
+    expect(allTroopOrder.filter((id) => troopDefinitions[id].grade === 5)).toEqual(['ifrit', 'dragon', 'allianceGuardian']);
   });
 
   it('requires both the boss and fortress in campaign sieges but only the boss in challenges', () => {
@@ -331,8 +361,8 @@ describe('combat rules', () => {
 
     const hydra = troopDefinitions.hydra;
     const trainedHydra = upgradedStats(hydra, completed);
-    expect(trainedHydra.maxHp - hydra.maxHp).toBe(630);
-    expect(trainedHydra.attackDamage - hydra.attackDamage).toBe(96);
+    expect(trainedHydra.maxHp - hydra.maxHp).toBe(1_350);
+    expect(trainedHydra.attackDamage - hydra.attackDamage).toBe(144);
   });
 
   it('does not apply the soldier deployment capstone to heroes or bosses', () => {

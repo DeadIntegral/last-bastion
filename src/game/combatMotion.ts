@@ -1,7 +1,7 @@
 import type { UnitDefinition } from '../types/game';
 
-export type AttackMotionStyle = 'slash' | 'thrust' | 'shoot' | 'cast' | 'crush' | 'lunge';
-export type ProjectileVisualStyle = 'arrow' | 'magic' | 'bomb' | 'siege';
+export type AttackMotionStyle = 'slash' | 'thrust' | 'shoot' | 'cast' | 'breath' | 'crush' | 'lunge';
+export type ProjectileVisualStyle = 'arrow' | 'magicOrb' | 'magicSpear' | 'poisonBreath' | 'bomb' | 'siege';
 
 export interface AttackMotionPose {
   shoulderAngle: number;
@@ -20,6 +20,8 @@ const creatureLungeIds = new Set([
 
 /** Resolve one of the reusable localized attack rigs without adding presentation fields to combat balance data. */
 export function attackMotionStyle(definition: UnitDefinition): AttackMotionStyle {
+  if (definition.attackVisual === 'poisonBreath') return 'breath';
+  if (definition.id === 'allianceGuardian') return 'slash';
   if (creatureLungeIds.has(definition.id)) return 'lunge';
   if (definition.id === 'pyromancer' || definition.tags.includes('magic') || definition.tags.includes('holy') || definition.tags.includes('elemental') && definition.tags.includes('ranged')) return 'cast';
   if (definition.tags.includes('ranged')) return 'shoot';
@@ -33,6 +35,7 @@ export function attackMotionDurationMs(style: AttackMotionStyle): number {
     case 'thrust': return 170;
     case 'shoot': return 190;
     case 'cast': return 270;
+    case 'breath': return 260;
     case 'crush': return 280;
     case 'lunge': return 190;
     default: return 210;
@@ -41,9 +44,13 @@ export function attackMotionDurationMs(style: AttackMotionStyle): number {
 
 /** Resolve a pooled projectile silhouette from canonical presentation tags and icons. */
 export function projectileVisualStyle(definition: UnitDefinition): ProjectileVisualStyle {
-  if (definition.icon === '➶' || definition.icon === '➹') return 'arrow';
+  if (definition.attackVisual === 'poisonBreath') return 'poisonBreath';
   if (definition.id === 'goblinBomber') return 'bomb';
-  return 'magic';
+  const magic = definition.tags.includes('magic') || definition.tags.includes('holy') || definition.tags.includes('elemental');
+  if (magic && (definition.attackPattern.kind === 'pierce' || definition.attackPattern.kind === 'directional')) return 'magicSpear';
+  if (magic) return 'magicOrb';
+  if (definition.tags.includes('ranged')) return 'arrow';
+  return 'magicOrb';
 }
 
 export function createAttackMotionPose(): AttackMotionPose {
@@ -78,8 +85,14 @@ export function sampleAttackMotion(style: AttackMotionStyle, rawProgress: number
       pose.shoulderAngle = -58 + arc * 46;
       pose.elbowAngle = 52 - arc * 26;
       pose.reach = arc * 5;
-      pose.lift = -arc * 5;
-      pose.energyScale = 0.35 + arc * 1.05;
+      pose.lift = -arc * 3;
+      pose.energyScale = 0.22 + arc * 0.62;
+      break;
+    case 'breath':
+      pose.shoulderAngle = 0;
+      pose.elbowAngle = 0;
+      pose.lift = -arc * 3;
+      pose.energyScale = 0.28 + arc * 0.92;
       break;
     case 'crush':
       pose.shoulderAngle = -88 + snap * 142;

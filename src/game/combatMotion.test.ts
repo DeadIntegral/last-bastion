@@ -5,7 +5,7 @@ import { attackMotionDurationMs, attackMotionStyle, createAttackMotionPose, proj
 describe('localized combat attack motion', () => {
   it('assigns every current troop, hero, and boss a bounded reusable motion style', () => {
     const definitions = [...Object.values(troopDefinitions), ...Object.values(heroDefinitions), bossDefinition];
-    const styles: AttackMotionStyle[] = ['slash', 'thrust', 'shoot', 'cast', 'crush', 'lunge'];
+    const styles: AttackMotionStyle[] = ['slash', 'thrust', 'shoot', 'cast', 'breath', 'crush', 'lunge'];
     for (const definition of definitions) {
       expect(styles).toContain(attackMotionStyle(definition));
       expect(attackMotionDurationMs(attackMotionStyle(definition))).toBeGreaterThanOrEqual(170);
@@ -17,11 +17,13 @@ describe('localized combat attack motion', () => {
     expect(attackMotionStyle(troopDefinitions.archmage)).toBe('cast');
     expect(attackMotionStyle(troopDefinitions.brute)).toBe('crush');
     expect(attackMotionStyle(troopDefinitions.hellhound)).toBe('lunge');
+    expect(attackMotionStyle(troopDefinitions.hydra)).toBe('breath');
+    expect(attackMotionStyle(troopDefinitions.allianceGuardian)).toBe('slash');
   });
 
   it('keeps the base body still while producing finite arm, weapon, and effect channels', () => {
     const pose = createAttackMotionPose();
-    for (const style of ['slash', 'thrust', 'shoot', 'cast', 'crush', 'lunge'] as AttackMotionStyle[]) {
+    for (const style of ['slash', 'thrust', 'shoot', 'cast', 'breath', 'crush', 'lunge'] as AttackMotionStyle[]) {
       sampleAttackMotion(style, 0.5, pose);
       expect(Object.values(pose).every(Number.isFinite)).toBe(true);
       expect(pose.opacity).toBeGreaterThan(0);
@@ -29,14 +31,18 @@ describe('localized combat attack motion', () => {
     sampleAttackMotion('thrust', 0.5, pose);
     expect(pose.reach).toBeGreaterThan(0);
     sampleAttackMotion('cast', 0.5, pose);
+    expect(pose.energyScale).toBeGreaterThan(0.7);
+    sampleAttackMotion('breath', 0.5, pose);
     expect(pose.energyScale).toBeGreaterThan(1);
   });
 
-  it('gives arrows, spells, and thrown bombs distinct pooled projectile silhouettes', () => {
+  it('gives arrows, orb spells, piercing spell-spears, and thrown bombs distinct pooled silhouettes', () => {
     expect(projectileVisualStyle(troopDefinitions.archer)).toBe('arrow');
     expect(projectileVisualStyle(troopDefinitions.crossbow)).toBe('arrow');
-    expect(projectileVisualStyle(troopDefinitions.mage)).toBe('magic');
-    expect(projectileVisualStyle(troopDefinitions.ifrit)).toBe('magic');
+    expect(projectileVisualStyle(troopDefinitions.mage)).toBe('magicOrb');
+    expect(projectileVisualStyle(troopDefinitions.archmage)).toBe('magicSpear');
+    expect(projectileVisualStyle(troopDefinitions.ifrit)).toBe('magicSpear');
     expect(projectileVisualStyle(troopDefinitions.goblinBomber)).toBe('bomb');
+    expect(projectileVisualStyle(troopDefinitions.hydra)).toBe('poisonBreath');
   });
 });

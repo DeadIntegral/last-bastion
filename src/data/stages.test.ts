@@ -3,7 +3,7 @@ import { UNIT_IDS } from '../types/game';
 import { upgradedStats } from '../game/rules';
 import { advancedEnemyIntroductionStages, challengeStages, ENEMY_EQUIPMENT_MAX_LEVEL, MAX_FORTRESS_DISTANCE, MIN_FORTRESS_DISTANCE, stages, treasureStages } from './stages';
 import { mapTreasures } from './mapTreasures';
-import { allTroopOrder, troopDefinitions, unitFamilyById } from './units';
+import { allTroopOrder, rosterFactionById, troopDefinitions, unitFamilyById } from './units';
 
 describe('campaign rewards', () => {
   it('defines one first-clear reward for every map stage', () => {
@@ -52,7 +52,7 @@ describe('campaign rewards', () => {
     expect(challengeStages.map((challenge) => challenge.requiredCampaignStage)).toEqual([6, 12, 18, 24, 27, 30, 30]);
     expect(challengeStages.map((challenge) => troopDefinitions[challenge.bossUnitId!].grade)).toEqual([3, 2, 3, 4, 3, 5, 5]);
     const combinedHpMultipliers = challengeStages.map((challenge) => challenge.terrain.enemyHpMultiplier * (challenge.bossModifiers?.hpMultiplier ?? 1));
-    [15, 120, 80, 30, 120, 40 / 3, 80 / 9].forEach((expected, index) => expect(combinedHpMultipliers[index]).toBeCloseTo(expected));
+    [15, 120, 80, 13.8, 120, 40 / 3, 80 / 9].forEach((expected, index) => expect(combinedHpMultipliers[index]).toBeCloseTo(expected));
     for (const challenge of challengeStages) {
       expect(challenge.challenge).toBe(true);
       expect(challenge.boss).toBe(true);
@@ -128,18 +128,20 @@ describe('campaign rewards', () => {
   });
 
   it('provides more than forty real troops including fantasy and magic roles', () => {
-    expect(allTroopOrder.length).toBe(51);
+    expect(allTroopOrder.length).toBe(52);
     expect(new Set(allTroopOrder)).toEqual(new Set(UNIT_IDS));
     expect(troopDefinitions.griffin.name).toContain('그리폰');
     expect(troopDefinitions.ifrit.name).toBe('이프리트');
     expect(troopDefinitions.mage.name).toContain('마법사');
     expect(troopDefinitions.archmage.name).toBe('대마법사');
     expect(troopDefinitions.dragon.name).toBe('창공의 고룡');
+    expect(troopDefinitions.allianceGuardian.name).toBe('대륙연합 수호자');
     expect(troopDefinitions.griffin.maxHp).toBeGreaterThan(troopDefinitions.wyvern.maxHp);
-    expect(troopDefinitions.griffin.attackDamage).toBeGreaterThan(troopDefinitions.ifrit.attackDamage);
+    expect(troopDefinitions.ifrit.attackDamage).toBeGreaterThan(troopDefinitions.griffin.attackDamage);
     expect(troopDefinitions.griffin.defense).toBeGreaterThanOrEqual(troopDefinitions.ifrit.defense ?? 0);
     expect(troopDefinitions.griffin.cost).toBeLessThanOrEqual(200);
     expect(new Set(Object.keys(unitFamilyById))).toEqual(new Set(allTroopOrder));
+    expect(new Set(Object.keys(rosterFactionById))).toEqual(new Set(allTroopOrder));
   });
 
   it('caps the strongest beasts per side instead of weakening their individual impact', () => {
@@ -149,16 +151,18 @@ describe('campaign rewards', () => {
     expect(troopDefinitions.golem.maxActivePerSide).toBe(2);
     expect(troopDefinitions.ifrit.maxActivePerSide).toBe(2);
     expect(troopDefinitions.dragon.maxActivePerSide).toBe(1);
+    expect(troopDefinitions.allianceGuardian.maxActivePerSide).toBe(1);
     for (const unit of allTroopOrder.map((id) => troopDefinitions[id]).filter((unit) => unit.maxActivePerSide !== undefined)) {
       expect(Number.isInteger(unit.maxActivePerSide)).toBe(true);
       expect(unit.maxActivePerSide).toBeGreaterThanOrEqual(1);
     }
   });
 
-  it('gives every legendary and transcendent troop a four-digit base-health identity', () => {
+  it('gives every legendary a 3,000 HP floor and every transcendent more than 10,000 base HP', () => {
     const upperTier = allTroopOrder.map((id) => troopDefinitions[id]).filter((unit) => unit.grade >= 4);
     expect(upperTier.length).toBeGreaterThan(0);
-    expect(upperTier.every((unit) => unit.maxHp >= 1_000)).toBe(true);
+    expect(upperTier.filter((unit) => unit.grade === 4).every((unit) => unit.maxHp >= 3_000)).toBe(true);
+    expect(upperTier.filter((unit) => unit.grade === 5).every((unit) => unit.maxHp > 10_000)).toBe(true);
     expect(troopDefinitions.ifrit.maxHp).toBe(11_000);
   });
 
@@ -169,6 +173,7 @@ describe('campaign rewards', () => {
     expect(ifritChallenge?.bossModifiers?.hpMultiplier).toBeCloseTo(4 / 3);
     const trained = upgradedStats(troopDefinitions.ifrit, ifritChallenge!.enemyUpgrades.equipment);
     expect(trained.maxHp * ifritChallenge!.terrain.enemyHpMultiplier * ifritChallenge!.bossModifiers!.hpMultiplier).toBeCloseTo(264_000);
+    expect(trained.attackDamage * ifritChallenge!.terrain.enemyAttackMultiplier * ifritChallenge!.bossModifiers!.attackMultiplier).toBeCloseTo(864);
   });
 
   it('introduces the transcendent dragon only through its post-finale challenge', () => {
@@ -179,7 +184,32 @@ describe('campaign rewards', () => {
     expect(troopDefinitions.dragon.grade).toBe(5);
     const trained = upgradedStats(troopDefinitions.dragon, dragonChallenge!.enemyUpgrades.equipment);
     expect(trained.maxHp * dragonChallenge!.terrain.enemyHpMultiplier * dragonChallenge!.bossModifiers!.hpMultiplier).toBeCloseTo(240_000);
-    expect(trained.attackDamage * dragonChallenge!.terrain.enemyAttackMultiplier * dragonChallenge!.bossModifiers!.attackMultiplier).toBeCloseTo(672);
+    expect(trained.attackDamage * dragonChallenge!.terrain.enemyAttackMultiplier * dragonChallenge!.bossModifiers!.attackMultiplier).toBeCloseTo(1_120);
+  });
+
+  it('reserves the alliance guardian for direct post-finale recruitment', () => {
+    const guardian = troopDefinitions.allianceGuardian;
+    expect(guardian.grade).toBe(5);
+    expect(guardian.requiresEncounter).toBe(false);
+    expect(guardian.recruitSource).toBe('campaign');
+    expect(guardian.requiredClearedStage).toBe(30);
+    expect(guardian.recruitCost).toBe(20_000);
+    expect(guardian.cost).toBe(300);
+    expect(guardian.commandCostCap).toBe(300);
+    expect(guardian.attackDamage).toBe(900);
+    expect(guardian.attackIntervalMs).toBe(2_400);
+    expect(stages.some((stage) => stage.waves.some((wave) => wave.unitId === 'allianceGuardian') || stage.reinforcement?.unitIds.includes('allianceGuardian'))).toBe(false);
+    expect(challengeStages.some((stage) => stage.bossUnitId === 'allianceGuardian')).toBe(false);
+  });
+
+  it('gives ranged transcendents slow high-impact fortress-piercing attacks', () => {
+    for (const id of ['ifrit', 'dragon'] as const) {
+      const unit = troopDefinitions[id];
+      expect(unit.attackDamage).toBeGreaterThanOrEqual(650);
+      expect(unit.attackIntervalMs).toBeGreaterThanOrEqual(2_400);
+      expect(unit.attackPattern.kind).toBe('pierce');
+      if (unit.attackPattern.kind === 'pierce') expect(unit.attackPattern.piercesFortress).toBe(true);
+    }
   });
 
   it('gives every shared troop an acquisition or encounter path', () => {

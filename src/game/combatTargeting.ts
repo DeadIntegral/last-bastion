@@ -8,6 +8,12 @@ export interface LaneTargetAccess<T> {
   eligible: (target: T) => boolean;
 }
 
+export interface BacklineTargetAccess<T> {
+  forwardDistance: (target: T) => number;
+  eligible: (target: T) => boolean;
+  preferred: (target: T) => boolean;
+}
+
 function forwardDistance(side: Side, originX: number, targetX: number): number {
   return (targetX - originX) * (side === 'player' ? 1 : -1);
 }
@@ -21,6 +27,19 @@ function insertByDistance<T>(targets: T[], target: T, distance: number, distance
   let insertAt = startIndex;
   while (insertAt < targets.length && distanceOf(targets[insertAt]) <= distance) insertAt += 1;
   targets.splice(insertAt, 0, target);
+}
+
+export function resolveBacklineTarget<T>(candidates: readonly T[], access: BacklineTargetAccess<T>): T | undefined {
+  let selected: T | undefined;
+  let selectedDistance = Number.POSITIVE_INFINITY;
+  for (const candidate of candidates) {
+    if (!access.eligible(candidate) || !access.preferred(candidate)) continue;
+    const distance = access.forwardDistance(candidate);
+    if (distance < -20 || distance >= selectedDistance) continue;
+    selected = candidate;
+    selectedDistance = distance;
+  }
+  return selected;
 }
 
 export function resolvePierceTargets<T>(
@@ -98,6 +117,7 @@ export function resolveGroundBurstTargets<T>(
   candidates: readonly T[],
   radius: number,
   targetDomain: 'ground' | 'all',
+  maxTargets: number,
   access: LaneTargetAccess<T>,
   result: T[] = [],
 ): T[] {
@@ -109,6 +129,7 @@ export function resolveGroundBurstTargets<T>(
     const distance = distanceOf(candidate);
     if (distance - access.size(candidate) > radius) continue;
     insertByDistance(result, candidate, distance, distanceOf);
+    if (result.length > maxTargets) result.pop();
   }
   return result;
 }

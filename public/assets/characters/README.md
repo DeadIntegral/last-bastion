@@ -5,23 +5,50 @@ The repository contains an original AI-generated full playable roster, correctio
 - `roster-sheet.png`: 1225 × 1284 RGBA master output.
 - `griffin-source.png`: 1280 × 1280 RGBA replacement source for the wide Griffin Rider.
 - `orc-bulwark-source.png`: 1254 × 1254 RGBA replacement source with an uncovered green face and prominent tusks.
-- `roster-atlas.png`: 612 × 640 RGBA runtime atlas, divided into sixteen exact 153 × 160 frames. The compact Griffin source replaces the original overflow-prone frame, and the adjacent Warden frame is cleaned during atlas preparation.
+- `roster-atlas-base-v2.png`: preserved 612 × 640 core atlas base used for deterministic frame-level replacements.
+- `core-replacements/militia-v3-source.png`: transparent standalone source for the redesigned no-banner Militia with sword, wooden buckler, blue armband, and chest sash.
+- `core-replacements/raider-v3-source.png`: transparent standalone source for the green-skinned, large-eared Goblin Raider with cleaver and loot sack.
+- `roster-atlas.png`: 612 × 640 RGBA runtime atlas, divided into sixteen exact 153 × 160 frames. Frames 0 and 4 are rebuilt from the Militia and Goblin Raider v3 sources; the preserved base retains the compact Griffin correction and cleaned adjacent Warden frame.
 - `expansion-sources/`: transparent original sources for Goblin Archer, Goblin Bomber, Orc Berserker, and Orc Shaman.
 - `expansion-atlas.png`: 612 × 640 RGBA runtime atlas using the same sixteen-frame geometry. Its first row is occupied and its remaining twelve frames are transparent.
 - `regional-source.png`, `elemental-source.png`, and `demon-source.png`: transparent 4 × 4 generation masters for the remaining thirty-six troops plus Mirena and Bran.
 - `regional-atlas.png`, `elemental-atlas.png`, and `demon-atlas.png`: 612 × 640 RGBA runtime atlases containing the remaining playable roster.
 - `dragon-source.png`: 1254 × 1254 RGBA standalone source for Ancient Sky Dragon.
 - `transcendent-atlas.png`: 612 × 640 RGBA runtime atlas with Ancient Sky Dragon in frame 0 and fifteen transparent cells.
-- `hero-sources/karuk-source.png` and `hero-sources/neris-source.png`: standalone RGBA sources for the non-human heroes.
-- `alliance-atlas.png`: 612 × 640 RGBA runtime atlas with Karuk and Neris in frames 0–1 and fourteen transparent cells.
-- `yarn art:atlas`: deterministic local rebuild of all six non-core runtime atlases. It detects real transparent gutters in generated source grids, isolates each subject, alpha-crops it into a fixed frame, and preserves transparency in occupied and unused cells.
+- `hero-sources/karuk-source.png`, `hero-sources/neris-source.png`, and `hero-sources/alliance-guardian-source.png`: standalone RGBA sources for the two non-human heroes and the post-finale human Continental Alliance Guardian.
+- `alliance-atlas.png`: 612 × 640 RGBA runtime atlas with Karuk, Neris, and Continental Alliance Guardian in frames 0–2 and thirteen transparent cells.
+- `yarn art:atlas`: deterministic local rebuild of all seven runtime atlases. It rebuilds core frame 0 from the preserved base plus the Militia v3 source, detects real transparent gutters in generated source grids, isolates each subject, alpha-crops it into a fixed frame, and preserves transparency in occupied and unused cells.
 
 Core frame order is left-to-right, top-to-bottom:
 
 1. Militia, Guardian, Archer, Lancer
-2. Raider, Bulwark, Royal Cavalry, Crossbow
+2. Goblin Raider, Bulwark, Royal Cavalry, Crossbow
 3. Brute, Griffin Rider, Warden, Pyromancer
 4. Huntress, empty, empty, empty
+
+### Militia v3 replacement
+
+- Mode: built-in image generation tool
+- Use case: `precise-object-edit`
+- Generated: 2026-09-29
+- Saved source: `core-replacements/militia-v3-source.png`
+- Runtime frame: `roster-atlas.png`, column 0 / row 0
+
+Final prompt:
+
+> Use the existing roster atlas only as a style reference and create one redesigned original kingdom militia as an isolated full-body character facing right. Draw a humble young peasant levy with a short practical sword, a small worn round wooden buckler, simple brown leather jerkin, off-white tunic, boots, muted blue armband, and small blue chest sash. Absolutely no flag, banner, cape, scarf tail, wing-like cloth, feathers, wings, or any object rising or spreading behind the shoulders or back. Match the clean hand-painted 2D fantasy sprite style, compact slightly chibi proportions, subtle inked edges, and restrained detail readable at 48 px. Use a neutral ready stance with full body and weapons visible, a common low baseline, generous transparent padding, and true alpha. One character only; no text, frame, logo, scenery, cast shadow, glow, or cropped limbs or weapons.
+
+### Goblin Raider v3 replacement
+
+- Mode: built-in image generation tool
+- Use case: `precise-object-edit`
+- Generated: 2026-09-29
+- Saved source: `core-replacements/raider-v3-source.png`
+- Runtime frame: `roster-atlas.png`, column 0 / row 1
+
+Final prompt:
+
+> Use the existing roster atlas only as a style reference and replace the red human raider concept with one unmistakable small Goblin Raider facing right. Draw a wiry green-skinned goblin with oversized pointed ears, broad yellow eyes, hooked nose, small lower tusks, sharp grin, patched dark-red hood and scarf, scavenged leather armor, one short chipped cleaver, a small loot sack, and stolen belt trinkets. Keep the exposed green face and both ears readable at 48 px. Match the clean hand-painted low-fantasy sprite style, compact chibi proportions, crisp silhouette, low baseline, generous transparent padding, and true alpha. No human skin/proportions, face-covering helmet, bow, bomb, mount, extra figures, text, frame, scenery, floor, shadow, glow, or crop.
 
 Expansion frame order is:
 
@@ -60,7 +87,7 @@ Transcendent frame order is:
 
 Alliance frame order is:
 
-1. Orc Champion Karuk, Wind Spirit Neris, empty, empty
+1. Orc Champion Karuk, Wind Spirit Neris, Continental Alliance Guardian, empty
 2. empty, empty, empty, empty
 3. empty, empty, empty, empty
 4. empty, empty, empty, empty
@@ -76,6 +103,21 @@ The current seven atlases contain one neutral pose per character. They are trans
 - Mode: built-in image generation tool
 - Use case: `stylized-concept`
 - Generated: 2026-09-12
+
+Continental Alliance Guardian addition:
+
+- Mode: built-in image generation tool, then deterministic alpha crop through `yarn art:atlas`
+- Use case: `stylized-concept`
+- Generated: 2026-09-29
+- Source: `hero-sources/alliance-guardian-source.png`
+
+Prompt:
+
+> Create one original full-body 2D fantasy game character sprite on a fully transparent background. Character: the Continental Alliance Guardian, a post-campaign five-star transcendent ground tank for an original dark-fantasy siege strategy game. A tall powerful non-helmeted female orc paladin with clearly visible green skin, short lower tusks, stern noble face, and braided dark hair; ornate platinum-and-deep-blue plate armor combining human heraldry, restrained elven leaf filigree, and small amber spirit crystals; enormous upright tower shield and broad-headed poleaxe. Strong readable silhouette, heroic three-quarter view facing right, neutral ready stance, feet fully visible, centered with generous transparent padding, painterly high-detail fantasy concept art readable in a 153 × 160 atlas cell, no text, frame, logo, scenery, ground, or watermark.
+
+Human-identity correction applied to the current source on 2026-09-29:
+
+> Transform the exact armored guardian from an Orc into an unmistakably human champion of the rebelling kingdom. Preserve the full-body pose, right-facing composition, enormous blue-and-silver tower shield, poleaxe, platinum/deep-blue/gold armor, amber crystals, proportions, feet, weapon placement, silhouette, and painterly finish. Change only identity details: natural warm human skin, no green skin, no tusks, rounded human ears, strong clearly human facial structure, dark-brown braided hair, a determined battle-worn adult woman with a subtle scar. She is the legendary human defender who survived the Last Bastion and leads the continental counteroffensive. True transparent alpha; one human only; no Orc features, pointed ears, tusks, face-covering helmet, text, scenery, floor, shadow, glow, or crop.
 
 Final prompt:
 

@@ -43,6 +43,7 @@ const pausedHud: BattleHudState = {
   rallyUnlocked: false, rallyHeroControl: false, rallyTranscendentControl: false,
   rallyTargeting: false, rallyTargetActive: false, rallyRemainingMs: 0, rallyCooldownMs: 0, rallyCooldownMaxMs: 0,
   spawnCooldowns: {}, unitCosts: {}, activeUnitCounts: {}, elapsedMs: 5_000,
+  playerUnitCount: 12, enemyUnitCount: 9, framesPerSecond: 58,
   bossAwake: false, bossPhase: 1, bossHp: 0, bossMaxHp: 0, paused: true, battleSpeed: 1,
 };
 
@@ -69,6 +70,7 @@ describe('battle exit', () => {
     const statsBefore = { ...useGameStore.getState().stats };
     act(() => root.render(<BattleView stageId={1} onResult={onResult} onExit={onExit} />));
     act(() => battleEvents.emit(BattleEvent.HUD, pausedHud));
+    expect(host.querySelector('.battle-population')?.textContent).toBe('아군 12적군 958 FPS');
 
     act(() => [...host.querySelectorAll<HTMLButtonElement>('.pause-actions button')]
       .find((button) => button.textContent === '전투 이탈')!.click());

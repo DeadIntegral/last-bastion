@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { characterArtFrameIndex, characterArtFrames, characterArtSheet, characterArtSheets, proceduralCharacterIcons } from './characterArt';
+import { characterArtFrameIndex, characterArtFrames, characterArtSheet, characterArtSheets, characterBattleOffsetY, proceduralCharacterIcons } from './characterArt';
 import { allTroopOrder, heroOrder } from './units';
 
 describe('character art atlas', () => {
@@ -17,7 +17,9 @@ describe('character art atlas', () => {
     expect(atlasIds.filter((id) => characterArtFrames[id]!.sheet === 'elemental').map(characterArtFrameIndex).sort((a, b) => a - b)).toEqual(Array.from({ length: 12 }, (_, index) => index));
     expect(atlasIds.filter((id) => characterArtFrames[id]!.sheet === 'demon').map(characterArtFrameIndex).sort((a, b) => a - b)).toEqual(Array.from({ length: 10 }, (_, index) => index));
     expect(atlasIds.filter((id) => characterArtFrames[id]!.sheet === 'transcendent').map(characterArtFrameIndex)).toEqual([0]);
-    expect(atlasIds.filter((id) => characterArtFrames[id]!.sheet === 'alliance').map(characterArtFrameIndex)).toEqual([0, 1]);
+    expect(atlasIds.filter((id) => characterArtFrames[id]!.sheet === 'alliance').map(characterArtFrameIndex).sort((a, b) => a - b)).toEqual([0, 1, 2]);
     expect(characterArtSheet('goblinArcher')).toBe(characterArtSheets.expansion);
+    expect(characterBattleOffsetY('ifrit')).toBe(-88);
+    expect(characterBattleOffsetY('militia')).toBe(0);
   });
 });

@@ -11,18 +11,23 @@ export interface CharacterArtFrame {
 }
 
 export const characterArtSheets: Record<CharacterArtSheetId, { url: string; textureKey: string }> = {
-  core: { url: '/assets/characters/roster-atlas.png?v=2', textureKey: 'character-roster-atlas' },
+  core: { url: '/assets/characters/roster-atlas.png?v=4', textureKey: 'character-roster-atlas' },
   expansion: { url: '/assets/characters/expansion-atlas.png?v=2', textureKey: 'character-expansion-atlas' },
   regional: { url: '/assets/characters/regional-atlas.png?v=1', textureKey: 'character-regional-atlas' },
   elemental: { url: '/assets/characters/elemental-atlas.png?v=1', textureKey: 'character-elemental-atlas' },
   demon: { url: '/assets/characters/demon-atlas.png?v=1', textureKey: 'character-demon-atlas' },
   transcendent: { url: '/assets/characters/transcendent-atlas.png?v=1', textureKey: 'character-transcendent-atlas' },
-  alliance: { url: '/assets/characters/alliance-atlas.png?v=1', textureKey: 'character-alliance-atlas' },
+  alliance: { url: '/assets/characters/alliance-atlas.png?v=2', textureKey: 'character-alliance-atlas' },
 };
 export const CHARACTER_ART_COLUMNS = 4;
 export const CHARACTER_ART_FRAME_WIDTH = 153;
 export const CHARACTER_ART_FRAME_HEIGHT = 160;
 export const TRANSCENDENT_BATTLE_ART_SCALE = 1.9;
+
+export const characterBattleArtOffsetY: Partial<Record<CharacterArtId, number>> = {
+  ifrit: -88,
+  allianceGuardian: -76,
+};
 
 export const characterArtFrames: Partial<Record<CharacterArtId, CharacterArtFrame>> = {
   militia: { sheet: 'core', column: 0, row: 0 },
@@ -83,6 +88,7 @@ export const characterArtFrames: Partial<Record<CharacterArtId, CharacterArtFram
   dragon: { sheet: 'transcendent', column: 0, row: 0 },
   orcChampion: { sheet: 'alliance', column: 0, row: 0 },
   windSpirit: { sheet: 'alliance', column: 1, row: 0 },
+  allianceGuardian: { sheet: 'alliance', column: 2, row: 0 },
 };
 
 export const proceduralCharacterIcons = Object.fromEntries(
@@ -100,4 +106,8 @@ export function characterArtFrameIndex(id: CharacterArtId): number {
 export function characterArtSheet(id: CharacterArtId) {
   const frame = characterArtFrames[id];
   return frame ? characterArtSheets[frame.sheet] : undefined;
+}
+
+export function characterBattleOffsetY(id: CharacterArtId): number {
+  return characterBattleArtOffsetY[id] ?? 0;
 }
