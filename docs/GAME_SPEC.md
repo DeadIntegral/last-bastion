@@ -247,7 +247,7 @@ Beast challenges have no separate menu. Clearing campaign milestones 6, 12, 18, 
 
 Status: **Implemented**.
 
-The fortress has three persistent tiers and five implemented research branches: command/supply, growth support, defense, artillery, and expedition tactics. It begins as tier 1, and the next promotion becomes purchasable after reaching its total-research requirement. Tier 2 requires 8 purchased ranks and 1,000 gold; tier 3 requires 24 purchased ranks and 2,500 gold. Promotions unlock both research facilities and recruitment permits. Every research node has five paid ranks, giving the full tree 23 nodes and 115 purchases. Each node uses the readable sequence `base cost × (current rank + 1)`.
+The fortress has three persistent tiers and five implemented research branches: command/supply, growth support, defense, artillery, and expedition tactics. It begins as tier 1, and the next promotion becomes purchasable after reaching its total-research requirement. Tier 2 requires 8 purchased ranks and 1,000 gold; tier 3 requires 24 purchased ranks and 2,500 gold. Promotions unlock both research facilities and recruitment permits. Every research node has five paid ranks, giving the full tree 25 nodes and 125 purchases. Each node uses the readable sequence `base cost × (current rank + 1)`.
 
 | Branch | Tier | Node | Effect per rank | Prerequisite |
 |---|---:|---|---|---|
@@ -261,6 +261,8 @@ The fortress has three persistent tiers and five implemented research branches: 
 | Command | 3 | 승전 공납제 | Command per normal kill +0.5 | 상비군 훈련소 3 |
 | Defense | 1 | 강화 성벽 | fortress HP +250 | none |
 | Defense | 1 | 석재 장갑 | flat incoming damage -3 | 강화 성벽 1 |
+| Defense | 2 | 심층 기초 보강 | fortress HP +700 | 석재 장갑 3 |
+| Defense | 3 | 불락의 성벽핵 | fortress HP +1,000 and flat incoming damage -6 | 심층 기초 보강 5 |
 | Defense | 1 | 수호 망루 | automatic shot damage +22 and faster interval | 강화 성벽 1 |
 | Defense | 2 | 고층 흉벽 | tower range +45 | 수호 망루 2 |
 | Defense | 3 | 재생 석재 | fortress regeneration +4 HP/s | 고층 흉벽 3 |
@@ -276,6 +278,8 @@ The fortress has three persistent tiers and five implemented research branches: 
 | Expedition | 3 | 초월의 군기 | 5-star transcendent rally control; rally movement +5% | 영웅 기치 5 |
 
 Base fortress stats are 70 starting Command, 10 Command/s, 200 maximum Command, 1800 HP, 175 bombardment damage, 125 bombardment radius, 1,000 bombardment targeting range, and 32 s bombardment cooldown. Bombardment acquires the nearest ground enemy only after it enters that player-fortress-relative range and does not consume its cooldown without an eligible unit or in-range directly targetable fortress. `공성 계산학` adds 80 range per rank, reaching 1,400 at rank 5. The watchtower is inactive until researched. Soldier Command costs start at 100% and `군수 표준화` lowers them to a maximum 85%; effective costs round upward and have a minimum of 10 Command. The shared cost function uses a 200 per-unit cap by default, with Continental Alliance Guardian's explicit 300 cap as the only current exception.
+
+Full durability research adds 9,750 HP and 45 flat damage reduction to the 1,800 base, for 11,550 HP before the campaign-stage `+70 × (stage - 1)` and Victory Monument bonuses. `심층 기초 보강` costs 400/800/1,200/1,600/2,000 Gold; `불락의 성벽핵` costs 800/1,600/2,400/3,200/4,000. Together with regeneration, these values intentionally support a fortress-tanking recovery strategy against late waves without making the early fortress automatically durable.
 
 - Tier 2 grants recruitment permits for encountered Raiders and Bulwarks and reveals the Royal Cavalry as a direct royal recruit.
 - Tier 2 also opens `전리품 회계` and `왕립 야전 교범` as two independent roots inside the growth-support branch. A player can specialize in Gold or mastery XP without first buying Command-cost research or the other growth root, and existing saved ranks retain the same IDs and effects.
@@ -508,6 +512,7 @@ Regression tests follow a minimum-sufficient strategy: protect formulas, combat 
 
 ## 17. Changelog
 
+- 2026-09-29: Expanded Fortress Engineering to twenty-five nodes with tier-2 Deep Foundation Reinforcement and tier-3 Impregnable Wall Core; a 18,000-Gold full late-defense investment now raises research-only fortress durability to 11,550 HP, 45 flat reduction, and 20 HP/s regeneration, enabling a real fortress-tanking recovery strategy.
 - 2026-09-29: Removed the synthetic arm/weapon overlay from every atlas-backed combatant and replaced it with allocation-free portrait translation/rotation while the container, collision, shadow, and health bar remain fixed; replaced summon-only mastery with bounded participation plus damage, tanking, healing, protection, kill, and living-time contribution XP, including result-screen breakdowns and abandonment exclusion.
 - 2026-09-29: Corrected Ifrit from flying to ground so ordinary melee troops engage it instead of walking through, while preserving its three-target piercing flame, 11,000 HP, challenge path, and acquired form.
 - 2026-09-29: Decoupled Ifrit's ground combat domain from its portrait altitude so the enlarged challenge art no longer sinks through terrain, and added canonical size/grade-based stomp resistance from 60% large-elite displacement through full ground-transcendent immunity.

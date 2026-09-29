@@ -40,11 +40,15 @@ export const fortressResearchTuning = {
   baseCommandPerKill: 3,
   warTitheCommandPerRank: 0.5,
   mendingStoneRegenPerRank: 4,
+  fortifiedWallHpPerRank: 250,
+  reinforcedFoundationHpPerRank: 700,
+  citadelCoreHpPerRank: 1_000,
+  citadelCoreDamageReductionPerRank: 6,
 } as const;
 
 export const castleTechOrder: CastleTechId[] = [
   'war_coffers', 'logistics', 'command_vault', 'drill_yard', 'supply_standardization', 'spoils_accounting', 'field_manuals', 'war_tithe',
-  'fortified_walls', 'stone_plating', 'watchtower', 'battlements', 'mending_stone',
+  'fortified_walls', 'stone_plating', 'reinforced_foundations', 'citadel_core', 'watchtower', 'battlements', 'mending_stone',
   'black_powder', 'rapid_reload', 'wide_blast', 'giantbreaker_shells', 'siege_calculus',
   'rally_orders', 'heroic_orders', 'mobilization_drill', 'field_recovery', 'transcendent_orders',
 ];
@@ -58,8 +62,10 @@ export const castleTechDefinitions: Record<CastleTechId, CastleTechDefinition> =
   spoils_accounting: { id: 'spoils_accounting', branch: 'growth', name: '전리품 회계', description: '전투 골드 획득량 +5%', icon: '●', maxLevel: 5, baseCost: 350, requiredTier: 2 },
   field_manuals: { id: 'field_manuals', branch: 'growth', name: '왕립 야전 교범', description: '전투 숙련 경험치 획득량 +5%', icon: '▤', maxLevel: 5, baseCost: 400, requiredTier: 2 },
   war_tithe: { id: 'war_tithe', branch: 'command', name: '승전 공납제', description: `적 처치 지휘력 +${fortressResearchTuning.warTitheCommandPerRank}`, icon: '♢', maxLevel: 5, baseCost: 400, requiredTier: 3, prerequisite: { id: 'drill_yard', level: 3 } },
-  fortified_walls: { id: 'fortified_walls', branch: 'defense', name: '강화 성벽', description: '성채 최대 체력 +250', icon: '▰', maxLevel: 5, baseCost: 100, requiredTier: 1 },
+  fortified_walls: { id: 'fortified_walls', branch: 'defense', name: '강화 성벽', description: `성채 최대 체력 +${fortressResearchTuning.fortifiedWallHpPerRank}`, icon: '▰', maxLevel: 5, baseCost: 100, requiredTier: 1 },
   stone_plating: { id: 'stone_plating', branch: 'defense', name: '석재 장갑', description: '받는 공격 피해 -3', icon: '◆', maxLevel: 5, baseCost: 150, requiredTier: 1, prerequisite: { id: 'fortified_walls', level: 1 } },
+  reinforced_foundations: { id: 'reinforced_foundations', branch: 'defense', name: '심층 기초 보강', description: `성채 최대 체력 +${fortressResearchTuning.reinforcedFoundationHpPerRank}`, icon: '▥', maxLevel: 5, baseCost: 400, requiredTier: 2, prerequisite: { id: 'stone_plating', level: 3 } },
+  citadel_core: { id: 'citadel_core', branch: 'defense', name: '불락의 성벽핵', description: `성채 최대 체력 +${fortressResearchTuning.citadelCoreHpPerRank} · 받는 공격 피해 -${fortressResearchTuning.citadelCoreDamageReductionPerRank}`, icon: '⬢', maxLevel: 5, baseCost: 800, requiredTier: 3, prerequisite: { id: 'reinforced_foundations', level: 5 } },
   watchtower: { id: 'watchtower', branch: 'defense', name: '수호 망루', description: '근접한 적을 자동 사격', icon: '♜', maxLevel: 5, baseCost: 200, requiredTier: 1, prerequisite: { id: 'fortified_walls', level: 1 } },
   battlements: { id: 'battlements', branch: 'defense', name: '고층 흉벽', description: '수호 망루 사거리 +45', icon: '⌂', maxLevel: 5, baseCost: 250, requiredTier: 2, prerequisite: { id: 'watchtower', level: 2 } },
   mending_stone: { id: 'mending_stone', branch: 'defense', name: '재생 석재', description: `성채 체력 초당 회복 +${fortressResearchTuning.mendingStoneRegenPerRank}`, icon: '✚', maxLevel: 5, baseCost: 400, requiredTier: 3, prerequisite: { id: 'battlements', level: 3 } },
@@ -143,8 +149,11 @@ export function castleBattleStats(levels: Record<CastleTechId, number>): CastleB
     commandPerKill: fortressResearchTuning.baseCommandPerKill + levels.war_tithe * fortressResearchTuning.warTitheCommandPerRank,
     battleGoldMultiplier: 1 + levels.spoils_accounting * 0.05,
     masteryXpMultiplier: 1 + levels.field_manuals * 0.05,
-    maxHp: 1800 + levels.fortified_walls * 250,
-    damageReduction: levels.stone_plating * 3,
+    maxHp: 1800
+      + levels.fortified_walls * fortressResearchTuning.fortifiedWallHpPerRank
+      + levels.reinforced_foundations * fortressResearchTuning.reinforcedFoundationHpPerRank
+      + levels.citadel_core * fortressResearchTuning.citadelCoreHpPerRank,
+    damageReduction: levels.stone_plating * 3 + levels.citadel_core * fortressResearchTuning.citadelCoreDamageReductionPerRank,
     castleRegenPerSecond: levels.mending_stone * fortressResearchTuning.mendingStoneRegenPerRank,
     towerDamage: levels.watchtower * 22,
     towerRange: 310 + levels.battlements * 45,

@@ -9,6 +9,8 @@ describe('castle technology tree', () => {
     levels.command_vault = 1;
     levels.fortified_walls = 3;
     levels.stone_plating = 2;
+    levels.reinforced_foundations = 2;
+    levels.citadel_core = 1;
     levels.black_powder = 1;
     levels.drill_yard = 2;
     levels.supply_standardization = 2;
@@ -28,8 +30,8 @@ describe('castle technology tree', () => {
     expect(stats.startingCommand).toBe(120);
     expect(stats.commandRegen).toBe(12.5);
     expect(stats.maxCommand).toBe(240);
-    expect(stats.maxHp).toBe(2550);
-    expect(stats.damageReduction).toBe(6);
+    expect(stats.maxHp).toBe(4_950);
+    expect(stats.damageReduction).toBe(12);
     expect(stats.bombardDamage).toBe(220);
     expect(stats.bombardRange).toBe(1240);
     expect(stats.summonCooldownMultiplier).toBe(0.9);
@@ -108,8 +110,8 @@ describe('castle technology tree', () => {
     expect(fortressTierDefinitions[3].promotionCost).toBe(2_500);
   });
 
-  it('provides twenty-three five-rank nodes gated by fortress tier', () => {
-    expect(castleTechOrder).toHaveLength(23);
+  it('provides twenty-five five-rank nodes gated by fortress tier', () => {
+    expect(castleTechOrder).toHaveLength(25);
     expect(castleTechOrder.every((id) => castleTechDefinitions[id].maxLevel === 5)).toBe(true);
     const levels = emptyCastleTech();
     levels.command_vault = 2;
@@ -124,11 +126,28 @@ describe('castle technology tree', () => {
     expect(castleTechRoots('artillery')).toEqual(['black_powder']);
     expect(castleTechRoots('expedition')).toEqual(['rally_orders']);
     expect(castleTechChildren('command_vault')).toEqual(['drill_yard', 'supply_standardization']);
+    expect(castleTechChildren('stone_plating')).toEqual(['reinforced_foundations']);
+    expect(castleTechChildren('reinforced_foundations')).toEqual(['citadel_core']);
     expect(castleTechChildren('supply_standardization')).toEqual([]);
     expect(castleTechChildren('spoils_accounting')).toEqual([]);
     expect(castleTechChildren('black_powder')).toEqual(['rapid_reload', 'wide_blast']);
     expect(castleTechChildren('rally_orders')).toEqual(['heroic_orders', 'mobilization_drill']);
     expect(castleTechChildren('heroic_orders')).toEqual(['field_recovery', 'transcendent_orders']);
+  });
+
+  it('supports an expensive late-game fortress durability strategy', () => {
+    const levels = emptyCastleTech();
+    levels.fortified_walls = 5;
+    levels.stone_plating = 5;
+    levels.reinforced_foundations = 5;
+    levels.citadel_core = 5;
+    levels.mending_stone = 5;
+    const stats = castleBattleStats(levels);
+    expect(stats.maxHp).toBe(11_550);
+    expect(stats.damageReduction).toBe(45);
+    expect(stats.castleRegenPerSecond).toBe(20);
+    expect(castleTechCost(castleTechDefinitions.reinforced_foundations, 4)).toBe(2_000);
+    expect(castleTechCost(castleTechDefinitions.citadel_core, 4)).toBe(4_000);
   });
 
   it('reduces soldier Command costs with ceiling rounding and a minimum floor', () => {

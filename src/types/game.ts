@@ -17,7 +17,7 @@ export type HeroId = 'warden' | 'pyromancer' | 'huntress' | 'saint' | 'marshal' 
 export type FortressTier = 1 | 2 | 3;
 export type CastleTechId =
   | 'war_coffers' | 'logistics' | 'command_vault' | 'drill_yard' | 'supply_standardization' | 'spoils_accounting' | 'field_manuals' | 'war_tithe'
-  | 'fortified_walls' | 'stone_plating' | 'watchtower' | 'battlements' | 'mending_stone'
+  | 'fortified_walls' | 'stone_plating' | 'reinforced_foundations' | 'citadel_core' | 'watchtower' | 'battlements' | 'mending_stone'
   | 'black_powder' | 'rapid_reload' | 'wide_blast' | 'giantbreaker_shells' | 'siege_calculus'
   | 'rally_orders' | 'heroic_orders' | 'mobilization_drill' | 'field_recovery' | 'transcendent_orders';
 export type EquipmentSlot = 'weapon' | 'armor' | 'boots';
