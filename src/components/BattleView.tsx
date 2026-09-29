@@ -2,13 +2,15 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { battleMobilizationTuning, castleBattleStats, mobilizationCommandCost, rallyCommandTuning } from '../data/castle';
 import { troopDefinitions, unitGradeLabels } from '../data/units';
 import { getStage } from '../data/stages';
+import { applyFormationItem, applyFortressItems } from '../game/items';
+import { itemDefinitions } from '../data/items';
 import { BattleEvent, battleEvents } from '../game/EventBus';
 import { battleHotkeyAction } from '../game/controls';
 import { attackPatternLabel, attackRangeLabel, cooldownFillRatio, formatTime, unitDeploymentCapacity, upgradedStats } from '../game/rules';
 import { PhaserGame } from '../game/PhaserGame';
 import { useGameStore } from '../store/useGameStore';
 import { musicEngine } from '../audio/music';
-import type { BattleHudState, BattleResult, UnitId } from '../types/game';
+import type { BattleHudState, BattleResult, ItemId, UnitId } from '../types/game';
 import { Localized } from '../shared/i18n/Localized';
 import { CharacterSprite } from './CharacterSprite';
 import { GameModal } from './GameModal';
@@ -47,6 +49,8 @@ export function BattleView({ stageId, onResult, onExit }: BattleViewProps) {
   const equipmentLevels = useGameStore((state) => state.equipmentLevels);
   const equippedUnits = useGameStore((state) => state.equippedUnits);
   const formationSlots = useGameStore((state) => state.formationSlots);
+  const formationItemSlots = useGameStore((state) => state.formationItemSlots);
+  const fortressItemSlots = useGameStore((state) => state.fortressItemSlots);
   const unitMasteryXp = useGameStore((state) => state.unitMasteryXp);
   const selectedHero = useGameStore((state) => state.selectedHero);
   const heroEquipmentLevel = useGameStore((state) => state.heroEquipmentLevels[state.selectedHero]);
@@ -67,7 +71,8 @@ export function BattleView({ stageId, onResult, onExit }: BattleViewProps) {
   const [hud, setHud] = useState(initialHud);
   const [exitConfirmationOpen, setExitConfirmationOpen] = useState(false);
   const stage = getStage(stageId);
-  const battleCastleStats = castleBattleStats(castleTechLevels);
+  const battleCastleStats = applyFortressItems(castleBattleStats(castleTechLevels), fortressItemSlots);
+  const unitItems = Object.fromEntries(equippedUnits.map((id) => [id, formationItemSlots[formationSlots.indexOf(id)] ?? null])) as Partial<Record<UnitId, ItemId | null>>;
 
   useEffect(() => {
     const onHud = (next: BattleHudState) => setHud(next);
@@ -124,6 +129,8 @@ export function BattleView({ stageId, onResult, onExit }: BattleViewProps) {
         stageId={stageId}
         equipmentLevels={equipmentLevels}
         equippedUnits={equippedUnits}
+        unitItems={unitItems}
+        fortressItems={fortressItemSlots}
         unitMasteryXp={unitMasteryXp}
         heroId={selectedHero}
         heroEquipmentLevel={heroEquipmentLevel}
@@ -191,7 +198,9 @@ export function BattleView({ stageId, onResult, onExit }: BattleViewProps) {
             {formationSlots.map((id, index) => {
               if (!id) return <button key={`empty-${index}`} className="unit-command unit-command-empty" disabled aria-label={`${index + 1}번 빈 편성 슬롯`}><span className="hotkey">{index + 1}</span><span className="empty-slot-mark">+</span><span className="unit-name">빈 슬롯</span></button>;
               const unit = troopDefinitions[id];
-              const deploymentSize = upgradedStats(unit, equipmentLevels[id]).squadSize;
+              const itemId = formationItemSlots[index];
+              const fieldUnit = applyFormationItem(upgradedStats(unit, equipmentLevels[id]), itemId);
+              const deploymentSize = fieldUnit.squadSize;
               const cooldown = hud.spawnCooldowns[id] ?? 0;
               const cost = hud.unitCosts[id] ?? unit.cost;
               const activeCount = hud.activeUnitCounts[id] ?? 0;
@@ -199,7 +208,7 @@ export function BattleView({ stageId, onResult, onExit }: BattleViewProps) {
               const actualDeploymentSize = Math.min(deploymentSize, remainingCapacity);
               const atFieldLimit = remainingCapacity <= 0;
               const disabled = hud.command < cost || cooldown > 0 || hud.paused || atFieldLimit;
-              const cooldownDuration = unit.spawnCooldownMs * battleCastleStats.summonCooldownMultiplier;
+              const cooldownDuration = fieldUnit.spawnCooldownMs * battleCastleStats.summonCooldownMultiplier;
               const cooldownFill = cooldownFillRatio(cooldown, cooldownDuration) * 100;
               const cooldownLabel = cooldown > 0 ? `, 재사용 대기 ${(cooldown / 1000).toFixed(1)}초` : '';
               const fieldLimitLabel = unit.maxActivePerSide === undefined ? '' : `, 전장 ${activeCount}/${unit.maxActivePerSide}`;
@@ -210,7 +219,7 @@ export function BattleView({ stageId, onResult, onExit }: BattleViewProps) {
                   disabled={disabled}
                   onClick={() => spawn(id)}
                   aria-label={`${unit.name}, ${unit.grade}성 ${unitGradeLabels[unit.grade]}, ${actualDeploymentSize}명 소환, 지휘력 ${cost}${cooldownLabel}${fieldLimitLabel}`}
-                  title={`${attackPatternLabel(unit)} · 유효 사거리 ${attackRangeLabel(unit)}`}
+                  title={`${attackPatternLabel(unit)} · 유효 사거리 ${attackRangeLabel(unit)}${itemId ? ` · ${itemDefinitions[itemId].name}` : ''}`}
                 >
                   <span className="hotkey">{index + 1}</span>
                   <CharacterSprite id={id} className="unit-icon battle-unit-art" />

@@ -243,4 +243,24 @@
 .enemy-codex-section > header > span { border-color: #a9635e; color: #e9937e; }.enemy-entry { background: linear-gradient(145deg, #39282d, #201a21); border-color: rgba(201,95,85,.2); }.enemy-entry .codex-icon { color: #ef9d86; background: radial-gradient(circle, rgba(211,79,59,.18), transparent 44%), rgba(22,13,17,.5); }
 .boss-entry { grid-column: 1 / -1; }.boss-entry .codex-icon { font-size: 65px; }
 .codex-missing { width: min(1120px, calc(100% - 40px)); margin: 0 auto; padding: 18px; text-align: center; color: #6d7c84; border: 1px dashed rgba(139,161,169,.2); font-size: 10px; }
-
+/* Item vault */
+.item-vault-screen { min-height: 100vh; padding-bottom: 70px; background: radial-gradient(circle at 72% 18%, rgba(92,131,140,.1), transparent 34%), #101923; }
+.item-loadout-grid { width: min(1180px, calc(100% - 40px)); margin: 0 auto 22px; display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(280px, .7fr); gap: 14px; }
+.item-socket-panel, .item-inventory-section { padding: 17px; border: 1px solid rgba(103,175,190,.24); border-radius: var(--panel-radius); background: linear-gradient(145deg, rgba(27,43,55,.92), rgba(14,24,33,.94)); box-shadow: 0 16px 34px rgba(0,0,0,.2); }
+.item-socket-panel > header, .item-inventory-section > header { margin-bottom: 13px; }.item-socket-panel h3, .item-inventory-section h3 { margin: 2px 0; font-size: 18px; }.item-socket-panel header p { margin: 0; color: #80949c; font-size: 10px; }
+.item-formation-sockets { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.fortress-item-sockets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.item-socket { position: relative; min-width: 0; min-height: 116px; border: 1px dashed rgba(116,183,196,.3); border-radius: var(--control-radius); background: rgba(8,18,25,.48); }
+.item-socket.equipped { border-style: solid; border-color: rgba(221,189,112,.48); background: linear-gradient(145deg, rgba(68,55,29,.3), rgba(13,28,35,.66)); }
+.item-socket > .game-button:first-child { width: 100%; height: 100%; min-height: 114px; padding: 9px; display: grid; grid-template-rows: 18px 34px auto auto; place-items: center; gap: 2px; border: 0; background: transparent; box-shadow: none; text-align: center; }
+.item-socket > .game-button:first-child:hover { transform: none; background: rgba(87,157,169,.08); }
+.item-socket i { justify-self: start; color: var(--gold); font: normal 700 9px 'Cinzel'; }.item-socket > .game-button span { color: #d9c57e; font: 25px Georgia; }.item-socket b { color: #dce9e9; font-size: 10px; }.item-socket small { color: #71868e; font-size: 8px; }
+.item-unequip { position: absolute; z-index: 3; right: 5px; top: 5px; width: 20px !important; min-width: 20px; min-height: 20px; padding: 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; color: #d98e87 !important; }
+.item-inventory-section { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
+.item-inventory-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+.item-inventory-card { position: relative; min-width: 0; min-height: 118px; padding: 11px !important; display: grid !important; grid-template-columns: 58px minmax(0, 1fr); align-items: center; gap: 10px; text-align: left !important; }
+.item-inventory-card .item-icon { width: 52px; height: 52px; display: grid; place-items: center; border: 1px solid rgba(141,198,208,.28); border-radius: 50%; background: radial-gradient(circle, rgba(99,174,189,.2), rgba(11,25,34,.55)); color: #d5eef0; font: 27px Georgia; }
+.item-copy { display: grid; gap: 3px; }.item-copy small { color: #7c959e; font-size: 8px; }.item-copy b { color: #e4eceb; font-size: 12px; }.item-copy p { margin: 0; color: #83949b; font-size: 9px; line-height: 1.45; }
+.item-inventory-card > em { position: absolute; right: 8px; top: 7px; color: var(--gold-bright); font: normal 700 8px 'Cinzel'; }
+.item-inventory-card.rarity-4 { border-color: rgba(184,133,221,.34); }.item-inventory-card.rarity-5 { border-color: rgba(240,190,73,.55); box-shadow: inset 0 0 20px rgba(218,160,42,.08); }
+.item-inventory-card.locked { opacity: .48; filter: grayscale(.8); }

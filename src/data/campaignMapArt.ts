@@ -40,6 +40,7 @@ export const challengeRiftPresentation = {
 export const farmingMissionPresentation = {
   301: { x: 1_520, y: 290, theme: 'gold', symbol: '●', label: '황금 수송로' },
   302: { x: 2_440, y: 1_510, theme: 'mastery', symbol: '✦', label: '왕립 훈련장' },
+  303: { x: 4_520, y: 1_570, theme: 'gold', symbol: '♜', label: '자유 원정지' },
 } as const;
 
 export const campaignMapLandmarks = [

@@ -1,6 +1,6 @@
 # Last Bastion — Future Systems Specification
 
-Last updated: 2026-09-29
+Last updated: 2026-09-30
 
 This document is the canonical backlog for game systems that have been designed but are not yet implemented. Everything in this file is **Planned** unless a section explicitly says otherwise. Implemented behavior belongs in `docs/GAME_SPEC.md`, while final numeric values belong in `docs/BALANCE.md`.
 
@@ -81,14 +81,13 @@ Difficulty and acceptance criteria:
 
 ## 5B. Formation-slot and fortress items
 
-Status: **Planned**. Fixed nullable troop formation slots are Implemented, but item definitions, inventory, item slots, effects, acquisition, and persistence are not yet live.
+Status: **Implemented**. Authoritative behavior and exact values now live in `docs/GAME_SPEC.md` and `docs/BALANCE.md`.
 
-- Items have a canonical `formation` or `fortress` target. A formation item belongs to a numbered slot and affects whichever troop occupies that position; moving the troop does not silently move the item. A fortress item belongs to a player/castle slot and applies a bounded global fortress/Command/artillery effect.
-- Definitions live in `src/data/items.ts`; pure effect application belongs under `src/game`; Zustand persists only owned item IDs and slot assignments. React renders inventory and drag/drop, while Phaser consumes already-resolved battle values.
-- Items require explicit acquisition sources and cannot appear merely because UI exists. First-clear, side-guardian, achievement, merchant, and post-finale sources may be used, but each source needs result feedback and save compatibility.
-- The Armory must reuse the implemented numbered-slot DnD model. Item MIME/type is distinct from troop drag data, invalid target drops are rejected visibly, keyboard users can select an item then activate a compatible slot, and empty/equipped state is readable without color.
-- Formation effects must apply once per deployment, never once per squad body unless explicitly authored. Fortress effects never buff enemies or challenge terrain. The difficulty/efficiency audit must value any combat effect that changes real encounter power.
-- Acceptance requires data definitions, inventory UI, formation and fortress slots, live battle integration, KO/EN/JA disclosure, normalized schema migration, acquisition paths, focused tests, balance audit, and current-behavior documentation.
+- Six canonical items ship through `src/data/items.ts`, with explicit stage-4/8/12/18/24/30 first-clear acquisition and old-save milestone recovery.
+- Schema 7 persists owned IDs, fixed nullable formation-item slots matching formation capacity, and exactly two fortress slots. Hydration removes invalid, duplicate, unowned, or wrong-target assignments.
+- `ItemVault` provides inventory disclosure, drag/drop, select-then-slot fallback, removal, locked source hints, and target validation. Formation items remain bound to numbered positions when troops move.
+- `applyFormationItem` and `applyFortressItems` integrate the six HP, attack/healing, cooldown, fortress HP, Command, and artillery effects into player battle values only.
+- KO/EN/JA messages, pure effect tests, store acquisition/migration tests, navigation coverage, and an item-aware campaign-transition audit are implemented.
 
 ## 5C. Five-star full-set transcendence engraving
 

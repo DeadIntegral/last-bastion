@@ -43,9 +43,11 @@ export type AttackPattern =
   | { kind: 'groundBurst'; radius: number; maxTargets: number; secondaryDamageMultiplier: number; targetDomain: 'ground' | 'all'; telegraphMs: number };
 export type Side = 'player' | 'enemy';
 export type BattleSpeed = 1 | 1.5;
-export type Screen = 'menu' | 'opening' | 'credits' | 'stages' | 'merchant' | 'monument' | 'armory' | 'heroes' | 'fortress' | 'achievements' | 'codex' | 'battle' | 'result';
+export type Screen = 'menu' | 'opening' | 'credits' | 'stages' | 'merchant' | 'monument' | 'armory' | 'items' | 'heroes' | 'fortress' | 'achievements' | 'codex' | 'battle' | 'result';
 export type GameFeatureId = 'hero-training';
 export type HeroTrainingPackageId = 'field-drill' | 'tactical-lesson' | 'royal-tutoring';
+export type ItemId = 'veteran-standard' | 'runed-whetstone' | 'clockwork-horn' | 'guardian-keystone' | 'quartermaster-seal' | 'starfire-lens';
+export type ItemTarget = 'formation' | 'fortress';
 export type MapTreasureId = 'western-reliquary' | 'capital-vault' | 'highland-cache' | 'tundra-sanctum' | 'rift-treasury';
 
 export interface UnitDefinition {
@@ -187,6 +189,7 @@ export interface FirstClearReward {
   unitId?: UnitId;
   heroId?: HeroId;
   featureId?: GameFeatureId;
+  itemId?: ItemId;
 }
 
 export interface BattleHudState {

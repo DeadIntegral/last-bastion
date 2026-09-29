@@ -1,6 +1,6 @@
 # Last Bastion — Balance Reference
 
-Last updated: 2026-09-29
+Last updated: 2026-09-30
 
 This is the canonical reference for implemented economy, progression, combat, and campaign numbers. Change this file in the same commit as any balance value. Product behavior and architecture remain canonical in `docs/GAME_SPEC.md`.
 
@@ -32,8 +32,9 @@ The total one-time map-treasure income is 9,000 Gold. It is excluded from the no
 |---|---:|---:|---:|---|
 | 황금 수송로 탈환전 | 12 | 2,000 | ×1 | ×0.72 vs stage 18 |
 | 왕립 대훈련장 | 18 | 700 | ×2 | ×0.73 vs stage 24 |
+| 마왕군 잔당 대토벌 | 30 | 5,000 | ×1 | ×1.61 vs stage 30 |
 
-Farms are ordinary recorded victories or defeats and therefore still grant role-contribution mastery, encounter discovery, statistics, and achievements. They never advance `unlockedStage`, create a persisted first-clear reward, or reveal a treasure. Spoils Accounting multiplies their listed Gold. Royal Field Manuals multiply the complete mastery total after the training-ground ×2 modifier, so rank 5 resolves to ×2.5 rather than replacing the farm bonus. The balance audit requires each farm to remain between ×0.70 and ×1.45 of its later regional benchmark so its repeat reward is not attached to a trivial encounter.
+Farms are ordinary recorded victories or defeats and therefore still grant role-contribution mastery, encounter discovery, statistics, and achievements. They never advance `unlockedStage`, create a persisted first-clear reward, or reveal a treasure. Spoils Accounting multiplies their listed Gold. Royal Field Manuals multiply the complete mastery total after the training-ground ×2 modifier, so rank 5 resolves to ×2.5 rather than replacing the farm bonus. The two progression farms remain between ×0.70 and ×1.45 of their later regional benchmark. The post-finale 5,000-Gold free expedition intentionally sits at ×1.40–1.80 of stage 30; its current ×1.61 pressure prevents the best repeat reward from becoming a trivial clear.
 - No payment implementation currently exists. A future verified Quick Starter may combine a data-driven Gem grant with battle-speed access and exactly the first formation purchase; slots 6–7 remain ordinary campaign progression unless a future documented entitlement explicitly changes that rule.
 
 Hero Training Ground unlocks from the stage-9 first clear. It supplements rather than replaces battle-earned hero mastery XP and refuses purchases at the level-30 cap.
@@ -243,6 +244,21 @@ Expansion troops created through `makeTroop` derive readable fixed growth once a
 - Every 5-star troop uses base 400: 400 / 800 / 1,200 / 1,600 / 2,000 gold; one complete branch costs 6,000.
 - Heroes retain authored bases: Edric 100, Selene/Ria/Mirena 125, Bran 150, Karuk 175, and Neris 200.
 - Soldier equipment capstone: when any one of Weapon, Armor, or Boots reaches rank 5, ordinary, 3-star, and non-large 4-star troops permanently gain +1 deployment body. Every 5-star troop and 4-star `large` troop instead stays at its canonical squad size and gains three additional fixed ranks of Weapon attack/healing, Armor HP/defense, and Boots movement simultaneously. The current stat-capstone roster is Griffin Rider, Ancient Treant, Rune Golem, Swamp Hydra, Cerberus, Ifrit, Ancient Sky Dragon, and Continental Alliance Guardian. Completing additional slots does not stack either bonus. Swamp Hydra therefore receives a clearly visible capstone-only +1,350 HP, +54 ATK, +4.5 defense, and +3 move rather than one ordinary +450/+18/+1.5/+1 rank. The Alliance Guardian receives +3,900 HP, +270 ATK, +7.5 defense, and +2.4 move from the capstone itself. The rule applies symmetrically to stage-equipped regular enemies; heroes and bosses receive neither bonus, named elite spawning remains single-body, and reinforcement `maxAlive` remains an exact living-body cap rather than a deployment count.
+
+### Item loadout balance
+
+| Item | Source | Target | Implemented effect |
+|---|---:|---|---|
+| 고참병의 군기 | stage 4 | formation slot | troop maximum HP ×1.12 |
+| 각인 숫돌 | stage 8 | formation slot | troop attack and healing ×1.10 |
+| 태엽 출전 나팔 | stage 12 | formation slot | summon cooldown ×0.88 |
+| 수호자의 주춧돌 | stage 18 | fortress | player fortress maximum HP ×1.20 |
+| 총병참관의 인장 | stage 24 | fortress | starting Command +50; maximum Command +100 |
+| 성화 조준 렌즈 | stage 30 | fortress | bombardment damage ×1.25; range +150 |
+
+Formation items apply after equipment, mastery, and Victory Monument troop resolution and affect every body created by that one deployment without multiplying Command cost or squad size. Items remain on numbered slots when troops move. Fortress effects resolve after technology stats; only two of the three owned fortress items may be active. Full-set engraving remains a separate Planned system.
+
+The item-aware pressure audit treats a single-slot item as a bounded fraction of the whole formation and checks the stage immediately after acquisition. Current pressure steps are approximately 4→5 ×1.15, 8→9 ×1.18, 12→13 ×1.05, 18→19 ×1.12, and 24→25 ×1.09. Each exceeds its representative item-power floor plus a 1% safety margin. Stage 25 receives an additional 1,400 fortress HP specifically to keep the Command-seal transition from flattening.
 - Soldier mastery maximum: level 50. Hero mastery maximum: level 30.
 - XP for next mastery level: `round(45 × level^1.32)`.
 - Mastery uses character-specific flat gains. At level `L`, add `(L - 1) × listed gain` to canonical HP and ATK before adding equipment.

@@ -9,9 +9,10 @@ import { fortressArtDefinitions, fortressArtLayout } from '../data/fortressArt';
 import { heroAwakeningAuras, heroSkillPower } from '../data/mastery';
 import { allTroopOrder, bossCombatTuning, bossDefinition, heroDefinitions, troopDefinitions } from '../data/units';
 import { t } from '../shared/i18n/i18n';
-import type { BattleHudState, BattleSpeed, CastleBattleStats, CastleTechId, CodexEnemyId, EnemyId, EquipmentLevels, HeroDefinition, HeroId, MasteryContribution, Side, StageDefinition, UnitDefinition, UnitId } from '../types/game';
+import type { BattleHudState, BattleSpeed, CastleBattleStats, CastleTechId, CodexEnemyId, EnemyId, EquipmentLevels, HeroDefinition, HeroId, ItemId, MasteryContribution, Side, StageDefinition, UnitDefinition, UnitId } from '../types/game';
 import { BattleEvent, battleEvents } from './EventBus';
 import { attackMotionDurationMs, attackMotionStyle, createAttackMotionPose, projectileVisualStyle, sampleAttackMotion, type AttackMotionPose, type AttackMotionStyle, type ProjectileVisualStyle } from './combatMotion';
+import { applyFormationItem, applyFortressItems } from './items';
 import { resolveDirectionalTargets, resolveGroundBurstTargets, resolvePierceTargets, type LaneTargetAccess } from './combatTargeting';
 import {
   calculateDamage,
@@ -94,13 +95,19 @@ interface SpawnOrder {
 }
 
 interface PooledStrikeEffect {
-  object: Phaser.GameObjects.Star;
+  object: Phaser.GameObjects.Container;
+  bloom: Phaser.GameObjects.Arc;
+  ring: Phaser.GameObjects.Arc;
+  slash: Phaser.GameObjects.Rectangle;
+  core: Phaser.GameObjects.Rectangle;
+  shards: Phaser.GameObjects.Triangle[];
   elapsedMs: number;
   durationMs: number;
 }
 
 interface PooledProjectileEffect {
   object: Phaser.GameObjects.Container;
+  wake: Phaser.GameObjects.Rectangle;
   arrowShaft: Phaser.GameObjects.Rectangle;
   arrowHead: Phaser.GameObjects.Triangle;
   magicCore: Phaser.GameObjects.Star;
@@ -134,7 +141,10 @@ interface PooledFlashEffect {
 }
 
 interface PooledGroundTelegraphEffect {
-  object: Phaser.GameObjects.Arc;
+  object: Phaser.GameObjects.Container;
+  outerRing: Phaser.GameObjects.Arc;
+  innerRing: Phaser.GameObjects.Arc;
+  ticks: Phaser.GameObjects.Rectangle[];
   elapsedMs: number;
   durationMs: number;
   owner?: CombatUnit;
@@ -196,6 +206,7 @@ export class BattleScene extends Phaser.Scene {
   private enemyCastleX: number;
   private equipmentLevels: Record<UnitId, EquipmentLevels>;
   private equippedUnits: UnitId[];
+  private unitItems: Partial<Record<UnitId, ItemId | null>>;
   private unitMasteryXp: Record<UnitId, number>;
   private heroDefinition: HeroDefinition;
   private heroId: HeroId;
@@ -203,6 +214,7 @@ export class BattleScene extends Phaser.Scene {
   private heroAura: HeroAuraValues;
   private triumphMonumentLevel: number;
   private castleStats: CastleBattleStats;
+  private fortressItemHpMultiplier = 1;
   private hudUnitCosts: Partial<Record<UnitId, number>>;
   private units: CombatUnit[] = [];
   private unitsById = new Map<number, CombatUnit>();
@@ -285,6 +297,8 @@ export class BattleScene extends Phaser.Scene {
     stage: StageDefinition,
     equipmentLevels: Record<UnitId, EquipmentLevels>,
     equippedUnits: UnitId[],
+    unitItems: Partial<Record<UnitId, ItemId | null>>,
+    fortressItems: Array<ItemId | null>,
     unitMasteryXp: Record<UnitId, number>,
     heroId: HeroId,
     heroEquipmentLevel: EquipmentLevels,
@@ -298,11 +312,14 @@ export class BattleScene extends Phaser.Scene {
     this.enemyCastleX = PLAYER_CASTLE_X + stage.fortressDistance;
     this.equipmentLevels = equipmentLevels;
     this.equippedUnits = equippedUnits;
+    this.unitItems = unitItems;
     this.unitMasteryXp = unitMasteryXp;
     this.battleSpeed = battleSpeed;
     this.heroId = heroId;
     this.triumphMonumentLevel = triumphMonumentLevel;
-    this.castleStats = castleBattleStats(castleTechLevels);
+    const baseCastleStats = castleBattleStats(castleTechLevels);
+    this.castleStats = applyFortressItems(baseCastleStats, fortressItems);
+    this.fortressItemHpMultiplier = this.castleStats.maxHp / baseCastleStats.maxHp;
     const baseHero = heroDefinitions[heroId];
     this.heroMasteryLevel = heroMasteryLevelFromXp(heroMasteryXp).level;
     this.heroAura = heroAuraBonuses(heroId, this.heroMasteryLevel);
@@ -348,9 +365,11 @@ export class BattleScene extends Phaser.Scene {
     this.enemyMaxHp = this.stageDefinition.enemyCastleHp;
     this.command = this.castleStats.startingCommand;
     const campaignProgressStage = this.stageDefinition.requiredCampaignStage ?? this.stageDefinition.id;
-    this.playerCastleMaxHp = this.castleStats.maxHp
+    this.playerCastleMaxHp = Math.round((
+      this.castleStats.maxHp / this.fortressItemHpMultiplier
       + Math.max(0, campaignProgressStage - 1) * 70
-      + triumphMonumentBonuses(this.triumphMonumentLevel).fortressHpBonus;
+      + triumphMonumentBonuses(this.triumphMonumentLevel).fortressHpBonus
+    ) * this.fortressItemHpMultiplier);
     this.playerCastleHp = this.playerCastleMaxHp;
     this.drawWorld();
     this.ensureCombatTextures();
@@ -646,14 +665,14 @@ export class BattleScene extends Phaser.Scene {
     const base = troopDefinitions[id];
     const commandCost = soldierCommandCost(base.cost, this.castleStats.summonCostMultiplier, base.commandCostCap);
     const capacity = unitDeploymentCapacity(base, this.activeUnitCount('player', id));
-    if (!base || this.command < commandCost || (this.spawnCooldowns[id] ?? 0) > 0 || capacity <= 0) return;
-    this.command -= commandCost;
-    this.spawnCooldowns[id] = base.spawnCooldownMs * this.castleStats.summonCooldownMultiplier;
     const mastery = masteryLevelFromXp(this.unitMasteryXp[id] ?? 0).level;
-    const definition = applyTriumphMonumentStats(
+    const definition = applyFormationItem(applyTriumphMonumentStats(
       upgradedStats(base, this.equipmentLevels[id] ?? 0, mastery),
       this.triumphMonumentLevel,
-    );
+    ), this.unitItems[id]);
+    if (!base || this.command < commandCost || (this.spawnCooldowns[id] ?? 0) > 0 || capacity <= 0) return;
+    this.command -= commandCost;
+    this.spawnCooldowns[id] = definition.spawnCooldownMs * this.castleStats.summonCooldownMultiplier;
     this.summons[id] += 1;
     for (let index = 0; index < Math.min(definition.squadSize, capacity); index += 1) {
       this.createUnit(definition, 'player', fortressRearSpawnX('player', PLAYER_CASTLE_X, index) + Phaser.Math.Between(-4, 4), GROUND_Y);
@@ -1822,6 +1841,10 @@ export class BattleScene extends Phaser.Scene {
     effect.color = color;
     effect.transcendent = transcendent;
     const angle = Math.atan2(effect.endY - effect.startY, effect.endX - effect.startX);
+    effect.wake
+      .setVisible(style === 'arrow' || style === 'magicSpear' || style === 'siege')
+      .setFillStyle(style === 'arrow' ? 0xd8c096 : color, style === 'arrow' ? 0.22 : 0.34)
+      .setDisplaySize(style === 'magicSpear' ? 58 : style === 'siege' ? 42 : 34, style === 'magicSpear' ? 5 : 3);
     effect.arrowShaft.setVisible(style === 'arrow').setFillStyle(0x9a6b36, 1);
     effect.arrowHead.setVisible(style === 'arrow').setFillStyle(color, 1);
     effect.magicCore.setVisible(style === 'magicOrb').setFillStyle(color, 0.95);
@@ -1852,8 +1875,15 @@ export class BattleScene extends Phaser.Scene {
     const effect = this.strikeEffects.find((candidate) => !candidate.object.active);
     if (!effect) return;
     effect.elapsedMs = 0;
-    effect.durationMs = 170;
-    effect.object.setPosition(x, y - 4).setFillStyle(color, 0.9).setAlpha(1).setAngle(0).setScale(1).setVisible(true).setActive(true);
+    effect.durationMs = 220;
+    effect.bloom.setFillStyle(color, 0.18).setScale(0.7);
+    effect.ring.setStrokeStyle(3, color, 0.88).setScale(0.55);
+    effect.slash.setFillStyle(color, 0.86).setScale(0.45, 1).setRotation(-0.58);
+    effect.core.setFillStyle(0xffffff, 0.96).setScale(0.35, 1).setRotation(-0.58);
+    for (let index = 0; index < effect.shards.length; index += 1) {
+      effect.shards[index].setPosition(0, 0).setRotation(index * Math.PI / 2 + Math.PI / 4).setFillStyle(index % 2 ? 0xffffff : color, 0.82).setScale(0.65);
+    }
+    effect.object.setPosition(x, y - 4).setAlpha(1).setRotation(0).setScale(1).setVisible(true).setActive(true);
   }
 
   private showTranscendentImpact(x: number, y: number, color: number): void {
@@ -1882,15 +1912,17 @@ export class BattleScene extends Phaser.Scene {
     effect.elapsedMs = 0;
     effect.durationMs = Math.max(1, durationMs);
     effect.owner = owner;
-    effect.object
-      .setPosition(x, groundY + 2)
-      .setRadius(radius)
-      .setFillStyle(color, 0.08)
-      .setStrokeStyle(3, color, 0.72)
-      .setScale(0.72, 0.24)
-      .setAlpha(1)
-      .setVisible(true)
-      .setActive(true);
+    effect.outerRing.setRadius(radius).setFillStyle(color, 0.045).setStrokeStyle(3, color, 0.76);
+    effect.innerRing.setRadius(radius * 0.62).setStrokeStyle(2, 0xffffff, 0.46);
+    for (let index = 0; index < effect.ticks.length; index += 1) {
+      const angle = index * Math.PI / 2;
+      effect.ticks[index]
+        .setPosition(Math.cos(angle) * radius * 0.82, Math.sin(angle) * radius * 0.82)
+        .setRotation(angle)
+        .setDisplaySize(Math.max(8, radius * 0.22), 3)
+        .setFillStyle(color, 0.72);
+    }
+    effect.object.setPosition(x, groundY + 2).setRotation(0).setScale(0.72, 0.24).setAlpha(1).setVisible(true).setActive(true);
   }
 
   private showGroundBurstImpact(x: number, groundY: number, radius: number, color: number): void {
@@ -1935,19 +1967,25 @@ export class BattleScene extends Phaser.Scene {
 
   private createEffectPools(): void {
     for (let index = 0; index < 32; index += 1) {
-      const object = this.add.star(0, 0, 4, 4, 13, 0xffffff, 0.9).setDepth(600).setVisible(false).setActive(false);
-      this.strikeEffects.push({ object, elapsedMs: 0, durationMs: 170 });
+      const bloom = this.add.circle(0, 0, 18, 0xffffff, 0.18).setBlendMode(Phaser.BlendModes.ADD);
+      const ring = this.add.circle(0, 0, 11, 0xffffff, 0).setStrokeStyle(3, 0xffffff, 0.88).setBlendMode(Phaser.BlendModes.ADD);
+      const slash = this.add.rectangle(0, 0, 44, 6, 0xffffff, 0.86).setBlendMode(Phaser.BlendModes.ADD);
+      const core = this.add.rectangle(0, 0, 34, 2, 0xffffff, 0.96).setBlendMode(Phaser.BlendModes.ADD);
+      const shards = Array.from({ length: 4 }, () => this.add.triangle(0, 0, -3, 2, 7, 0, -3, -2, 0xffffff, 0.82).setBlendMode(Phaser.BlendModes.ADD));
+      const object = this.add.container(0, 0, [bloom, ring, slash, core, ...shards]).setDepth(600).setVisible(false).setActive(false);
+      this.strikeEffects.push({ object, bloom, ring, slash, core, shards, elapsedMs: 0, durationMs: 220 });
     }
     for (let index = 0; index < 24; index += 1) {
+      const wake = this.add.rectangle(-12, 0, 34, 3, 0xffffff, 0.25).setOrigin(1, 0.5).setBlendMode(Phaser.BlendModes.ADD);
       const arrowShaft = this.add.rectangle(0, 0, 18, 2, 0x9a6b36).setOrigin(0.5);
       const arrowHead = this.add.triangle(11, 0, 0, -4, 0, 4, 7, 0, 0xffffff);
-      const magicCore = this.add.star(0, 0, 6, 3, 8, 0xffffff, 0.95);
-      const magicRing = this.add.circle(0, 0, 11, 0xffffff, 0).setStrokeStyle(2, 0xffffff, 0.82);
-      const magicHalo = this.add.circle(0, 0, 18, 0xffffff, 0.16).setStrokeStyle(1, 0xffffff, 0.52);
-      const magicTrail = this.add.triangle(-17, 0, 0, -9, 0, 9, -30, 0, 0xffffff, 0.42);
-      const magicSpearShaft = this.add.rectangle(0, 0, 34, 4, 0xffffff, 0.86).setOrigin(0.5);
-      const magicSpearHead = this.add.triangle(21, 0, 0, -7, 0, 7, 13, 0, 0xffffff, 0.96);
-      const magicSpearTail = this.add.triangle(-19, 0, 0, -7, 0, 7, -13, 0, 0xffffff, 0.48);
+      const magicCore = this.add.star(0, 0, 6, 3, 8, 0xffffff, 0.95).setBlendMode(Phaser.BlendModes.ADD);
+      const magicRing = this.add.circle(0, 0, 11, 0xffffff, 0).setStrokeStyle(2, 0xffffff, 0.82).setBlendMode(Phaser.BlendModes.ADD);
+      const magicHalo = this.add.circle(0, 0, 18, 0xffffff, 0.16).setStrokeStyle(1, 0xffffff, 0.52).setBlendMode(Phaser.BlendModes.ADD);
+      const magicTrail = this.add.triangle(-17, 0, 0, -9, 0, 9, -30, 0, 0xffffff, 0.42).setBlendMode(Phaser.BlendModes.ADD);
+      const magicSpearShaft = this.add.rectangle(0, 0, 34, 4, 0xffffff, 0.86).setOrigin(0.5).setBlendMode(Phaser.BlendModes.ADD);
+      const magicSpearHead = this.add.triangle(21, 0, 0, -7, 0, 7, 13, 0, 0xffffff, 0.96).setBlendMode(Phaser.BlendModes.ADD);
+      const magicSpearTail = this.add.triangle(-19, 0, 0, -7, 0, 7, -13, 0, 0xffffff, 0.48).setBlendMode(Phaser.BlendModes.ADD);
       const poisonStream = this.add.rectangle(28, 0, 58, 9, 0x72c95d, 0.56).setOrigin(0, 0.5);
       const poisonClouds = [
         this.add.circle(24, -5, 9, 0x4eaa4c, 0.68),
@@ -1957,10 +1995,11 @@ export class BattleScene extends Phaser.Scene {
       const bombBody = this.add.circle(0, 0, 7, 0x25242a).setStrokeStyle(2, 0xffffff, 0.9);
       const bombFuse = this.add.rectangle(4, -8, 2, 7, 0xf2bd59).setRotation(-0.6);
       const siegeShell = this.add.rectangle(0, 0, 15, 6, 0xffffff).setOrigin(0.5).setStrokeStyle(1, 0x3d2730, 0.9);
-      const object = this.add.container(0, 0, [magicTrail, magicHalo, arrowShaft, arrowHead, magicRing, magicCore, magicSpearTail, magicSpearShaft, magicSpearHead, poisonStream, ...poisonClouds, bombBody, bombFuse, siegeShell])
+      const object = this.add.container(0, 0, [wake, magicTrail, magicHalo, arrowShaft, arrowHead, magicRing, magicCore, magicSpearTail, magicSpearShaft, magicSpearHead, poisonStream, ...poisonClouds, bombBody, bombFuse, siegeShell])
         .setDepth(600)
         .setVisible(false)
         .setActive(false);
+      wake.setVisible(false);
       arrowShaft.setVisible(false);
       arrowHead.setVisible(false);
       magicCore.setVisible(false);
@@ -1977,6 +2016,7 @@ export class BattleScene extends Phaser.Scene {
       siegeShell.setVisible(false);
       this.projectileEffects.push({
         object,
+        wake,
         arrowShaft,
         arrowHead,
         magicCore,
@@ -2004,22 +2044,21 @@ export class BattleScene extends Phaser.Scene {
       });
     }
     for (let index = 0; index < 8; index += 1) {
-      const object = this.add.circle(0, 0, 12, 0xffffff, 0.38).setDepth(500).setVisible(false).setActive(false);
+      const object = this.add.circle(0, 0, 12, 0xffffff, 0.28).setStrokeStyle(2, 0xffffff, 0.42).setBlendMode(Phaser.BlendModes.ADD).setDepth(500).setVisible(false).setActive(false);
       this.flashEffects.push({ object, elapsedMs: 0, durationMs: 300 });
     }
     for (let index = 0; index < 12; index += 1) {
-      const object = this.add.circle(0, 0, 20, 0xffffff, 0.08)
-        .setStrokeStyle(3, 0xffffff, 0.72)
-        .setDepth(495)
-        .setVisible(false)
-        .setActive(false);
-      this.groundTelegraphEffects.push({ object, elapsedMs: 0, durationMs: 1 });
+      const outerRing = this.add.circle(0, 0, 20, 0xffffff, 0.045).setStrokeStyle(3, 0xffffff, 0.76).setBlendMode(Phaser.BlendModes.ADD);
+      const innerRing = this.add.circle(0, 0, 12, 0xffffff, 0).setStrokeStyle(2, 0xffffff, 0.46).setBlendMode(Phaser.BlendModes.ADD);
+      const ticks = Array.from({ length: 4 }, () => this.add.rectangle(0, 0, 12, 3, 0xffffff, 0.72).setBlendMode(Phaser.BlendModes.ADD));
+      const object = this.add.container(0, 0, [outerRing, innerRing, ...ticks]).setDepth(495).setVisible(false).setActive(false);
+      this.groundTelegraphEffects.push({ object, outerRing, innerRing, ticks, elapsedMs: 0, durationMs: 1 });
     }
     for (let index = 0; index < 16; index += 1) {
-      const glow = this.add.circle(0, 2, 34, 0xffffff, 0.1).setStrokeStyle(3, 0xffffff, 0.86).setScale(1, 0.28);
-      const leftSpike = this.add.triangle(-22, -4, -9, 11, 0, -38, 9, 11, 0xffffff, 0.72);
-      const centerSpike = this.add.triangle(0, -8, -11, 13, 0, -72, 11, 13, 0xffffff, 0.9);
-      const rightSpike = this.add.triangle(22, -4, -9, 11, 0, -38, 9, 11, 0xffffff, 0.72);
+      const glow = this.add.circle(0, 2, 34, 0xffffff, 0.1).setStrokeStyle(3, 0xffffff, 0.86).setScale(1, 0.28).setBlendMode(Phaser.BlendModes.ADD);
+      const leftSpike = this.add.triangle(-22, -4, -9, 11, 0, -38, 9, 11, 0xffffff, 0.72).setBlendMode(Phaser.BlendModes.ADD);
+      const centerSpike = this.add.triangle(0, -8, -11, 13, 0, -72, 11, 13, 0xffffff, 0.9).setBlendMode(Phaser.BlendModes.ADD);
+      const rightSpike = this.add.triangle(22, -4, -9, 11, 0, -38, 9, 11, 0xffffff, 0.72).setBlendMode(Phaser.BlendModes.ADD);
       const object = this.add.container(0, 0, [glow, leftSpike, centerSpike, rightSpike])
         .setDepth(620)
         .setVisible(false)
@@ -2033,11 +2072,11 @@ export class BattleScene extends Phaser.Scene {
       this.guardEffects.push({ object, ring, wake, elapsedMs: 0, durationMs: 300 });
     }
     for (let index = 0; index < 12; index += 1) {
-      const horizontalRay = this.add.rectangle(0, 0, 104, 5, 0xffffff, 0.72);
-      const verticalRay = this.add.rectangle(0, 0, 5, 104, 0xffffff, 0.72);
-      const outerRing = this.add.circle(0, 0, 38, 0xffffff, 0).setStrokeStyle(5, 0xffffff, 0.9);
-      const innerRing = this.add.circle(0, 0, 20, 0xffffff, 0).setStrokeStyle(3, 0xffffff, 0.92);
-      const core = this.add.star(0, 0, 8, 8, 23, 0xffffff, 0.88).setStrokeStyle(2, 0xffffff, 0.92);
+      const horizontalRay = this.add.rectangle(0, 0, 104, 5, 0xffffff, 0.72).setBlendMode(Phaser.BlendModes.ADD);
+      const verticalRay = this.add.rectangle(0, 0, 5, 104, 0xffffff, 0.72).setBlendMode(Phaser.BlendModes.ADD);
+      const outerRing = this.add.circle(0, 0, 38, 0xffffff, 0).setStrokeStyle(5, 0xffffff, 0.9).setBlendMode(Phaser.BlendModes.ADD);
+      const innerRing = this.add.circle(0, 0, 20, 0xffffff, 0).setStrokeStyle(3, 0xffffff, 0.92).setBlendMode(Phaser.BlendModes.ADD);
+      const core = this.add.star(0, 0, 8, 8, 23, 0xffffff, 0.88).setStrokeStyle(2, 0xffffff, 0.92).setBlendMode(Phaser.BlendModes.ADD);
       const object = this.add.container(0, 0, [horizontalRay, verticalRay, outerRing, innerRing, core])
         .setDepth(625)
         .setVisible(false)
@@ -2051,7 +2090,22 @@ export class BattleScene extends Phaser.Scene {
       if (!effect.object.active) continue;
       effect.elapsedMs = Math.min(effect.durationMs, effect.elapsedMs + delta);
       const progress = effect.elapsedMs / effect.durationMs;
-      effect.object.setAlpha(1 - progress).setAngle(80 * progress).setScale(1 + 0.7 * progress);
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      const flare = Math.sin(progress * Math.PI);
+      effect.object.setAlpha(progress < 0.42 ? 1 : (1 - progress) / 0.58);
+      effect.bloom.setScale(0.7 + easeOut * 1.45).setAlpha(0.22 * (1 - progress));
+      effect.ring.setScale(0.55 + easeOut * 1.7).setAlpha(1 - progress);
+      effect.slash.setScale(0.45 + easeOut * 1.8, 1 - progress * 0.55).setAlpha(0.9 * (1 - progress));
+      effect.core.setScale(0.35 + easeOut * 1.55, 1 - progress * 0.7).setAlpha(1 - progress);
+      for (let index = 0; index < effect.shards.length; index += 1) {
+        const angle = index * Math.PI / 2 + Math.PI / 4;
+        const distance = 8 + easeOut * 34;
+        effect.shards[index]
+          .setPosition(Math.cos(angle) * distance, Math.sin(angle) * distance * 0.72)
+          .setRotation(angle + progress * 0.8)
+          .setScale(0.65 + flare * 0.45)
+          .setAlpha(1 - progress);
+      }
       if (progress >= 1) effect.object.setVisible(false).setActive(false);
     }
     for (const effect of this.projectileEffects) {
@@ -2110,10 +2164,13 @@ export class BattleScene extends Phaser.Scene {
       }
       effect.elapsedMs = Math.min(effect.durationMs, effect.elapsedMs + delta);
       const progress = effect.elapsedMs / effect.durationMs;
-      const pulse = 0.82 + Math.sin(progress * Math.PI * 5) * 0.05;
+      const pulse = 0.82 + Math.sin(progress * Math.PI * 6) * 0.04;
       effect.object
+        .setRotation(progress * 0.18)
         .setScale((0.72 + progress * 0.28) * pulse, (0.24 + progress * 0.05) * pulse)
         .setAlpha(0.4 + progress * 0.6);
+      effect.innerRing.setScale(0.86 + Math.sin(progress * Math.PI * 4) * 0.08).setAlpha(0.35 + progress * 0.55);
+      for (let index = 0; index < effect.ticks.length; index += 1) effect.ticks[index].setAlpha(0.35 + progress * 0.65);
       if (progress >= 1) {
         effect.owner = undefined;
         effect.object.setVisible(false).setActive(false);

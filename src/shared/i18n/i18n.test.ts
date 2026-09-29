@@ -24,6 +24,7 @@ describe('localization', () => {
     expect(t('불락의 성벽핵')).toBe('難攻不落の城壁核');
     expect(t('황금 수송로 탈환전')).toBe('黄金輸送路奪還戦');
     expect(t('전투 숙련 XP ×{multiplier}', { multiplier: 2 })).toBe('戦闘熟練XP ×2');
+    expect(t('고참병의 군기')).toBe('古参兵の軍旗');
     expect(t('각성 {rank}단계 · {bonuses}', { rank: 3, bonuses: t('자신 HP +{value}', { value: 330 }) })).toBe('覚醒ランク3 · 自身HP +330');
     expect(t('저장 파일을 읽을 수 없습니다')).toBe('Unable to read save file');
     expect(document.documentElement.lang).toBe('ja');
@@ -41,6 +42,7 @@ describe('localization', () => {
     expect(t('불락의 성벽핵')).toBe('Impregnable Wall Core');
     expect(t('황금 수송로 탈환전')).toBe('Golden Supply Route Recovery');
     expect(t('전투 숙련 XP ×{multiplier}', { multiplier: 2 })).toBe('Battle mastery XP ×2');
+    expect(t('고참병의 군기')).toBe('Veteran Standard');
     expect(t('각성 {rank}단계 · {bonuses}', { rank: 3, bonuses: t('자신 HP +{value}', { value: 330 }) })).toBe('Awakening rank 3 · Self HP +330');
     expect(t('{name}가 달려듭니다', { name: t('마수') })).toBe('Beast charges!');
     expect(document.documentElement.lang).toBe('en');

@@ -24,6 +24,7 @@ import { useGameStore } from './store/useGameStore';
 import { CharacterSprite } from './components/CharacterSprite';
 import { GameModal } from './components/GameModal';
 import { Armory } from './components/Armory';
+import { ItemVault } from './components/ItemVault';
 import { equipmentEffect, equipmentSlots, GrowthStat } from './components/ProgressionUi';
 import { Localized } from './shared/i18n/Localized';
 import { changeLanguage, getLanguageLocale, supportedLanguages, t, useTranslation, type Language } from './shared/i18n/i18n';
@@ -499,6 +500,7 @@ function MapCommandCenter({ onNavigate }: { onNavigate: (screen: Screen) => void
     <section className="map-command-center" aria-label="원정대 관리">
       <header><span>EXPEDITION</span><strong>왕국 운영</strong></header>
       <button onClick={() => onNavigate('armory')}><i>♢</i><span>병영과 강화<small>ARMORY · {allTroopOrder.length}</small></span></button>
+      <button onClick={() => onNavigate('items')}><i>▣</i><span>원정 장비고<small>ITEM LOADOUT</small></span></button>
       <button onClick={() => onNavigate('heroes')}><i>{heroDefinitions[selectedHero].icon}</i><span>영웅의 전당<small>{heroDefinitions[selectedHero].name}</small></span></button>
       <button onClick={() => onNavigate('fortress')}><i>♜</i><span>성채 기술<small>5 BRANCHES</small></span></button>
       <button className={monumentUnlocked ? 'monument-ready' : 'feature-locked'} disabled={!monumentUnlocked} onClick={() => onNavigate('monument')}><i>♜</i><span>{TRIUMPH_MONUMENT.name}<small>{monumentUnlocked ? `${triumphMonumentLevel}/${TRIUMPH_MONUMENT.maxLevel}단계` : `${TRIUMPH_MONUMENT.unlockStage}장 클리어 시 건립`}</small></span></button>
@@ -1503,6 +1505,7 @@ export default function App() {
   if (screen === 'merchant') return <MysteryMerchant onBack={() => navigate('stages')} />;
   if (screen === 'monument') return <TriumphMonument onBack={() => navigate('stages')} />;
   if (screen === 'armory') return <Armory header={<ShellHeader title="왕립 병영" onBack={() => navigate('stages')} />} />;
+  if (screen === 'items') return <ItemVault header={<ShellHeader title="원정 장비고" onBack={() => navigate('stages')} />} />;
   if (screen === 'heroes') return <HeroHall onBack={() => navigate('stages')} />;
   if (screen === 'fortress') return <FortressWorkshop onBack={() => navigate('stages')} />;
   if (screen === 'achievements') return <Achievements onBack={() => navigate('stages')} />;

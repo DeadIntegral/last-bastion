@@ -83,7 +83,7 @@ const campaignStageBlueprints: Array<Omit<StageDefinition, 'fortressDistance' | 
   {
     id: 4, name: '파쇄자의 길', subtitle: '창끝을 세워 오우거 전열을 쓰러뜨리세요', reward: 400, enemyCastleHp: 1800,
     enemyUpgrades: { equipment: { weapon: 2, armor: 3, boots: 1 } },
-    firstClearReward: { label: '잿불 마녀 영입', description: '영웅 셀레네가 무료로 원정대에 합류합니다.', icon: '✹', heroId: 'pyromancer' },
+    firstClearReward: { label: '잿불 마녀와 고참병의 군기', description: '영웅 셀레네가 합류하고 편성 아이템 고참병의 군기를 획득합니다.', icon: '✹', heroId: 'pyromancer', itemId: 'veteran-standard' },
     waves: [
       { timeMs: 1000, unitId: 'lancer', count: 5, intervalMs: 1800 },
       { timeMs: 8000, unitId: 'brute', count: 1, intervalMs: 6000 },
@@ -135,7 +135,7 @@ const campaignStageBlueprints: Array<Omit<StageDefinition, 'fortressDistance' | 
   {
     id: 8, name: '유리 사막', subtitle: '빠른 기동대와 장거리 사격을 견뎌내세요', reward: 800, enemyCastleHp: 7600,
     enemyUpgrades: { equipment: { weapon: 5, armor: 5, boots: 5 } },
-    firstClearReward: { label: '사막의 전리품', description: '금화 800개를 획득합니다.', icon: '◇', gold: 800 },
+    firstClearReward: { label: '사막의 전리품과 각인 숫돌', description: '금화 800개와 편성 아이템 각인 숫돌을 획득합니다.', icon: '◇', gold: 800, itemId: 'runed-whetstone' },
     waves: [
       { timeMs: 700, unitId: 'raider', count: 2, intervalMs: 2600 },
       { timeMs: 8000, unitId: 'archer', count: 2, intervalMs: 2800 },
@@ -193,7 +193,7 @@ const campaignStageBlueprints: Array<Omit<StageDefinition, 'fortressDistance' | 
     id: 12, name: '철갑 마수의 귀환', subtitle: '배신한 인간군이 깨운 철갑 마수와 동부 성채를 함께 끝내세요', reward: 1200, enemyCastleHp: 14_500, boss: true, bossName: '왕도 철갑 마수',
     bossModifiers: { hpMultiplier: 2.4, attackMultiplier: 1.35, stompCadenceMultiplier: 0.82 },
     enemyUpgrades: { equipment: { weapon: 5, armor: 5, boots: 5 } },
-    firstClearReward: { label: '새벽의 성녀 합류', description: '영웅 미레나가 합류하고 금화 1,200개를 획득합니다.', icon: '✚', heroId: 'saint', gold: 1200 },
+    firstClearReward: { label: '새벽의 성녀와 출전 나팔', description: '영웅 미레나, 금화 1,200개, 편성 아이템 태엽 출전 나팔을 획득합니다.', icon: '✚', heroId: 'saint', gold: 1200, itemId: 'clockwork-horn' },
     waves: [],
     reinforcement: { startMs: 5_000, intervalMs: 6_500, unitIds: ['militia', 'raider', 'archer'], maxAlive: 5 },
   },
@@ -316,7 +316,7 @@ function createLateStage(id: number): Omit<StageDefinition, 'fortressDistance' |
   const [name, subtitle] = lateStageNames[progress];
   const composition = boss ? [] : lateStageComposition(id);
   const waveInterval = Math.max(1_450, 2_150 - progress * 30);
-  const regionOpeningFortressBonus = !boss && id % 6 === 1 ? 1_250 + (id === 13 ? 500 : 0) : 0;
+  const regionOpeningFortressBonus = !boss && id % 6 === 1 ? 1_250 + (id === 13 ? 500 : id === 25 ? 1_400 : 0) : 0;
   const fortressHardening = 2_000 + progress * 250;
   const waves = composition.map(({ unitId, signature }, index) => ({
     timeMs: 700 + index * 4_500,
@@ -346,12 +346,16 @@ function createLateStage(id: number): Omit<StageDefinition, 'fortressDistance' |
       icon: '⚒', heroId: 'orcChampion', gold: 1_500,
     } : id === 18 ? {
       label: '해방군 기수 합류',
-      description: '영웅 브란이 합류하고 금화 1,800개를 획득합니다.',
-      icon: '⚑', heroId: 'marshal', gold: 1_800,
+      description: '영웅 브란, 금화 1,800개, 성채 아이템 수호자의 주춧돌을 획득합니다.',
+      icon: '⚑', heroId: 'marshal', gold: 1_800, itemId: 'guardian-keystone',
     } : id === 24 ? {
       label: '바람 정령의 자유 계약',
-      description: '영웅 네리스가 합류하고 금화 2,400개를 획득합니다.',
-      icon: '✧', heroId: 'windSpirit', gold: 2_400,
+      description: '영웅 네리스, 금화 2,400개, 성채 아이템 총병참관의 인장을 획득합니다.',
+      icon: '✧', heroId: 'windSpirit', gold: 2_400, itemId: 'quartermaster-seal',
+    } : id === 30 ? {
+      label: '마왕성 성화 렌즈',
+      description: '금화 3,000개와 5성 성채 아이템 성화 조준 렌즈를 획득합니다.',
+      icon: '◎', gold: 3_000, itemId: 'starfire-lens',
     } : {
       label: boss ? `${name} 정복 보급` : `${name} 원정 보급`,
       description: `최초 승리 보상으로 금화 ${(id * 100).toLocaleString()}개를 획득합니다.`,
@@ -580,6 +584,29 @@ export const farmingStages: StageDefinition[] = [
     ],
     reinforcement: { startMs: 30_000, intervalMs: 2_500, unitIds: ['swordsman', 'pikeman', 'archer', 'priest', 'mage'], maxAlive: 16 },
     firstClearReward: { label: '숙련 집중 훈련', description: '이 전투에서 획득하는 병사와 영웅의 전투 숙련 XP가 2배가 됩니다.', icon: '✦' },
+  },
+  {
+    id: 303, name: '마왕군 잔당 대토벌', subtitle: '대륙 탈환 뒤에도 균열에 남은 마왕군 정예를 상대로 자유 원정을 반복하세요.', reward: 5_000,
+    enemyCastleHp: 115_000, fortressDistance: MAX_FORTRESS_DISTANCE, sideMission: true, farmingKind: 'gold', requiredCampaignStage: 30, enemyFaction: 'demons',
+    enemyFortressAttack: { damage: 150, range: 540, intervalMs: 3_200 },
+    terrain: { id: 'free-expedition', name: '잔당 집결지', description: '패잔병이 아니라 마왕성에서 살아남은 정예 지휘관들이 최후의 군자금을 지킵니다.', enemyHpMultiplier: 1, enemyAttackMultiplier: 1, enemyMoveSpeedMultiplier: 1 },
+    gimmick: { name: '자유 원정 총력전', description: '세 정예 방어선과 지상·공중 혼성 증원을 모두 견뎌야 5,000골드 군자금을 회수할 수 있습니다.' },
+    enemyUpgrades: { equipment: { weapon: 5, armor: 5, boots: 5 } },
+    waves: [
+      { timeMs: 500, unitId: 'demonGuard', count: 5, intervalMs: 2_000 },
+      { timeMs: 5_000, unitId: 'demonMage', count: 4, intervalMs: 2_600 },
+      { timeMs: 10_000, unitId: 'gargoyle', count: 5, intervalMs: 2_100 },
+      { timeMs: 16_000, unitId: 'cerberus', count: 2, intervalMs: 4_500 },
+      { timeMs: 23_000, unitId: 'reaper', count: 2, intervalMs: 4_800 },
+      { timeMs: 31_000, unitId: 'abyssKnight', count: 2, intervalMs: 4_800 },
+    ],
+    eliteGuards: [
+      { unitId: 'demonGuard', name: '잔당 철벽대장', positionRatio: 0.38, hpMultiplier: 3, attackMultiplier: 1.5, defenseBonus: 12 },
+      { unitId: 'demonMage', name: '균열 전술대장', positionRatio: 0.64, hpMultiplier: 3, attackMultiplier: 1.55, defenseBonus: 10 },
+      { unitId: 'abyssKnight', name: '마왕성 최후의 기사', positionRatio: 0.87, hpMultiplier: 1.8, attackMultiplier: 1.45, defenseBonus: 12 },
+    ],
+    reinforcement: { startMs: 36_000, intervalMs: 2_200, unitIds: ['imp', 'succubus', 'demonGuard', 'demonMage', 'gargoyle'], maxAlive: 18 },
+    firstClearReward: { label: '자유 원정 군자금', description: '30장 이후 자유 원정에서 승리할 때마다 기본 5,000골드를 획득합니다.', icon: '♜' },
   },
 ];
 

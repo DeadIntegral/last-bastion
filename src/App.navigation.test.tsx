@@ -56,7 +56,8 @@ describe('title and kingdom-map navigation', () => {
 
     expect(host.querySelector('.shell-header h1')?.textContent).toBe('왕국 지도');
     const hubButtons = [...host.querySelectorAll<HTMLButtonElement>('.map-command-center button')];
-    expect(hubButtons).toHaveLength(9);
+    expect(hubButtons).toHaveLength(10);
+    expect(hubButtons.some((button) => button.textContent?.includes('원정 장비고'))).toBe(true);
     expect(hubButtons.some((button) => button.textContent?.includes('마수 도전'))).toBe(false);
     expect(hubButtons.some((button) => button.textContent?.includes('영웅 훈련소'))).toBe(false);
     const heroHallButton = hubButtons.find((button) => button.textContent?.includes('영웅의 전당'))!;

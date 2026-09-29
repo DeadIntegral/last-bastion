@@ -15,11 +15,18 @@ describe('campaign rewards', () => {
     }
   });
 
+  it('distributes every canonical item through campaign first clears', async () => {
+    const { itemOrder } = await import('./items');
+    expect(stages.flatMap((stage) => stage.firstClearReward.itemId ?? [])).toEqual(itemOrder);
+  });
+
   it('adds repeatable gold and mastery farms without advancing campaign progression', () => {
-    expect(farmingStages.map((stage) => stage.id)).toEqual([301, 302]);
-    expect(farmingStages.map((stage) => stage.farmingKind)).toEqual(['gold', 'mastery']);
+    expect(farmingStages.map((stage) => stage.id)).toEqual([301, 302, 303]);
+    expect(farmingStages.map((stage) => stage.farmingKind)).toEqual(['gold', 'mastery', 'gold']);
     expect(farmingStages[0].reward).toBe(2_000);
     expect(farmingStages[1].masteryRewardMultiplier).toBe(2);
+    expect(farmingStages[2].requiredCampaignStage).toBe(30);
+    expect(farmingStages[2].reward).toBe(5_000);
     for (const stage of farmingStages) {
       expect(stage.sideMission).toBe(true);
       expect(stage.challenge).not.toBe(true);

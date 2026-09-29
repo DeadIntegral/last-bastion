@@ -1,6 +1,6 @@
 # Last Bastion — Module and Dependency Map
 
-Last updated: 2026-09-29
+Last updated: 2026-09-30
 
 This document routes implementation work to the smallest owning context. It describes current code, not planned gameplay. Read it before a change crosses more than one source layer or moves responsibilities between files.
 
@@ -27,6 +27,7 @@ Phaser BattleScene       App navigation/shell
 | Context | Owner | May depend on | Must not own |
 |---|---|---|---|
 | Troop/hero/stage/castle content | `src/data/*` | `src/types` | React state, Phaser objects |
+| Item definitions/acquisition | `src/data/items.ts` + stage rewards | `src/types` | slot UI, Phaser objects |
 | Persistent campaign progression | `src/store/useGameStore.ts` | data, pure rules | screen layout, Phaser rendering |
 | Damage, ranges, upgrades, labels | `src/game/rules.ts` | types, data | live entities |
 | Line traversal and area targeting | `src/game/combatTargeting.ts` | types | Phaser containers, UI |
@@ -34,6 +35,7 @@ Phaser BattleScene       App navigation/shell
 | Live battle orchestration | `src/game/BattleScene.ts` | data, pure game modules, audio | persistent campaign mutation |
 | Battle HUD/input bridge | `src/components/BattleView.tsx` | event bus, store selectors | battle simulation |
 | Armory context | `src/components/Armory.tsx` | data, pure rules, store actions | routing, duplicated stats |
+| Item inventory/loadout | `src/components/ItemVault.tsx` | item data, store actions | combat stat formulas, routing |
 | Shared progression stat/equipment presentation | `src/components/ProgressionUi.tsx` | types only | store access, screen state |
 | Shared rounded React actions/filters | `src/components/GameButton.tsx` + `src/styles/components.css` | native button attributes, base tokens | screen state, gameplay rules |
 | App navigation and shared shell | `src/App.tsx` | screen components, store | extracted screen internals |

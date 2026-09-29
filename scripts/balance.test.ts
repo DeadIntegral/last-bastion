@@ -39,13 +39,15 @@ describe('campaign difficulty audit', () => {
 
   it('prices repeatable farms against later regional pressure', () => {
     const campaign = analyzeCampaignDifficulty(stages);
-    const benchmarkStageIds = [18, 24];
+    const benchmarkStageIds = [18, 24, 30];
     const report = farmingStages.map((stage, index) => {
       const pressure = analyzeStageDifficulty(stage).total;
       const milestone = campaign.stages.find((entry) => entry.stageId === benchmarkStageIds[index])!;
       return { id: stage.id, name: stage.name, unlock: stage.requiredCampaignStage, benchmark: milestone.stageId, pressure, ratio: Math.round(pressure / milestone.total * 100) / 100 };
     });
     console.table(report);
-    expect(report.every((entry) => entry.ratio >= 0.7 && entry.ratio <= 1.45)).toBe(true);
+    expect(report.slice(0, 2).every((entry) => entry.ratio >= 0.7 && entry.ratio <= 1.45)).toBe(true);
+    expect(report[2].ratio).toBeGreaterThanOrEqual(1.4);
+    expect(report[2].ratio).toBeLessThanOrEqual(1.8);
   });
 });

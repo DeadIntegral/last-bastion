@@ -11,7 +11,7 @@ describe('encrypted portable saves', () => {
     expect(envelope.version).toBe(ENCRYPTED_SAVE_VERSION);
     expect(envelope.protection).toBe('application-managed');
     expect(envelope.gameVersion).toBe('0.2.0');
-    expect(envelope.saveSchemaVersion).toBe(6);
+    expect(envelope.saveSchemaVersion).toBe(7);
     expect(envelope.encryption.algorithm).toBe('AES-GCM');
     expect(envelope.kdf.algorithm).toBe('PBKDF2');
     expect(envelope.kdf.iterations).toBe(SAVE_KDF_ITERATIONS);

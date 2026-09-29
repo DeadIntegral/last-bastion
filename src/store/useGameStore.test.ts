@@ -37,6 +37,21 @@ describe('shared troop progression', () => {
     expect(useGameStore.getState().stats.codexEntries).toBe(2);
   });
 
+  it('grants, validates, and migrates formation and fortress items', () => {
+    expect(useGameStore.getState().completeStage(4)?.itemId).toBe('veteran-standard');
+    expect(useGameStore.getState().ownedItems).toContain('veteran-standard');
+    expect(useGameStore.getState().assignFormationItem('veteran-standard', 0)).toBe(true);
+    expect(useGameStore.getState().assignFortressItem('veteran-standard', 0)).toBe(false);
+
+    expect(useGameStore.getState().completeStage(18)?.itemId).toBe('guardian-keystone');
+    expect(useGameStore.getState().assignFortressItem('guardian-keystone', 0)).toBe(true);
+    expect(useGameStore.getState().formationItemSlots[0]).toBe('veteran-standard');
+    expect(useGameStore.getState().fortressItemSlots[0]).toBe('guardian-keystone');
+
+    expect(useGameStore.getState().importSave(JSON.stringify({ unlockedStage: 25, clearedStages: [4, 8, 12, 18, 24] }))).toBe(true);
+    expect(useGameStore.getState().ownedItems).toEqual(expect.arrayContaining(['veteran-standard', 'runed-whetstone', 'clockwork-horn', 'guardian-keystone', 'quartermaster-seal']));
+  });
+
   it('grants the daily gem reward only once per local date key', () => {
     expect(useGameStore.getState().claimDailyReward()).toBe(true);
     expect(useGameStore.getState().gems).toBe(10);
