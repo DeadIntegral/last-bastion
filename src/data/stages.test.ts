@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { UNIT_IDS } from '../types/game';
 import { upgradedStats } from '../game/rules';
-import { advancedEnemyIntroductionStages, challengeStages, ENEMY_EQUIPMENT_MAX_LEVEL, MAX_FORTRESS_DISTANCE, MIN_FORTRESS_DISTANCE, stages, treasureStages } from './stages';
+import { advancedEnemyIntroductionStages, challengeStages, ENEMY_EQUIPMENT_MAX_LEVEL, farmingStages, MAX_FORTRESS_DISTANCE, MIN_FORTRESS_DISTANCE, stages, treasureStages } from './stages';
 import { mapTreasures } from './mapTreasures';
 import { allTroopOrder, rosterFactionById, troopDefinitions, unitFamilyById } from './units';
 
@@ -12,6 +12,19 @@ describe('campaign rewards', () => {
     for (const stage of stages) {
       expect(stage.firstClearReward.label.length).toBeGreaterThan(0);
       expect(stage.firstClearReward.description.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('adds repeatable gold and mastery farms without advancing campaign progression', () => {
+    expect(farmingStages.map((stage) => stage.id)).toEqual([301, 302]);
+    expect(farmingStages.map((stage) => stage.farmingKind)).toEqual(['gold', 'mastery']);
+    expect(farmingStages[0].reward).toBe(2_000);
+    expect(farmingStages[1].masteryRewardMultiplier).toBe(2);
+    for (const stage of farmingStages) {
+      expect(stage.sideMission).toBe(true);
+      expect(stage.challenge).not.toBe(true);
+      expect(stage.treasureId).toBeUndefined();
+      expect(stage.reinforcement).toBeDefined();
     }
   });
 

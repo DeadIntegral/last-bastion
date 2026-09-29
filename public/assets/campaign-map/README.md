@@ -7,8 +7,9 @@ Five original region panels form the two-dimensionally draggable continent map. 
 - Runtime panels: five 1400 × 630 lossy WebP files, quality 82, approximately 167–204 KB each.
 - Sources: five 1870 × 841 RGB PNG masters under `sources/`.
 - Runtime owner: `src/data/campaignMapArt.ts` defines order, names, six-stage ranges, image paths, two-dimensional region rectangles, node placement, marker art, and rift themes.
+- Gap filling: `campaignMapLandmarks` adds ten milestone-gated CSS-rendered terrain miniatures below roads and nodes, while `farmingMissionPresentation` places the repeatable Gold and mastery sites in two formerly empty pockets. These are code-native overlays and do not require additional bitmap sources.
 - Presentation: panels overlap across a 4,900 × 1,850 world; radial CSS edge masks soften seams while north/south regional movement makes vertical panning meaningful.
-- Node art: three dedicated 320 × 320 transparent WebP markers distinguish occupied outposts, boss citadels, and liberated keeps. They do not reuse side-view battle-fortress images.
+- Node art: three dedicated 320 × 320 transparent PNG markers distinguish occupied outposts, boss citadels, and liberated keeps. PNG is retained for these small overlays to avoid the pale square compositing artifact seen around cleared boss markers; they do not reuse side-view battle-fortress images.
 - Generation mode: built-in image generation tool.
 - Use case: `stylized-concept`.
 - Generated: 2026-09-27.
@@ -28,7 +29,7 @@ Region-specific final requests:
 
 ## Campaign-map fortress markers
 
-- Runtime: `markers/occupied-outpost.webp` (24 KB), `markers/boss-citadel.webp` (35 KB), and `markers/liberated-keep.webp` (32 KB), each 320 × 320 with real alpha.
+- Runtime: `markers/occupied-outpost.png`, `markers/boss-citadel.png`, and `markers/liberated-keep.png`, each 320 × 320 with real alpha and a versioned runtime URL.
 - Sources: matching 1254 × 1254 RGBA PNG masters under `markers/sources/`.
 - Generated with the built-in image generation tool on 2026-09-27 and optimized with `cwebp -q 88 -alpha_q 100 -m 6 -resize 320 320`.
 

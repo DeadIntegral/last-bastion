@@ -66,7 +66,8 @@ describe('campaign map pointer controls', () => {
     act(() => regionButtons[1].click());
     expect(map.scrollTo).toHaveBeenCalledWith({ left: 1_520, top: 940, behavior: 'smooth' });
     expect(host.querySelector('.campaign-map-world')?.getAttribute('style')).toContain('height: 1850px');
-    expect(host.querySelector<HTMLImageElement>('.fortress-beacon img')?.src).toContain('/assets/campaign-map/markers/liberated-keep.webp');
+    expect(host.querySelector<HTMLImageElement>('.fortress-beacon img')?.src).toContain('/assets/campaign-map/markers/liberated-keep.png');
+    expect(host.querySelectorAll('.map-landmark').length).toBeGreaterThan(0);
 
     expect(host.querySelector('.map-treasure-node')).toBeNull();
     const guardian = host.querySelector<HTMLButtonElement>('.treasure-guardian-node')!;
@@ -107,5 +108,15 @@ describe('campaign map pointer controls', () => {
     act(() => map.dispatchEvent(pointerEvent('pointermove', 80, 3, 60)));
     expect(map.scrollLeft).toBe(20);
     expect(map.scrollTop).toBe(40);
+  });
+
+  it('reveals repeatable farming nodes at their campaign milestones', () => {
+    act(() => useGameStore.setState({ unlockedStage: 13, clearedStages: Array.from({ length: 12 }, (_, index) => index + 1) }));
+    const goldFarm = host.querySelector<HTMLButtonElement>('.farming-map-node.farming-gold')!;
+    expect(goldFarm).toBeTruthy();
+    expect(host.querySelector('.farming-map-node.farming-mastery')).toBeNull();
+    act(() => goldFarm.click());
+    expect(host.querySelector('.map-mission.farming-gold')?.textContent).toContain('기본 2,000골드');
+    expect(host.querySelector('.map-mission.farming-gold')?.textContent).toContain('파밍 출정');
   });
 });

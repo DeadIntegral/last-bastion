@@ -3,7 +3,7 @@ import { flushSync } from 'react-dom';
 import { allTroopOrder, bossDefinition, heroDefinitions, heroOrder, troopDefinitions, unitGradeLabels, unitGradeStars } from './data/units';
 import { bossCodex, CODEX_TOTAL, codexEntryCount, heroCodex, troopCodex } from './data/codex';
 import { achievementById, achievementGroups, achievementProgress, achievements, featuredAchievement } from './data/achievements';
-import { CAMPAIGN_MAP_WORLD_HEIGHT, CAMPAIGN_MAP_WORLD_WIDTH, campaignMapMarkerArt, campaignMapRegions, campaignMapStagePosition, challengeRiftPresentation } from './data/campaignMapArt';
+import { CAMPAIGN_MAP_WORLD_HEIGHT, CAMPAIGN_MAP_WORLD_WIDTH, campaignMapLandmarks, campaignMapMarkerArt, campaignMapRegions, campaignMapStagePosition, challengeRiftPresentation, farmingMissionPresentation } from './data/campaignMapArt';
 import { canUpgradeCastleTech, castleBattleStats, castleTechChildren, castleTechCost, castleTechDefinitions, castleTechPrerequisiteStatus, castleTechRoots, fortressTierDefinitions, totalCastleResearch } from './data/castle';
 import { battleFormationCapacity, BATTLE_SPEED_LICENSE, DAILY_REWARD, FORMATION_SLOT_LICENSES, MAX_FORMATION_SLOT_PURCHASES } from './data/economy';
 import { TRIUMPH_MONUMENT, triumphMonumentBonuses, triumphMonumentCost } from './data/endgame';
@@ -11,7 +11,7 @@ import { gameFeatures, heroTrainingPackages, isGameFeatureUnlocked } from './dat
 import { OPENING_SCENE_DURATION_MS, openingScenes } from './data/opening';
 import { HERO_AWAKENING_LEVELS, HERO_MASTERY_MAX_LEVEL, heroAwakeningAuras, heroAwakeningSelfBonuses, heroMasteryGrowth, heroSkillPower } from './data/mastery';
 import { mapTreasures } from './data/mapTreasures';
-import { challengeStages, enemyFactionLabels, getStage, stages } from './data/stages';
+import { challengeStages, enemyFactionLabels, farmingStages, getStage, stages } from './data/stages';
 import { GAME_VERSION_LABEL } from './data/version';
 import { localDateKey } from './game/daily';
 import { analyzeCampaignDifficulty, stageDifficultyPresentation } from './game/difficulty';
@@ -608,14 +608,17 @@ export function StageSelect({ initialStageId, onBack, onSelect, onNavigate }: { 
   const selected = getStage(selectedId);
   const isChallenge = Boolean(selected.challenge);
   const isTreasureMission = Boolean(selected.sideMission && selected.treasureId);
+  const isFarmingMission = Boolean(selected.sideMission && selected.farmingKind);
   const selectedTreasure = isTreasureMission ? mapTreasures.find((treasure) => treasure.missionStageId === selected.id) : undefined;
-  const locked = isChallenge || isTreasureMission ? !clearedStages.includes(selected.requiredCampaignStage ?? 1) : selected.id > unlocked;
+  const selectedFarmingMission = isFarmingMission ? farmingMissionPresentation[selected.id as keyof typeof farmingMissionPresentation] : undefined;
+  const locked = isChallenge || isTreasureMission || isFarmingMission ? !clearedStages.includes(selected.requiredCampaignStage ?? 1) : selected.id > unlocked;
   const cleared = isChallenge
     ? clearedChallenges.includes(selected.id)
-    : isTreasureMission ? clearedMapTreasureGuardianIds.includes(selected.treasureId!) : clearedStages.includes(selected.id);
+    : isTreasureMission ? clearedMapTreasureGuardianIds.includes(selected.treasureId!) : isFarmingMission ? false : clearedStages.includes(selected.id);
   const visibleRegionCount = Math.min(5, Math.max(1, Math.ceil(unlocked / 6)));
   const visibleStages = stages.slice(0, visibleRegionCount * 6);
   const visibleChallenges = challengeStages.filter((challenge) => clearedStages.includes(challenge.requiredCampaignStage ?? 1));
+  const visibleFarmingMissions = farmingStages.filter((mission) => clearedStages.includes(mission.requiredCampaignStage ?? 1));
   const liberatedRegionCount = campaignMapRegions.filter((region) => clearedStages.includes(region.stageEnd)).length;
   const difficulty = stageDifficultyPresentation(selected, campaignDifficultyReport);
   const progressionStats = castleBattleStats(castleTechLevels);
@@ -642,10 +645,12 @@ export function StageSelect({ initialStageId, onBack, onSelect, onNavigate }: { 
     const map = mapRef.current;
     const position = isChallenge
       ? challengeMapPositions[selectedId]
-      : selectedTreasure ? { x: selectedTreasure.guardianX, y: selectedTreasure.guardianY } : mapPositions[selectedId - 1];
+      : selectedTreasure ? { x: selectedTreasure.guardianX, y: selectedTreasure.guardianY }
+        : selectedFarmingMission ? { x: selectedFarmingMission.x, y: selectedFarmingMission.y }
+          : mapPositions[selectedId - 1];
     if (!map || !position) return;
     map.scrollTo({ left: Math.max(0, position.x - map.clientWidth / 2), top: Math.max(0, position.y - map.clientHeight / 2), behavior: 'auto' });
-  }, [isChallenge, selectedId, selectedTreasure, visibleRegionCount]);
+  }, [isChallenge, selectedFarmingMission, selectedId, selectedTreasure, visibleRegionCount]);
 
   const startMapDrag = (event: ReactPointerEvent<HTMLElement>) => {
     if (event.button !== 0) return;
@@ -728,7 +733,7 @@ export function StageSelect({ initialStageId, onBack, onSelect, onNavigate }: { 
         <div className="map-content-column">
           <section className="map-heading">
             <div><span className="eyebrow">CAMPAIGN MAP</span><h2>대륙 탈환의 길</h2></div>
-            <p><strong>해금 {Math.min(unlocked, stages.length)}/{stages.length} · 해방 {liberatedRegionCount}/{campaignMapRegions.length} · 마수 영역 {visibleChallenges.length}/{challengeStages.length} · 지도를 상하좌우로 이동</strong><br />{visibleRegionCount > 1 ? `${campaignMapRegions[visibleRegionCount - 1].name}까지 원정로가 개방되었습니다.` : '마왕군에게 빼앗긴 대륙을 서부 변경부터 되찾으세요.'}</p>
+            <p><strong>해금 {Math.min(unlocked, stages.length)}/{stages.length} · 해방 {liberatedRegionCount}/{campaignMapRegions.length} · 마수 영역 {visibleChallenges.length}/{challengeStages.length} · {t('보급 거점 {current}/{total}', { current: visibleFarmingMissions.length, total: farmingStages.length })}</strong><br />{visibleRegionCount > 1 ? `${campaignMapRegions[visibleRegionCount - 1].name}까지 원정로가 개방되었습니다.` : '마왕군에게 빼앗긴 대륙을 서부 변경부터 되찾으세요.'}</p>
           </section>
           <nav className="map-region-nav" aria-label="지역 바로가기">
             {campaignMapRegions.slice(0, visibleRegionCount).map((region, index) => {
@@ -759,6 +764,11 @@ export function StageSelect({ initialStageId, onBack, onSelect, onNavigate }: { 
               </div>
             </Fragment>;
           })}
+          {campaignMapLandmarks.filter((landmark) => landmark.requiredStage <= unlocked).map((landmark) => (
+            <div className={`map-landmark landmark-${landmark.theme}`} style={{ left: `${landmark.x}px`, top: `${landmark.y}px` }} aria-hidden="true" key={landmark.id}>
+              <i>{landmark.symbol}</i><span>{landmark.label}</span>
+            </div>
+          ))}
           <svg className="campaign-road" viewBox={`0 0 ${mapWidth} ${mapHeight}`} preserveAspectRatio="none" aria-hidden="true">
             <path d={roadPath} />
             {roadSegments.map((segment) => <line className={`road-segment ${segment.state}`} x1={segment.from.x} y1={segment.from.y} x2={segment.to.x} y2={segment.to.y} key={segment.id} />)}
@@ -801,6 +811,21 @@ export function StageSelect({ initialStageId, onBack, onSelect, onNavigate }: { 
               </button>
             );
           })}
+          {visibleFarmingMissions.map((mission) => {
+            const presentation = farmingMissionPresentation[mission.id as keyof typeof farmingMissionPresentation];
+            return <button
+              type="button"
+              className={`map-node farming-map-node farming-${presentation.theme} ${selectedId === mission.id ? 'selected' : ''}`}
+              style={{ left: `${presentation.x}px`, top: `${presentation.y}px` }}
+              onClick={(event) => selectMapStage(event, mission.id)}
+              aria-label={t('{name}, 반복 {kind} 파밍', { name: t(mission.name), kind: t(mission.farmingKind === 'gold' ? '골드' : '숙련 경험치') })}
+              key={mission.id}
+            >
+              <span className="farming-node-beacon" aria-hidden="true"><i>{presentation.symbol}</i></span>
+              <strong>{mission.name}</strong>
+              <small>{mission.farmingKind === 'gold' ? 'GOLD SUPPLY' : t('전투 숙련 XP ×{multiplier}', { multiplier: mission.masteryRewardMultiplier ?? 1 })}</small>
+            </button>;
+          })}
           {mapTreasures.filter((treasure) => clearedStages.includes(treasure.revealStage)).map((treasure) => {
             const defeated = clearedMapTreasureGuardianIds.includes(treasure.id);
             return <Fragment key={`guardian-${treasure.id}`}>
@@ -821,9 +846,9 @@ export function StageSelect({ initialStageId, onBack, onSelect, onNavigate }: { 
           </div>
         </section>
 
-        <aside className={`map-mission ${selected.boss ? 'boss-mission' : ''} ${isChallenge ? 'challenge-mission' : ''} ${isTreasureMission ? 'treasure-mission' : ''}`}>
-          <div className="mission-number">{isChallenge ? '☠' : isTreasureMission ? '▣' : selected.boss ? '◉' : String(selected.id).padStart(2, '0')}</div>
-          <span className="eyebrow">{isChallenge ? 'BEAST CHALLENGE' : isTreasureMission ? 'TREASURE EXPEDITION' : selected.boss ? 'BOSS SIEGE' : `CHAPTER ${selected.id}`}</span>
+        <aside className={`map-mission ${selected.boss ? 'boss-mission' : ''} ${isChallenge ? 'challenge-mission' : ''} ${isTreasureMission ? 'treasure-mission' : ''} ${isFarmingMission ? `farming-mission farming-${selected.farmingKind}` : ''}`}>
+          <div className="mission-number">{isChallenge ? '☠' : isTreasureMission ? '▣' : isFarmingMission ? selected.farmingKind === 'gold' ? '●' : '✦' : selected.boss ? '◉' : String(selected.id).padStart(2, '0')}</div>
+          <span className="eyebrow">{isChallenge ? 'BEAST CHALLENGE' : isTreasureMission ? 'TREASURE EXPEDITION' : isFarmingMission ? selected.farmingKind === 'gold' ? 'GOLD SUPPLY CONTRACT' : 'MASTERY TRAINING' : selected.boss ? 'BOSS SIEGE' : `CHAPTER ${selected.id}`}</span>
           <h2>{selected.name}</h2>
           <div className={`difficulty difficulty-rank-${difficulty.rank}`} aria-label={`병력과 목표 데이터 기반 전투 평가 ${difficulty.label}, 5단계 중 ${difficulty.rank}단계`} title={`위협 지수 ${difficulty.threatIndex} · 성채, 병력, 증원, 정예, 보스, 전장 거리 분석`}>
             <span>전투 평가 <strong>{difficulty.label}</strong></span>
@@ -832,16 +857,19 @@ export function StageSelect({ initialStageId, onBack, onSelect, onNavigate }: { 
           </div>
           <p>{locked ? '안개 너머의 지역입니다. 이전 전장을 먼저 정복해야 합니다.' : selected.subtitle}</p>
           <div className="stage-context"><span>적 세력 <b>{enemyFactionLabels[selected.enemyFaction]}</b></span><span>지형 <b>{selected.terrain.name}</b></span></div>
-          {isTreasureMission && selected.gimmick && <div className="treasure-gimmick-preview"><small>TACTICAL GIMMICK</small><strong>{selected.gimmick.name}</strong><span>{selected.gimmick.description}</span></div>}
+          {(isTreasureMission || isFarmingMission) && selected.gimmick && <div className="treasure-gimmick-preview"><small>TACTICAL GIMMICK</small><strong>{selected.gimmick.name}</strong><span>{selected.gimmick.description}</span></div>}
           {isChallenge && <div className="challenge-terrain-preview"><small>TERRAIN AMPLIFICATION</small><strong>적 HP ×{selected.terrain.enemyHpMultiplier} · 공격 ×{selected.terrain.enemyAttackMultiplier}</strong><span>{selected.terrain.description}</span></div>}
-          <div className="mission-objective"><small>MISSION · 전선 거리 {selected.fortressDistance}</small><strong>{isChallenge ? `${selected.bossName ?? selected.name} 단독 격파` : isTreasureMission ? '기믹 방어선을 돌파하고 보물 수비 성채 파괴' : selected.boss ? '성채 수비대와 마수를 돌파하고 적 성채 파괴' : '적 성채 파괴'}</strong></div>
+          <div className="mission-objective"><small>MISSION · 전선 거리 {selected.fortressDistance}</small><strong>{isChallenge ? `${selected.bossName ?? selected.name} 단독 격파` : isTreasureMission ? '기믹 방어선을 돌파하고 보물 수비 성채 파괴' : isFarmingMission ? '반복 방어선을 돌파하고 보급 거점 성채 파괴' : selected.boss ? '성채 수비대와 마수를 돌파하고 적 성채 파괴' : '적 성채 파괴'}</strong></div>
           {selected.enemyFortressAttack && <div className="elite-guard-preview"><small>FORTRESS FIRE</small><strong>적 성채 수비 사격</strong><span>사거리 {selected.enemyFortressAttack.range} · 공격 {selected.enemyFortressAttack.damage} · {(selected.enemyFortressAttack.intervalMs / 1000).toFixed(1)}초 간격</span></div>}
           {selected.eliteGuards && selected.eliteGuards.length > 0 && <div className="elite-guard-preview"><small>ELITE DEFENDERS · {selected.eliteGuards.length}</small><strong>{selected.eliteGuards.map((elite) => elite.name).join(' · ')}</strong><span>전선 거점에 배치된 중간 우두머리 · 상세 강화 수치는 비공개</span></div>}
-          <div className={`first-clear-reward ${cleared ? 'claimed' : ''}`}>
+          {isFarmingMission ? <div className="first-clear-reward farming-contract">
+            <span>{selected.firstClearReward.icon}</span>
+            <div><small>REPEATABLE CONTRACT</small><strong>{selected.firstClearReward.label}</strong><p>{selected.firstClearReward.description}</p>{selected.masteryRewardMultiplier && <em>{t('전투 숙련 XP ×{multiplier}', { multiplier: selected.masteryRewardMultiplier })}</em>}</div>
+          </div> : <div className={`first-clear-reward ${cleared ? 'claimed' : ''}`}>
             <span>{selected.firstClearReward.icon}</span>
             <div><small>{cleared ? 'FIRST CLEAR · 획득 완료' : 'FIRST CLEAR REWARD'}</small><strong>{selected.firstClearReward.label}</strong><p>{selected.firstClearReward.description}</p>{displayedFirstClearGold !== undefined && <em>{isTreasureMission ? '보물 골드' : '연구 적용 골드'} ● {displayedFirstClearGold}</em>}</div>
-          </div>
-          <div className="mission-footer"><span>{isChallenge || isTreasureMission ? '반복 보상' : '기본 보상'} <strong>● {displayedBattleReward}</strong>{progressionStats.battleGoldMultiplier > 1 && <small>전리품 회계 +{Math.round((progressionStats.battleGoldMultiplier - 1) * 100)}%</small>}</span><button disabled={locked} onClick={() => onSelect(selected.id)}>{locked ? '경로 잠김' : isChallenge ? cleared ? '다시 도전' : '마수에 도전' : isTreasureMission ? cleared ? '다시 수복전' : '보물 수복전' : cleared ? '다시 출정' : '출정하기'}</button></div>
+          </div>}
+          <div className="mission-footer"><span>{isChallenge || isTreasureMission || isFarmingMission ? '반복 보상' : '기본 보상'} <strong>● {displayedBattleReward}</strong>{progressionStats.battleGoldMultiplier > 1 && <small>전리품 회계 +{Math.round((progressionStats.battleGoldMultiplier - 1) * 100)}%</small>}{selected.masteryRewardMultiplier && <small>{t('전투 숙련 XP ×{multiplier}', { multiplier: selected.masteryRewardMultiplier })}</small>}</span><button disabled={locked} onClick={() => onSelect(selected.id)}>{locked ? '경로 잠김' : isChallenge ? cleared ? '다시 도전' : '마수에 도전' : isTreasureMission ? cleared ? '다시 수복전' : '보물 수복전' : isFarmingMission ? '파밍 출정' : cleared ? '다시 출정' : '출정하기'}</button></div>
             </aside>
           </div>
         </div>
@@ -1455,7 +1483,8 @@ export default function App() {
     const firstClearReward = battleResult.victory
       ? playedStage.challenge
         ? completeChallenge(battleResult.stageId)
-        : playedStage.sideMission ? completeTreasureMission(battleResult.stageId) : completeStage(campaignClearId)
+        : playedStage.farmingKind ? undefined
+          : playedStage.sideMission ? completeTreasureMission(battleResult.stageId) : completeStage(campaignClearId)
       : undefined;
     const record = recordBattle(battleResult);
     setResult({ ...battleResult, reward: battleGoldReward, newAchievements: record.unlocked, masteryGains: record.gains, firstClearReward });

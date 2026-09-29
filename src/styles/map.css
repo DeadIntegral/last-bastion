@@ -155,6 +155,17 @@
 .map-region-zone.liberated .region-state { border-left-color: var(--gold); background: rgba(25,33,28,.58); }
 .map-region-zone.liberated .region-state b { color: #e7d8a9; }
 .map-region-zone.liberated .region-state small { color: #b9d493; }
+.map-landmark { position: absolute; z-index: 2; width: 132px; height: 82px; display: grid; place-items: center; transform: translate(-50%, -50%); pointer-events: none; opacity: .56; filter: drop-shadow(0 9px 8px rgba(0,0,0,.42)); }
+.map-landmark::before { content: ''; position: absolute; inset: 18px 8px 4px; border-radius: 50%; background: radial-gradient(ellipse, rgba(40,57,57,.8), rgba(12,23,28,.12) 68%, transparent 72%); }
+.map-landmark i { position: relative; color: #768b82; font: normal 48px Georgia,serif; letter-spacing: -18px; text-shadow: -18px 7px rgba(42,58,54,.72), 17px 9px rgba(31,47,47,.68); }
+.map-landmark span { position: absolute; bottom: -2px; padding: 2px 7px; border-left: 1px solid rgba(194,183,139,.28); background: rgba(9,17,21,.44); color: rgba(194,199,181,.58); font-size: 8px; letter-spacing: .08em; }
+.map-landmark.landmark-water i { color: #668899; font-size: 55px; letter-spacing: -9px; text-shadow: 0 8px rgba(62,93,103,.38), 0 16px rgba(37,66,77,.3); }
+.map-landmark.landmark-forest i, .map-landmark.landmark-frost i { color: #607b66; text-shadow: -20px 8px rgba(50,78,60,.62), 18px 10px rgba(38,61,51,.7); }
+.map-landmark.landmark-frost i { color: #91aeb3; }
+.map-landmark.landmark-volcanic i { color: #85584c; text-shadow: -18px 8px rgba(94,50,42,.7), 18px 9px rgba(62,40,40,.74), 0 -7px 15px rgba(195,84,51,.26); }
+.map-landmark.landmark-ruin i { color: #80786d; text-shadow: 13px 8px rgba(56,54,54,.74); }
+.map-landmark.landmark-spirit i { color: #82aaa9; text-shadow: 0 0 16px rgba(99,191,187,.42); }
+.map-landmark.landmark-abyss i { color: #76546f; text-shadow: -14px 8px rgba(69,38,66,.72), 15px 6px rgba(47,31,58,.76), 0 0 18px rgba(166,68,145,.28); }
 .liberation-beacon { position: absolute; z-index: 1; left: 58%; top: 28%; width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid rgba(234,204,123,.48); border-radius: 50%; background: radial-gradient(circle, rgba(240,202,104,.3), rgba(55,72,48,.52) 55%, transparent 58%); box-shadow: 0 0 22px rgba(232,196,99,.36); color: #f2d47d; }
 .liberation-beacon::before { content: ''; position: absolute; left: 16px; top: -16px; width: 2px; height: 34px; background: #bda468; }
 .liberation-beacon::after { content: ''; position: absolute; left: 18px; top: -13px; width: 25px; height: 14px; background: linear-gradient(135deg, #335f82, #203d59); border: 1px solid #c8ab62; clip-path: polygon(0 0, 100% 12%, 78% 52%, 100% 92%, 0 100%); }
@@ -213,6 +224,18 @@
 .challenge-map-node strong { color: #ffd1bc; background: rgba(34,10,17,.84); }
 .challenge-map-node small { color: #d07f70; }
 .challenge-map-node.cleared .node-beacon { background: radial-gradient(circle, #4f745b, #233529 68%); border-color: #a7d7af; }
+.farming-map-node { z-index: 7; width: 148px; }
+.farming-node-beacon { position: relative; width: 70px; height: 62px; margin: 0 auto 7px; display: grid; place-items: center; clip-path: polygon(50% 0,88% 19%,100% 58%,72% 100%,28% 100%,0 58%,12% 19%); border: 0; background: linear-gradient(145deg, #765a25, #2b291e 72%); box-shadow: inset 0 0 0 2px rgba(238,198,96,.58), 0 0 24px rgba(221,176,68,.28); transition: transform .18s ease, filter .18s ease; }
+.farming-node-beacon::before { content: ''; position: absolute; inset: 7px; clip-path: inherit; border: 1px solid rgba(255,226,146,.42); background: radial-gradient(circle, rgba(244,199,79,.32), transparent 66%); }
+.farming-node-beacon i { position: relative; color: #ffe49a; font: normal 26px Georgia,serif; text-shadow: 0 0 12px rgba(255,210,98,.58); }
+.farming-map-node strong { color: #ffe19a; border: 1px solid rgba(221,180,83,.3); background: rgba(42,31,13,.88); }
+.farming-map-node small { color: #ddb85e; }
+.farming-map-node.farming-mastery .farming-node-beacon { background: linear-gradient(145deg, #356a78, #202a3e 72%); box-shadow: inset 0 0 0 2px rgba(130,219,230,.58), 0 0 26px rgba(83,187,210,.32); }
+.farming-map-node.farming-mastery .farming-node-beacon::before { border-color: rgba(190,241,247,.44); background: radial-gradient(circle, rgba(104,210,224,.3), transparent 66%); }
+.farming-map-node.farming-mastery .farming-node-beacon i { color: #c9f6f8; text-shadow: 0 0 12px rgba(112,222,234,.62); }
+.farming-map-node.farming-mastery strong { color: #c9f3f5; border-color: rgba(104,196,211,.32); background: rgba(17,38,48,.9); }
+.farming-map-node.farming-mastery small { color: #77c8d3; }
+.farming-map-node:hover .farming-node-beacon, .farming-map-node.selected .farming-node-beacon { transform: translateY(-3px) scale(1.1); filter: brightness(1.18); }
 .map-treasure-node { z-index: 6; width: 130px; }
 .treasure-guardian-node { z-index: 6; width: 150px; }
 .treasure-guardian-crest { position: relative; width: 78px; height: 78px; margin: 0 auto 7px; display: grid; place-items: center; border: 2px solid #dc6b55; border-radius: 50%; background: radial-gradient(circle, rgba(126,45,42,.82), rgba(25,19,28,.94) 70%); box-shadow: 0 0 0 7px rgba(171,53,48,.11), 0 0 28px rgba(201,71,57,.38); overflow: hidden; }
@@ -244,6 +267,9 @@
 .map-mission.boss-mission { background: linear-gradient(165deg, rgba(62,35,40,.98), rgba(22,20,27,.98)); border-color: rgba(220,102,79,.3); }
 .map-mission.challenge-mission { background: radial-gradient(circle at 75% 8%, rgba(191,67,54,.2), transparent 30%), linear-gradient(165deg, rgba(65,29,35,.99), rgba(20,18,26,.99)); border-color: rgba(232,112,85,.48); }
 .map-mission.treasure-mission { background: radial-gradient(circle at 76% 8%, rgba(221,189,112,.2), transparent 30%), linear-gradient(165deg, rgba(57,49,34,.99), rgba(18,24,28,.99)); border-color: rgba(221,189,112,.46); }
+.map-mission.farming-mission { background: radial-gradient(circle at 76% 8%, rgba(211,170,76,.2), transparent 31%), linear-gradient(165deg, rgba(55,44,27,.99), rgba(18,24,28,.99)); border-color: rgba(217,178,82,.44); }
+.map-mission.farming-mastery { background: radial-gradient(circle at 76% 8%, rgba(93,194,210,.2), transparent 31%), linear-gradient(165deg, rgba(27,51,61,.99), rgba(17,24,34,.99)); border-color: rgba(103,196,211,.44); }
+.first-clear-reward.farming-contract { border-color: rgba(120,194,205,.34); background: rgba(34,77,84,.18); opacity: 1; filter: none; }
 .mission-number { position: absolute; right: 18px; top: 10px; color: rgba(196,216,219,.08); font: 800 84px 'Cinzel'; }
 .map-mission h2 { position: relative; margin: 5px 0 7px; font-size: 27px; }
 .map-mission > p { min-height: 55px; margin: 16px 0; color: #8d9ca5; font-size: 11px; line-height: 1.7; }

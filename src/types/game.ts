@@ -129,6 +129,8 @@ export interface StageDefinition {
   bossUnitId?: UnitId;
   challenge?: boolean;
   sideMission?: boolean;
+  farmingKind?: 'gold' | 'mastery';
+  masteryRewardMultiplier?: number;
   treasureId?: MapTreasureId;
   gimmick?: { name: string; description: string };
   requiredCampaignStage?: number;

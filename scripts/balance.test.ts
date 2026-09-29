@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stages, treasureStages } from '../src/data/stages';
+import { farmingStages, stages, treasureStages } from '../src/data/stages';
 import { analyzeCampaignDifficulty, analyzeStageDifficulty, difficultyAuditFailures } from '../src/game/difficulty';
 import { mapTreasureById } from '../src/data/mapTreasures';
 
@@ -34,6 +34,18 @@ describe('campaign difficulty audit', () => {
     });
     console.table(report);
     expect(report.every((entry, index) => index === 0 || entry.pressure > report[index - 1].pressure)).toBe(true);
+    expect(report.every((entry) => entry.ratio >= 0.7 && entry.ratio <= 1.45)).toBe(true);
+  });
+
+  it('prices repeatable farms against later regional pressure', () => {
+    const campaign = analyzeCampaignDifficulty(stages);
+    const benchmarkStageIds = [18, 24];
+    const report = farmingStages.map((stage, index) => {
+      const pressure = analyzeStageDifficulty(stage).total;
+      const milestone = campaign.stages.find((entry) => entry.stageId === benchmarkStageIds[index])!;
+      return { id: stage.id, name: stage.name, unlock: stage.requiredCampaignStage, benchmark: milestone.stageId, pressure, ratio: Math.round(pressure / milestone.total * 100) / 100 };
+    });
+    console.table(report);
     expect(report.every((entry) => entry.ratio >= 0.7 && entry.ratio <= 1.45)).toBe(true);
   });
 });

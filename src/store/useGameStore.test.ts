@@ -109,6 +109,17 @@ describe('shared troop progression', () => {
     ]));
   });
 
+  it('applies a farming-stage mastery multiplier after contribution calculation', () => {
+    const result = encounterResult([]);
+    result.stageId = 302;
+    result.summons.militia = 1;
+    const record = useGameStore.getState().recordBattle(result);
+    expect(record.gains).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'militia', amount: 20, participationAmount: 20, contributionAmount: 0 }),
+      expect.objectContaining({ id: 'warden', amount: 42, participationAmount: 42, contributionAmount: 0 }),
+    ]));
+  });
+
   it('applies the battle-gold multiplier to first-clear gold', () => {
     const castleTechLevels = emptyCastleTech();
     castleTechLevels.spoils_accounting = 2;

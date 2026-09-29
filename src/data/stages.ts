@@ -540,7 +540,51 @@ export const treasureStages: StageDefinition[] = [
   },
 ];
 
+export const farmingStages: StageDefinition[] = [
+  {
+    id: 301, name: '황금 수송로 탈환전', subtitle: '마왕군의 세금 수송대를 차단하고 왕국의 원정 자금을 반복 확보하세요.', reward: 2_000,
+    enemyCastleHp: 33_000, fortressDistance: 1_300, sideMission: true, farmingKind: 'gold', requiredCampaignStage: 12, enemyFaction: 'mixed',
+    terrain: { id: 'golden-route', name: '황금 수송로', description: '왕도와 고원을 잇는 넓은 교역로로, 수송 호위대가 여러 방향에서 합류합니다.', enemyHpMultiplier: 1, enemyAttackMultiplier: 1, enemyMoveSpeedMultiplier: 1 },
+    gimmick: { name: '순환 호위대', description: '빠른 기병과 단단한 수호병이 교대로 수송 거점을 보충하므로 한 역할만으로는 돌파하기 어렵습니다.' },
+    enemyUpgrades: { equipment: { weapon: 5, armor: 5, boots: 4 } },
+    waves: [
+      { timeMs: 700, unitId: 'guardian', count: 4, intervalMs: 2_200 },
+      { timeMs: 5_000, unitId: 'cavalry', count: 3, intervalMs: 2_500 },
+      { timeMs: 10_000, unitId: 'crossbow', count: 4, intervalMs: 2_400 },
+      { timeMs: 16_000, unitId: 'priest', count: 2, intervalMs: 3_200 },
+    ],
+    eliteGuards: [
+      { unitId: 'cavalry', name: '왕도 세금 호송대장', positionRatio: 0.55, hpMultiplier: 2.2, attackMultiplier: 1.3, defenseBonus: 6 },
+      { unitId: 'guardian', name: '금고 마차 수문장', positionRatio: 0.84, hpMultiplier: 2.5, attackMultiplier: 1.25, defenseBonus: 8 },
+    ],
+    reinforcement: { startMs: 26_000, intervalMs: 2_600, unitIds: ['guardian', 'cavalry', 'crossbow', 'priest'], maxAlive: 15 },
+    firstClearReward: { label: '반복 금화 계약', description: '승리할 때마다 기본 2,000골드를 획득하며 전리품 회계 연구가 적용됩니다.', icon: '●' },
+  },
+  {
+    id: 302, name: '왕립 대훈련장', subtitle: '해방군 정예와 장기 모의전을 치러 편성 병종과 영웅의 숙련 경험치를 빠르게 쌓으세요.', reward: 700,
+    enemyCastleHp: 55_000, fortressDistance: 1_360, sideMission: true, farmingKind: 'mastery', masteryRewardMultiplier: 2, requiredCampaignStage: 18, enemyFaction: 'betrayers',
+    terrain: { id: 'royal-training-ground', name: '왕립 대훈련장', description: '넓은 훈련장에 수호·치유·원거리 교관대가 차례로 투입됩니다.', enemyHpMultiplier: 1, enemyAttackMultiplier: 1, enemyMoveSpeedMultiplier: 1 },
+    gimmick: { name: '실전 순환 훈련', description: '오래 생존하며 공격·탱킹·치유·보호에 기여할수록 숙련 기여 XP가 함께 증가합니다.' },
+    enemyUpgrades: { equipment: { weapon: 5, armor: 5, boots: 5 } },
+    waves: [
+      { timeMs: 600, unitId: 'swordsman', count: 4, intervalMs: 2_000 },
+      { timeMs: 5_500, unitId: 'pikeman', count: 4, intervalMs: 2_200 },
+      { timeMs: 10_500, unitId: 'archer', count: 4, intervalMs: 2_300 },
+      { timeMs: 16_000, unitId: 'priest', count: 3, intervalMs: 3_000 },
+      { timeMs: 22_000, unitId: 'mage', count: 3, intervalMs: 3_200 },
+    ],
+    eliteGuards: [
+      { unitId: 'swordsman', name: '왕립 검술 교관', positionRatio: 0.38, hpMultiplier: 2.4, attackMultiplier: 1.35, defenseBonus: 7 },
+      { unitId: 'priest', name: '야전 의무 교관', positionRatio: 0.64, hpMultiplier: 2.2, attackMultiplier: 1.3, defenseBonus: 6 },
+      { unitId: 'mage', name: '전술 마법 교관', positionRatio: 0.86, hpMultiplier: 2.3, attackMultiplier: 1.4, defenseBonus: 6 },
+    ],
+    reinforcement: { startMs: 30_000, intervalMs: 2_500, unitIds: ['swordsman', 'pikeman', 'archer', 'priest', 'mage'], maxAlive: 16 },
+    firstClearReward: { label: '숙련 집중 훈련', description: '이 전투에서 획득하는 병사와 영웅의 전투 숙련 XP가 2배가 됩니다.', icon: '✦' },
+  },
+];
+
 export const getStage = (id: number) => stages.find((stage) => stage.id === id)
   ?? challengeStages.find((stage) => stage.id === id)
   ?? treasureStages.find((stage) => stage.id === id)
+  ?? farmingStages.find((stage) => stage.id === id)
   ?? stages[0];

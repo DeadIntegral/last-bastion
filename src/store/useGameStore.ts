@@ -536,7 +536,8 @@ export const useGameStore = create<GameProfile>()(
         };
 
         const gains: BattleRecord['gains'] = [];
-        const masteryXpMultiplier = castleBattleStats(state.castleTechLevels).masteryXpMultiplier;
+        const masteryXpMultiplier = castleBattleStats(state.castleTechLevels).masteryXpMultiplier
+          * (getStage(result.stageId).masteryRewardMultiplier ?? 1);
         const nextUnitXp = { ...state.unitMasteryXp };
         for (const [id, count] of Object.entries(result.summons) as Array<[UnitId, number]>) {
           if (count <= 0) continue;

@@ -22,9 +22,9 @@ export const campaignMapRegions: readonly CampaignMapRegionDefinition[] = [
 ];
 
 export const campaignMapMarkerArt = {
-  occupied: '/assets/campaign-map/markers/occupied-outpost.webp',
-  boss: '/assets/campaign-map/markers/boss-citadel.webp',
-  liberated: '/assets/campaign-map/markers/liberated-keep.webp',
+  occupied: '/assets/campaign-map/markers/occupied-outpost.png?v=2',
+  boss: '/assets/campaign-map/markers/boss-citadel.png?v=2',
+  liberated: '/assets/campaign-map/markers/liberated-keep.png?v=2',
 } as const;
 
 export const challengeRiftPresentation = {
@@ -36,6 +36,24 @@ export const challengeRiftPresentation = {
   'sun-prison': { theme: 'sun', symbol: '☼' },
   'sky-throne': { theme: 'sky', symbol: '♛' },
 } as const;
+
+export const farmingMissionPresentation = {
+  301: { x: 1_520, y: 290, theme: 'gold', symbol: '●', label: '황금 수송로' },
+  302: { x: 2_440, y: 1_510, theme: 'mastery', symbol: '✦', label: '왕립 훈련장' },
+} as const;
+
+export const campaignMapLandmarks = [
+  { id: 'western-cliffs', requiredStage: 1, theme: 'mountain', symbol: '▲', label: '서부 해안 절벽', x: 170, y: 1_720 },
+  { id: 'border-woods', requiredStage: 1, theme: 'forest', symbol: '♣', label: '잿빛 수림', x: 760, y: 900 },
+  { id: 'royal-lake', requiredStage: 7, theme: 'water', symbol: '≈', label: '왕도 수원', x: 1_390, y: 1_430 },
+  { id: 'old-aqueduct', requiredStage: 7, theme: 'ruin', symbol: '⌂', label: '붕괴한 수로교', x: 1_880, y: 900 },
+  { id: 'ash-peaks', requiredStage: 13, theme: 'volcanic', symbol: '▲', label: '잿불 봉우리', x: 2_650, y: 170 },
+  { id: 'highland-falls', requiredStage: 13, theme: 'water', symbol: '≈', label: '고원 폭포', x: 2_330, y: 920 },
+  { id: 'tundra-pines', requiredStage: 19, theme: 'frost', symbol: '♠', label: '서리 침엽림', x: 3_300, y: 1_690 },
+  { id: 'spirit-lake', requiredStage: 19, theme: 'spirit', symbol: '◇', label: '정령 거울호', x: 3_600, y: 950 },
+  { id: 'demon-spires', requiredStage: 25, theme: 'abyss', symbol: '†', label: '마계 첨탑군', x: 4_430, y: 1_300 },
+  { id: 'rift-waste', requiredStage: 25, theme: 'abyss', symbol: '◈', label: '균열 황무지', x: 4_650, y: 520 },
+] as const;
 
 const localX = [250, 430, 620, 800, 1_000, 1_180] as const;
 const localY = [

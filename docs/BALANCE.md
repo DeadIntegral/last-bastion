@@ -27,6 +27,13 @@ This is the canonical reference for implemented economy, progression, combat, an
 | 균열 봉인고 공성전 | 25 | 3,000 | 1,000 | ×1.00 vs stage 30 |
 
 The total one-time map-treasure income is 9,000 Gold. It is excluded from the no-repeat normal-progression budget because every chest requires defeating an optional encounter benchmarked near that region's later boss, not merely clearing the reveal stage. The separate side-mission audit requires pressure to rise monotonically and remain between ×0.70 and ×1.45 of its region boss; current missions range from ×0.76 to ×1.00 after the introductory ×0.85 encounter.
+
+| Repeatable farm | Unlock clear | Base Gold | Battle mastery | Pressure benchmark |
+|---|---:|---:|---:|---|
+| 황금 수송로 탈환전 | 12 | 2,000 | ×1 | ×0.72 vs stage 18 |
+| 왕립 대훈련장 | 18 | 700 | ×2 | ×0.73 vs stage 24 |
+
+Farms are ordinary recorded victories or defeats and therefore still grant role-contribution mastery, encounter discovery, statistics, and achievements. They never advance `unlockedStage`, create a persisted first-clear reward, or reveal a treasure. Spoils Accounting multiplies their listed Gold. Royal Field Manuals multiply the complete mastery total after the training-ground ×2 modifier, so rank 5 resolves to ×2.5 rather than replacing the farm bonus. The balance audit requires each farm to remain between ×0.70 and ×1.45 of its later regional benchmark so its repeat reward is not attached to a trivial encounter.
 - No payment implementation currently exists. A future verified Quick Starter may combine a data-driven Gem grant with battle-speed access and exactly the first formation purchase; slots 6–7 remain ordinary campaign progression unless a future documented entitlement explicitly changes that rule.
 
 Hero Training Ground unlocks from the stage-9 first clear. It supplements rather than replaces battle-earned hero mastery XP and refuses purchases at the level-30 cap.
