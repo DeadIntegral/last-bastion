@@ -1,6 +1,6 @@
 # Last Bastion — Balance Reference
 
-Last updated: 2026-09-27
+Last updated: 2026-09-29
 
 This is the canonical reference for implemented economy, progression, combat, and campaign numbers. Change this file in the same commit as any balance value. Product behavior and architecture remain canonical in `docs/GAME_SPEC.md`.
 
@@ -43,11 +43,11 @@ The `승전 기념비` is revealed only after campaign stage 30 is cleared. It h
 
 ## 2. Shared troop base stats
 
-Player and enemy troops use the same 51 base definitions. Player equipment/mastery or the stage's enemy equipment profile is applied afterward. Enemy forces never receive mastery. `src/data/units.ts` is the exhaustive numeric source; the table below preserves the original foundation and challenge-signature values, while the family matrix records the complete implemented roster.
+Player and enemy troops use the same 52 base definitions. Player equipment/mastery or the stage's enemy equipment profile is applied afterward. Enemy forces never receive mastery. `src/data/units.ts` is the exhaustive numeric source; the table below preserves the original foundation and signature values, while the family matrix records the complete implemented roster.
 
 | Family | Count | Roster |
 |---|---:|---|
-| Kingdom | 11 | Militia, Guardian, Archer, Lancer, Cavalry, Swordsman, Pikeman, Scout, Priest, Mage, Archmage |
+| Kingdom | 12 | Militia, Guardian, Archer, Lancer, Cavalry, Swordsman, Pikeman, Scout, Priest, Mage, Archmage, Continental Alliance Guardian |
 | Betrayer | 2 | Crossbow, Assassin |
 | Goblin | 4 | Raider, Poison Archer, Bomber, Wolf Rider |
 | Orc | 3 | Bulwark, Berserker, Shaman |
@@ -58,7 +58,7 @@ Player and enemy troops use the same 51 base definitions. Player equipment/maste
 
 ### Intrinsic troop grades
 
-Grade is fixed canonical metadata, not an additional upgrade track. It applies equally to the player and computer form of a troop and contributes no runtime multiplier: all actual combat values come from the authored base definition, equipment, mastery where permitted, terrain, and explicit encounter modifiers. The labels communicate combat stature, rarity, and acquisition expectation. Authored 4-star and 5-star definitions nevertheless preserve a stature floor of at least 1,000 base HP; this is a data invariant, not a hidden grade multiplier.
+Grade is fixed canonical metadata, not an additional upgrade track. It applies equally to the player and computer form of a troop and contributes no runtime multiplier: all actual combat values come from the authored base definition, equipment, mastery where permitted, terrain, and explicit encounter modifiers. The labels communicate combat stature, rarity, and acquisition expectation. Authored 4-star definitions preserve at least 3,000 base HP and 5-star definitions exceed 10,000 base HP; these are data invariants, not hidden grade multipliers.
 
 | Grade | Label | Troops |
 |---:|---|---|
@@ -66,15 +66,15 @@ Grade is fixed canonical metadata, not an additional upgrade track. It applies e
 | ★★☆☆☆ | Trained | Bulwark, Royal Cavalry, Priest, Kingdom Mage, Assassin, Orc Berserker, Orc Shaman, Wolf Rider, Harpy, Fire Spirit, Frost Spirit, Direwolf, Giant Eagle, Succubus, Gargoyle |
 | ★★★☆☆ | Elite | Ogre Crusher, Storm Spirit, Hellhound, Archmage, Troll, Ogre Mage, Minotaur, Wyvern, Basilisk, Earth Spirit, Radiance Spirit, Shadow Spirit, Demon Guard, Demon Mage |
 | ★★★★☆ | Legendary | Griffin Rider, Ancient Treant, Rune Golem, Swamp Hydra, Cerberus, Reaper, Abyss Knight |
-| ★★★★★ | Transcendent | Ifrit, Ancient Sky Dragon |
+| ★★★★★ | Transcendent | Ifrit, Ancient Sky Dragon, Continental Alliance Guardian |
 
 Only 5-star troops count as transcendent for `초월의 군기`. In particular, Griffin Rider is 4-star and Minotaur is 3-star. Changing a grade does not rebalance a stat automatically; any intended numerical change must still be made and audited separately.
 
-| Troop | Command | Squad | HP each | ATK | Range | Attack interval | Move | Cooldown | Recruit | Pattern |
+| Troop | Authored Command | Squad | HP each | ATK | Range | Attack interval | Move | Cooldown | Recruit | Pattern |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
 | 민병대 | 45 | 3 | 105 | 17 | 34 | 820 ms | 54 | 2.0 s | starting | single |
 | 방패병 | 70 | 2 | 285 | 11 | 32 | 1050 ms | 34 | 3.0 s | stage 1 | single |
-| 궁수 | 75 | 2 | 72 | 22 | 215 | 1180 ms | 42 | 3.2 s | stage 2 | single |
+| 궁수 | 75 | 2 | 72 | 22 | 215 | 1180 ms | 42 | 3.2 s | stage 2 | single, lobbed backline priority |
 | 창병 | 80 | 1 | 165 | 31 | 62 | 1100 ms | 47 | 2.8 s | stage 3 | pierce 2, ×0.85 follow-through |
 | 고블린 약탈병 | 50 | 3 | 90 | 14 | 34 | 900 ms | 43 | 2.2 s | 200 | single |
 | 오크 철갑병 | 90 | 1 | 390 | 22 | 42 | 1250 ms | 28 | 3.4 s | 350 | cleave, ×0.70 secondary |
@@ -82,64 +82,73 @@ Only 5-star troops count as transcendent for `초월의 군기`. In particular, 
 | 석궁병 | 85 | 1 | 115 | 36 | 160 | 1450 ms | 36 | 3.0 s | 400 | pierce 2, ×0.75 follow-through |
 | 오우거 파쇄자 | 170 | 1 | 900 | 65 | 52 | 1500 ms | 25 | 4.3 s | challenge 101 | cleave, ×0.80 secondary |
 | 다이어울프 | 85 | 2 | 155 | 31 | 32 | 800 ms | 82 | 3.5 s | challenge 106 | single, first strike ×1.60 |
-| 그리폰 기수 | 200 | 1 | 1,600 | 150 | 58 | 1050 ms | 78 | 6.5 s | 1,500 | cleave, ×0.85 secondary |
+| 그리폰 기수 | 200 | 1 | 3,200 | 220 | 58 | 1050 ms | 78 | 6.5 s | 1,500 | cleave, ×0.85 secondary |
 | 폭풍 정령 | 155 | 1 | 600 | 55 | 185 | 1150 ms | 58 | 4.5 s | challenge 102 | pierce 2, ×0.70 follow-through |
-| 룬 골렘 | 200 | 1 | 2,300 | 110 | 46 | 1650 ms | 17 | 6.2 s | challenge 107 | cleave ×0.85, guard ×0.15 |
+| 룬 골렘 | 200 | 1 | 5,000 | 180 | 46 | 1650 ms | 17 | 6.2 s | challenge 107 | cleave ×0.85, guard ×0.15 |
+| 늪지 히드라 | 200 | 1 | 4,500 | 180 | 145 | 1450 ms | 22 | 6.5 s | encounter | ground venom directional 145, ×0.82 secondary |
 | 마염견 | 170 | 1 | 850 | 70 | 46 | 900 ms | 76 | 4.8 s | challenge 103 | cleave, ×0.65 secondary |
-| 왕국 마법사 | 115 | 1 | 110 | 36 | 195 | 1300 ms | 37 | 3.5 s | encounter | ground burst r72, ×0.70 secondary |
+| 왕국 마법사 | 115 | 1 | 110 | 36 | 195 | 1300 ms | 37 | 3.5 s | encounter | ground burst r72, max 4, ×0.70 secondary |
 | 대마법사 | 190 | 1 | 700 | 110 | 245 | 1600 ms | 31 | 5.5 s | encounter | all-domain directional 245, ×0.70 secondary |
-| 이프리트 | 200 | 1 | 11,000 | 140 | 215 | 1650 ms | 42 | 6.6 s | challenge 104 after stage 30 | pierce 3, ×0.75 follow-through |
-| 창공의 고룡 | 200 | 1 | 15,000 | 240 | 250 | 1900 ms | 36 | 9.0 s | challenge 105 after stage 30 | pierce 3, ×0.80 follow-through |
+| 이프리트 | 200 | 1 | 11,000 | 900 | 215 | 2400 ms | 42 | 6.6 s | challenge 104 after stage 30 | pierce 3, ×0.75 follow-through, fortress pierce |
+| 창공의 고룡 | 200 | 1 | 15,000 | 1,200 | 250 | 2800 ms | 36 | 9.0 s | challenge 105 after stage 30 | pierce 3, ×0.80 follow-through, fortress pierce |
+| 대륙연합 수호자 | 300 | 1 | 13,000 | 900 | 54 | 2400 ms | 27 | 9.0 s | stage 30 + tier 3 + 20,000 | cleave ×0.78, guard ×0.10 |
 
 - A new profile owns and equips only the militia.
 - Battle formations contain one to four acquired troop types by default and up to seven after purchasing the three sequential permanent formation-slot licenses.
 - Command and cooldown are paid once per card activation. One Militia/Raider activation creates three bodies and one Guardian/Archer activation creates two; a wave's `count` likewise counts activations before squad expansion. Mastery summon counts track the activation rather than multiplying XP per body.
+- The table keeps each troop's authored Command rating for faction-neutral data comparisons. The player-facing unresearched field cost is `min(per-unit cap, ceil(authored Command × 1.10))`: Militia 50, Guardian 77, Archer 83, Lancer 88, Raider 55, Bulwark 99, Cavalry 132, Crossbow 94, Ogre Crusher 187, Storm Spirit 171, Hellhound 187, and ordinary authored 185+ deployments reach the default 200 ceiling. Continental Alliance Guardian alone declares a 300 cap and therefore costs exactly 300 before research. `군수 표준화` multiplies the wartime rate by 0.97 per rank before rounding, lowering Guardian to 281 at rank 5.
+- Total battlefield population remains uncapped so high-density performance can be profiled honestly. Only the existing per-troop `maxActivePerSide` restrictions and stage reinforcement `maxAlive` values constrain authored exceptional units and enemy production. Overdue opening schedules create at most two deployments and reinforcements at most one deployment per rendered frame to avoid a single-frame spawn burst without deleting any scheduled content.
 - Encounter alone does not bypass fortress recruitment permits: expansion troops below 110 Command default to tier 2 and troops at or above 110 default to tier 3. Royal Cavalry is revealed and recruitable at tier 2 without an encounter; Griffin Rider follows the same rule at tier 3. Ogre Crusher, Direwolf, Storm Spirit, Rune Golem, Hellhound, Ifrit, and Ancient Sky Dragon are challenge-only recruits. Already-owned troops remain owned when an older save migrates.
 - Lancer and Huntress attacks deal ×1.75 damage to `large` targets.
-- Royal Cavalry has 3 base defense and its first attack after each spawn deals ×1.6 damage. Griffin Rider has 8 base defense, is tagged `flying` and `large`, and moves 112 virtual pixels above the lane. It retains higher per-hit melee damage than Ifrit, but consumes the full 200 base Command, waits 6.5 seconds between deployments, must enter melee range, and permits only two living bodies per side.
+- Royal Cavalry has 3 base defense and its first attack after each spawn deals ×1.6 damage. Griffin Rider has 8 base defense, 220 base attack, is tagged `flying` and `large`, and moves 112 virtual pixels above the lane. It consumes the full 200 base Command, waits 6.5 seconds between deployments, must enter melee range, and permits only two living bodies per side; the slower 5-star Ifrit deliberately exceeds it in single-hit power.
 - Only combatants tagged `ranged` and the player watchtower can select a flying target. Late enemy-fortress fire is an explicit domain-independent exception and can shoot both ground and flying attackers. Fortress bombardment and beast stomp skip flying targets; flying units can attack ground targets normally.
 - Defense is subtracted from incoming damage after bonuses; final damage has a minimum of 1.
-- Pierce starts with the selected primary target, then selects the nearest valid targets farther along the attack direction inside its follow-through distance. A guard protecting that movement domain takes its normal hit and terminates the traversal. Cleave selects all valid targets inside the attacker's normal melee range. Every secondary target receives the listed multiplier.
-- Archer versus Crossbow is an explicit tradeoff rather than a faction advantage. An Archer deployment has two bodies, 215 range, and higher combined single-target pressure. A Crossbow deployment has one tougher body, 160 range, a slower 1.45-second attack, and a stronger 36-damage bolt; its total volley exceeds the Archer deployment only when a second target lines up for the capped two-target pierce. High per-shot damage also loses less of its proportion to flat defense, while the Archer remains safer and stronger against one target.
+- Pierce starts with the selected primary target, then selects the nearest valid targets farther along the attack direction inside its follow-through distance. Only a guard whose data sets `stopsPierce: true` takes its normal hit and terminates the traversal; the basic Guardian does not. Cleave selects all valid targets inside the attacker's normal melee range. Every secondary target receives the listed multiplier.
+- Archer versus Crossbow is an explicit tradeoff rather than a faction advantage. An Archer deployment has two bodies, 215 range, higher combined single-target pressure, and lobbed arrows that can skip a nearer melee screen for the nearest ranged/support target already inside the Archer's normal 55–215 effective band. A Crossbow deployment has one tougher body, 160 range, a slower 1.45-second attack, and a stronger straight-line 36-damage bolt; its total volley exceeds the Archer deployment only when a second target lines up for the capped two-target pierce. High per-shot damage also loses less of its proportion to flat defense, while the Archer remains safer and stronger against one target. Goblin Poison Archer, Goblin Bomber, and Huntress Ria also use authored lobbed backline priority. The estimator applies a ×1.04 trait multiplier to this bounded target-access advantage.
 - Priest is the symmetric healer for both factions: 105 Command, 145 HP, 1 defense, 20 attack, 175 attack range, 34 healing at 190 range, and a 1.25-second shared action interval. It heals the in-range non-boss ally with the greatest missing HP before attacking and cannot overheal; bosses are deliberately excluded so a producing garrison cannot sustain an unbounded boss-healing loop. Weapon equipment and mastery attack growth add the same flat amount to healing power. The unit-threat estimator values its healing per second at a 1.35 support coefficient.
+- Gargoyle attacks every 1.00 second rather than 1.05 seconds so its effective 160-Command field deployment remains above the roster's minimum value floor after the wartime surcharge.
 
 ### Attack commitment, guard protection, and area geometry
 
-`attackIntervalMs` is the complete attack-start-to-attack-start cycle. `attackWindupMs` is the immobile pre-impact commitment and recovery is exactly `attackIntervalMs - attackWindupMs`; the unit remains immobile for that remainder after impact. The locked target is revalidated when windup ends. A dead target, a target newly protected behind a living fortress, a target behind the attacker, or a target outside the current minimum–maximum attack band causes the committed attack to miss. A ranged unit never selects a farther target through a nearer screen. Only Scout, Goblin Poison Archer, Storm Spirit, Huntress Ria, and Wind Spirit Neris have `retreatsInsideMinimumRange`; they back away to reopen distance, while every other ranged unit holds position and remains unable to attack inside its dead zone. One retreat uses a fixed destination: the missing range plus a 24-unit buffer, clamped to a 45–110-unit step, followed by a 1.6-second retrigger cooldown. The estimator reduces the normal dead-zone penalty to 35% for these five skirmishers rather than treating retreat as free or universal.
+`attackIntervalMs` is the complete attack-start-to-attack-start cycle. `attackWindupMs` is the immobile pre-impact commitment and recovery is exactly `attackIntervalMs - attackWindupMs`; the unit remains immobile for that remainder after impact and until its visible attack pose ends. The locked target is revalidated when windup ends. A melee attack misses when its target died, gained living-fortress cover, moved behind the attacker, or left the current minimum–maximum band. A ranged commitment still launches along its locked path after target loss; a pierce shot instead selects the nearest valid forward collision target when one has moved into that path. Fortress cover remains authoritative unless the pierce pattern explicitly sets `piercesFortress`; only Ifrit and Ancient Sky Dragon currently continue through a struck fortress, can damage at most `maxTargets - 1` defenders within their normal follow-through distance behind it, and still stop on a matching full guard. Ordinary ranged attacks select the nearest screen. Only combatants with authored `rangedTargeting: 'backline'` may skip that screen for the nearest valid ranged/support target, and only while that target is already inside the ordinary minimum–maximum band; this does not bypass fortress cover. Only Scout, Goblin Poison Archer, Storm Spirit, Huntress Ria, and Wind Spirit Neris have `retreatsInsideMinimumRange`; they finish the current visible attack before backing away to reopen distance, while every other ranged unit holds position and remains unable to attack inside its dead zone. One retreat uses a fixed destination: the missing range plus a 24-unit buffer, clamped to a 45–110-unit step, followed by a 1.6-second retrigger cooldown. The estimator reduces the normal dead-zone penalty to 35% for these five skirmishers rather than treating retreat as free or universal.
 
 | Combatant | Effective range | Windup | Recovery | Pattern |
 |---|---:|---:|---:|---|
 | Militia | 0–34 | 180 ms | 640 ms | single |
 | Guardian | 0–32 | 360 ms | 690 ms | single |
-| Archer | 55–215 | 320 ms | 860 ms | single |
+| Archer | 55–215 | 320 ms | 860 ms | single, lobbed backline priority |
 | Lancer | 0–62 | 260 ms | 840 ms | pierce 2 |
 | Royal Cavalry | 0–40 | 230 ms | 820 ms | pierce 2 + charge |
 | Crossbow | 75–160 | 650 ms | 800 ms | pierce 2 |
 | Goblin Bomber | 80–145 | 720 ms | 880 ms | ground splash radius 82, ×0.80 secondary |
-| Kingdom Mage | 65–195 | 520 ms | 780 ms | ground burst radius 72, ×0.70 secondary, 520 ms warning |
-| Orc Shaman | 65–185 | 520 ms | 830 ms | ground burst radius 78, ×0.65 secondary, 520 ms warning |
-| Ogre Mage | 75–170 | 720 ms | 780 ms | ground burst radius 95, ×0.70 secondary, 720 ms warning |
+| Kingdom Mage | 65–195 | 520 ms | 780 ms | ground burst radius 72, max 4, ×0.70 secondary, 520 ms warning |
+| Orc Shaman | 65–185 | 520 ms | 830 ms | ground burst radius 78, max 4, ×0.65 secondary, 520 ms warning |
+| Ogre Mage | 75–170 | 720 ms | 780 ms | ground burst radius 95, max 4, ×0.70 secondary, 720 ms warning |
 | Archmage | 100–245 | 780 ms | 820 ms | all-domain directional length 245, ×0.70 secondary |
-| Abyss Mage | 75–210 | 620 ms | 830 ms | ground burst radius 88, ×0.65 secondary, 620 ms warning |
+| Abyss Mage | 75–210 | 620 ms | 830 ms | ground burst radius 88, max 4, ×0.65 secondary, 620 ms warning |
 | Fire Spirit | 50–165 | 430 ms | 620 ms | ground/flying splash radius 68, ×0.60 secondary |
+| Swamp Hydra | 0–145 | 650 ms | 800 ms | ground venom directional length 145, ×0.82 secondary |
 | Ifrit | 100–215 | 850 ms | 800 ms | pierce 3 |
 | Ancient Sky Dragon | 120–250 | 1,100 ms | 800 ms | pierce 3 |
 
 Every expanded roster entry stores resolved timing/range data even when `makeTroop` supplies a role-based default. Exact windup/recovery is intentionally hidden from the armory, Hero Hall, and battle cards. An owned troop or hero reveals it only in the codex at mastery level 5; encountered-but-unowned troops remain `미분석`. Attack pattern and effective range remain available before that analysis so formation choices are understandable.
 
-`guardProtection.rearRangeMultiplier` applies only to the directional attack distance remaining behind the guard and only to the listed movement domains. It is not a damage reduction, does not affect ordinary radial splash, and never intercepts a ground burst. A straight pierce ends after damaging the first qualifying guard. All initial guards protect only the ground domain:
+`guardProtection.rearRangeMultiplier` applies only to the directional attack distance remaining behind the guard and only to the listed movement domains. It is not a damage reduction, does not affect ordinary radial splash, and never intercepts a ground burst. A straight pierce ends only after damaging the first qualifying guard with `stopsPierce: true`; a non-stopping guard still attenuates directional reach. All current guards protect only the ground domain:
 
 | Guard | Stops pierce | Rear directional multiplier | Effective reach reduction |
 |---|---|---:|---:|
-| Guardian | yes | ×0.35 | 65% |
+| Guardian | no | ×0.65 | 35% |
 | Orc Bulwark | yes | ×0.25 | 75% |
-| Earth Spirit | yes | ×0.40 | 60% |
+| Earth Spirit | yes | ×0.35 | 65% |
 | Rune Golem | yes | ×0.15 | 85% |
 | Demon Guard | yes | ×0.25 | 75% |
 | Abyss Knight | yes | ×0.20 | 80% |
+| Continental Alliance Guardian | yes | ×0.10 | 90% |
 | Edric | yes | ×0.30 | 70% |
 
-Ground-burst target selection evaluates only current living valid targets, chooses the in-range center covering the most bodies, and uses the farther candidate as the deterministic tie-break. The position is fixed at cast start; movement can escape the warned radius, caster death cancels the cast, and a ground-only burst cannot hit flying units. Kingdom Mage, Orc Shaman, Ogre Mage, and Abyss Mage use this pattern. Archmage instead emits an all-domain directional wave, so a ground guard shortens only the ground continuation while the flying lane retains its authored length.
+Ground-burst target selection evaluates only current living valid targets, chooses the in-range center covering the most bodies up to the common four-target cap, and uses the farther candidate as the deterministic tie-break. The four closest valid bodies to the locked center take damage. Position and the original target's shadow/foot baseline are fixed at cast start; movement can escape the warned radius, caster death cancels the cast, and a ground-only burst cannot hit flying units. Kingdom Mage, Orc Shaman, Ogre Mage, and Abyss Mage use this pattern. Archmage instead emits an all-domain directional wave, so a ground guard shortens only the ground continuation while the flying lane retains its authored length. Swamp Hydra emits a ground-only 145-length directional venom breath with ×0.82 secondary damage; it can attack at point-blank range, cannot damage flying units, and its pooled green plume is presentation-only while the same directional resolver owns hits.
+
+Ifrit is explicitly `ground`, not `flying`. Its three-target piercing flame remains ranged magic, but ordinary ground melee units may select and block it; the post-finale challenge and acquired form share this same movement domain.
 
 ### Upper-tier value corrections
 
@@ -154,15 +163,15 @@ The expensive roster was rebalanced against Command cost rather than rarity alon
 | 와이번 | 190 | 1,050 | 4 | 88 | 1.10 s |
 | 바실리스크 | 180 | 1,200 | 8 | 90 | 1.25 s |
 | 대지 정령 | 165 | 1,150 | 9 | 60 | 1.35 s |
-| 고대 트렌트 | 190 | 1,900 | 8 | 90 | 1.60 s |
-| 룬 골렘 | 200 | 2,300 | 12 | 110 | 1.65 s |
-| 늪지 히드라 | 200 | 2,100 | 7 | 115 | 1.45 s |
+| 고대 트렌트 | 190 | 4,000 | 8 | 150 | 1.60 s |
+| 룬 골렘 | 200 | 5,000 | 12 | 180 | 1.65 s |
+| 늪지 히드라 | 200 | 4,500 | 7 | 180 | 1.45 s |
 | 악마 근위병 | 175 | 1,300 | 10 | 75 | 1.20 s |
-| 케르베로스 | 200 | 1,600 | 6 | 110 | 0.95 s |
-| 이프리트 | 200 | 11,000 | 8 | 140 | 1.65 s |
-| 창공의 고룡 | 200 | 15,000 | 12 | 240 | 1.90 s |
-| 영혼 수확자 | 200 | 1,200 | 6 | 125 | 1.35 s |
-| 심연 기사 | 200 | 1,900 | 12 | 115 | 1.25 s |
+| 케르베로스 | 200 | 3,500 | 6 | 190 | 0.95 s |
+| 이프리트 | 200 | 11,000 | 8 | 900 | 2.40 s |
+| 창공의 고룡 | 200 | 15,000 | 12 | 1,200 | 2.80 s |
+| 영혼 수확자 | 200 | 3,000 | 6 | 190 | 1.35 s |
+| 심연 기사 | 200 | 4,200 | 12 | 190 | 1.25 s |
 
 ### Simultaneous legendary deployment limits
 
@@ -170,7 +179,7 @@ The expensive roster was rebalanced against Command cost rather than rarity alon
 
 | Limit | Troops |
 |---:|---|
-| 1 per side | Ancient Sky Dragon |
+| 1 per side | Ancient Sky Dragon, Continental Alliance Guardian |
 | 2 per side | Griffin Rider, Minotaur, Wyvern, Basilisk, Treant, Golem, Hydra, Cerberus, Ifrit |
 | 3 per side | Ogre Crusher, Storm Spirit, Hellhound, Troll, Ogre Mage, Earth Spirit, Radiance Spirit, Shadow Spirit, Giant Eagle, Gargoyle |
 
@@ -201,10 +210,18 @@ Expansion troops created through `makeTroop` derive readable fixed growth once a
 | 왕립 기마병 | +5 | +30 | +1.4 | +2.4 |
 | 석궁병 | +4 | +13 | +1.0 | +1.4 |
 | 파쇄자 | +7 | +90 | +2.0 | +1.0 |
-| 그리폰 기수 | +15 | +160 | +2.0 | +2.2 |
+| 그리폰 기수 | +22 | +320 | +2.0 | +2.2 |
 | 폭풍 정령 | +6 | +60 | +1.2 | +2.0 |
 | 마염견 | +7 | +85 | +1.5 | +2.2 |
-| 창공의 고룡 | +24 | +1,500 | +1.5 | +1.1 |
+| 고대 트렌트 | +15 | +400 | +1.5 | +1.0 |
+| 룬 골렘 | +18 | +500 | +1.5 | +1.0 |
+| 늪지 히드라 | +18 | +450 | +1.5 | +1.0 |
+| 케르베로스 | +19 | +350 | +1.5 | +2.0 |
+| 이프리트 | +90 | +1,100 | +1.5 | +1.3 |
+| 영혼 수확자 | +19 | +300 | +1.5 | +1.4 |
+| 심연 기사 | +19 | +420 | +1.5 | +1.0 |
+| 창공의 고룡 | +120 | +1,500 | +1.5 | +1.1 |
+| 대륙연합 수호자 | +90 | +1,300 | +2.5 | +0.8 |
 | 에드릭 | +3 | +42 | +2.0 | +1.2 |
 | 셀레네 | +5 | +24 | +1.0 | +1.4 |
 | 리아 | +5 | +28 | +1.2 | +1.8 |
@@ -218,7 +235,7 @@ Expansion troops created through `makeTroop` derive readable fixed growth once a
 - Every 4-star troop uses base 300: 300 / 600 / 900 / 1,200 / 1,500 gold; one complete branch costs 4,500.
 - Every 5-star troop uses base 400: 400 / 800 / 1,200 / 1,600 / 2,000 gold; one complete branch costs 6,000.
 - Heroes retain authored bases: Edric 100, Selene/Ria/Mirena 125, Bran 150, Karuk 175, and Neris 200.
-- Soldier equipment capstone: when any one of Weapon, Armor, or Boots reaches rank 5, ordinary, 3-star, and non-large 4-star troops permanently gain +1 deployment body. Every 5-star troop and 4-star `large` troop instead stays at its canonical squad size and gains three additional fixed ranks of Weapon attack/healing, Armor HP/defense, and Boots movement simultaneously. The current stat-capstone roster is Griffin Rider, Ancient Treant, Rune Golem, Swamp Hydra, Cerberus, Ifrit, and Ancient Sky Dragon. Completing additional slots does not stack either bonus. Swamp Hydra therefore receives a clearly visible capstone-only +630 HP, +36 ATK, +4.5 defense, and +3 move rather than the previous one-rank +210/+12/+1.5/+1. The rule applies symmetrically to stage-equipped regular enemies; heroes and bosses receive neither bonus, named elite spawning remains single-body, and reinforcement `maxAlive` remains an exact living-body cap rather than a deployment count.
+- Soldier equipment capstone: when any one of Weapon, Armor, or Boots reaches rank 5, ordinary, 3-star, and non-large 4-star troops permanently gain +1 deployment body. Every 5-star troop and 4-star `large` troop instead stays at its canonical squad size and gains three additional fixed ranks of Weapon attack/healing, Armor HP/defense, and Boots movement simultaneously. The current stat-capstone roster is Griffin Rider, Ancient Treant, Rune Golem, Swamp Hydra, Cerberus, Ifrit, Ancient Sky Dragon, and Continental Alliance Guardian. Completing additional slots does not stack either bonus. Swamp Hydra therefore receives a clearly visible capstone-only +1,350 HP, +54 ATK, +4.5 defense, and +3 move rather than one ordinary +450/+18/+1.5/+1 rank. The Alliance Guardian receives +3,900 HP, +270 ATK, +7.5 defense, and +2.4 move from the capstone itself. The rule applies symmetrically to stage-equipped regular enemies; heroes and bosses receive neither bonus, named elite spawning remains single-body, and reinforcement `maxAlive` remains an exact living-body cap rather than a deployment count.
 - Soldier mastery maximum: level 50. Hero mastery maximum: level 30.
 - XP for next mastery level: `round(45 × level^1.32)`.
 - Mastery uses character-specific flat gains. At level `L`, add `(L - 1) × listed gain` to canonical HP and ATK before adding equipment.
@@ -237,7 +254,7 @@ Expansion troops created through `makeTroop` derive readable fixed growth once a
 | 왕립 기마병 | +10 | +2 |
 | 석궁병 | +5 | +2 |
 | 파쇄자 | +35 | +4 |
-| 그리폰 기수 | +55 | +6 |
+| 그리폰 기수 | +110 | +6 |
 | 폭풍 정령 | +24 | +3 |
 | 마염견 | +32 | +4 |
 
@@ -265,15 +282,29 @@ Hero mastery is deliberately stronger than troop mastery and also improves each 
 
 | Hero | HP | ATK | Active per rank | Active per awakening | Respawn per rank | Maximum respawn reduction |
 |---|---:|---:|---|---|---:|---:|
-| 에드릭 | +24 | +2 | shield +10 | shield +50 | -0.30 s | -7.0 s (13.0 s final) |
-| 셀레네 | +14 | +3 | meteor +16; fortress +10 | meteor +100; fortress +60 | -0.25 s | -6.3 s (11.7 s final) |
-| 리아 | +17 | +3 | normal target +8; boss +12 | normal +45; boss +65 | -0.22 s | -5.6 s (10.4 s final) |
-| 미레나 | +16 | +2 | ally heal +10; fortress +6 | ally +60; fortress +40 | -0.24 s | -6.0 s (11.0 s final) |
-| 브란 | +21 | +3 | shield +8 | shield +40 | -0.28 s | -6.5 s (12.5 s final) |
-| 카루크 | +30 | +4 | damage +12; shield +6 | damage +70; shield +30 | -0.32 s | -7.5 s (14.5 s final) |
-| 네리스 | +18 | +4 | unit +14; fortress +9 | unit +80; fortress +50 | -0.24 s | -5.8 s (10.2 s final) |
+| 에드릭 | +45 | +2 | shield +20 | shield +150 | -0.30 s | -7.0 s (13.0 s final) |
+| 셀레네 | +35 | +3 | meteor +40; fortress +10 | meteor +300; fortress +60 | -0.25 s | -6.3 s (11.7 s final) |
+| 리아 | +36 | +3 | normal target +18; boss +28 | normal +120; boss +180 | -0.22 s | -5.6 s (10.4 s final) |
+| 미레나 | +34 | +2 | ally heal +10; fortress +6 | ally +60; fortress +40 | -0.24 s | -6.0 s (11.0 s final) |
+| 브란 | +42 | +3 | shield +8 | shield +40 | -0.28 s | -6.5 s (12.5 s final) |
+| 카루크 | +55 | +4 | damage +12; shield +6 | damage +70; shield +30 | -0.32 s | -7.5 s (14.5 s final) |
+| 네리스 | +38 | +4 | unit +14; fortress +9 | unit +80; fortress +50 | -0.24 s | -5.8 s (10.2 s final) |
 
-Awakenings occur at levels 10, 20, and 30. Each awakening also reduces active cooldown by exactly 1.5 seconds; final cooldowns are 20.5 seconds for Edric, 17.5 seconds for Selene, 19.5 seconds for Ria, 18.5 seconds for Mirena, 19.5 seconds for Bran, 21.5 seconds for Karuk, and 16.5 seconds for Neris. Final level-30 active values are 540 shield, 1,004/630 meteor unit/fortress damage, 472/698 arrow-rain normal/boss damage, 620/394 Mirena ally/fortress healing, 437 Bran shield, 738/344 Karuk damage/shield, and 846/541 Neris unit/fortress storm damage.
+Awakenings occur at levels 10, 20, and 30. Each awakening also reduces active cooldown by exactly 1.5 seconds; final cooldowns are 20.5 seconds for Edric, 17.5 seconds for Selene, 19.5 seconds for Ria, 18.5 seconds for Mirena, 19.5 seconds for Bran, 21.5 seconds for Karuk, and 16.5 seconds for Neris. Final level-30 active values are 1,130 shield, 2,300/630 meteor unit/fortress damage, 987/1,507 arrow-rain normal/boss damage, 620/394 Mirena ally/fortress healing, 437 Bran shield, 738/344 Karuk damage/shield, and 846/541 Neris unit/fortress storm damage.
+
+Every awakening rank also applies this hero-only flat package through `upgradedStats`, independently from equipment and the allied aura:
+
+| Hero | Self HP | Self ATK | Self DEF | Self range | Self move | Self healing |
+|---|---:|---:|---:|---:|---:|---:|
+| Edric | +450 | +5 | +3 | — | — | — |
+| Selene | +200 | +12 | — | — | — | — |
+| Ria | +200 | +12 | — | +8 | — | — |
+| Mirena | +200 | — | +2 | — | — | +12 |
+| Bran | +250 | +8 | +2 | — | — | — |
+| Karuk | +300 | +8 | +2 | — | — | — |
+| Neris | +250 | +10 | +1 | — | +3 | — |
+
+At level 30 before equipment, the resulting normal-combat stats are Edric 3,175 HP / 102 ATK / 9 DEF, Selene 1,900 / 166 / 0, Ria 1,994 / 171 / 0 with 254 range, Mirena 1,916 / 82 / 8 with 152 healing, Bran 2,423 / 150 / 10, Karuk 3,215 / 208 / 14, and Neris 2,272 / 204 / 6 with 81 move. The hero audit compares levels 1/10/20/30 and requires every early hero's level-30 normal field threat—even before equipment, active skills, and allied aura value—to reach at least 40% of the weakest rank-5-equipped 4-star body. It separately verifies a fully equipped Edric plus his own final shield exceeds that 4-star durability floor, Selene's final meteor exceeds half its HP, and Ria's final anti-large hit deals over 250 damage to a fully equipped Griffin.
 
 Each awakening rank also enables one level of a nearby-allied aura: Edric gives +2 defense per rank within 170, Selene +3 attack within 180, Ria +15 attack range within 210, Mirena +4 HP/s regeneration within 195, Bran +4 movement speed within 185, Karuk +2 attack and +1 defense within 185, and Neris +12 range and +3 movement within 215. At rank III Karuk grants +6/+3 and Neris grants +36/+9. Auras require the selected hero to be alive and do not buff the hero itself.
 
@@ -284,7 +315,7 @@ Each awakening rank also enables one level of a nearby-allied aura: Edric gives 
 | Starting Command | 70 |
 | Command regeneration | 10/s |
 | Maximum Command | 200 |
-| Command per normal kill | 6 |
+| Command per normal kill | 3 |
 | Wartime mobilization | costs 300 / 400 / 500 Command; maximum +100 each; 3 uses/battle |
 | Player fortress HP | 1800, plus 70 per stage after stage 1 |
 | Bombardment damage | 175 |
@@ -321,7 +352,7 @@ Fortress research has five ranks per node. Rank cost is `baseCost × (currentRan
 | Command | 2 | 군수 표준화 | 300 | soldier Command cost -3% | 지휘 저장고 3 |
 | Growth | 2 | 전리품 회계 | 350 | battle and first-clear Gold +5% | — |
 | Growth | 2 | 왕립 야전 교범 | 400 | battle-earned mastery XP +5% | — |
-| Command | 3 | 승전 공납제 | 400 | Command per normal kill +1 | 상비군 훈련소 3 |
+| Command | 3 | 승전 공납제 | 400 | Command per normal kill +0.5 | 상비군 훈련소 3 |
 | Defense | 1 | 강화 성벽 | 100 | fortress HP +250 | — |
 | Defense | 1 | 석재 장갑 | 150 | flat damage reduction +3 | 강화 성벽 1 |
 | Defense | 1 | 수호 망루 | 200 | tower damage +22; interval improves by 250 ms | 강화 성벽 1 |
@@ -339,18 +370,18 @@ Fortress research has five ranks per node. Rank cost is `baseCost × (currentRan
 | Expedition | 3 | 초월의 군기 | 450 | 5-star transcendent rally control; rally movement +5% | 영웅 기치 5 |
 
 - Summon cooldown reduction is capped at 25% through the five available ranks.
-- `승전 공납제` raises the base 6 Command per normal kill to 7/8/9/10/11 across ranks 1–5. Its former +2 per rank reached 16 at rank 5 and over-rewarded large low-tier formations.
+- `승전 공납제` raises the base 3 Command per normal kill to 3.5/4.0/4.5/5.0/5.5 across ranks 1–5. A three-body low-tier deployment therefore refunds 9 Command at base or 16.5 at maximum research rather than the former 18/33, preventing kill chains from largely financing the next deployment. Fractional gains remain in simulation state and the HUD floors only the displayed stored Command.
 - `재생 석재` restores 4/8/12/16/20 fortress HP per second across ranks 1–5, clamped to the current maximum HP. The effect is continuous, elapsed-time based, and shown in the fortress summary.
-- Soldier Command-cost reduction is capped at 15% through the five `군수 표준화` ranks. Effective cost is `max(10, ceil(base Command × (1 - 0.03 × rank)))`; the battle card, affordability check, and actual deduction all use this same value.
+- Soldier Command-cost reduction is capped at 15% through the five `군수 표준화` ranks. Effective cost is `min(200, max(10, ceil(authored Command × 1.10 × (1 - 0.03 × rank))))`; the battle card, affordability check, actual deduction, and efficiency audit all use this same value. The result at rank 5 is 93.5% of the authored rating before rounding, while apex troops remain deployable within the 200 base maximum.
 - Watchtower interval is floored at 900 ms, and bombardment cooldown is floored at 16 seconds.
 - Bombardment has a 1,000-unit base targeting range measured from the player fortress. `공성 계산학` adds 80 per rank, reaching 1,400 at rank 5; out-of-range ground enemies and fortresses cannot be selected, and an invalid activation spends neither cooldown nor use count.
 - Direct fortress bombardment requires at least one `공성 계산학` rank and the enemy fortress to be inside the resulting bombardment range.
 - Rally placement starts at a 20-second base redeploy cooldown. `집결 신호` rank 1 is required to use the flag and resolves the cooldown to 18 seconds; ranks 2–5 reduce it to 16/14/12/10 seconds. Every placed order lasts exactly 12 seconds of scaled battle time, then clears automatically and restores normal advance; manual clearing does not erase the remaining redeploy cooldown. Eligible units attack targets already in range, otherwise move to a deterministic slot within 27 units of the clicked center and hold within an 18-unit arrival radius.
 - `영웅 기치` rank 1 admits the selected hero and reduces the mastery-adjusted active cooldown by 3% per rank, capped at 15%. `야전 구난대` applies the same 3%-per-rank, 15%-maximum multiplier to mastery-adjusted hero respawn time.
-- `초월의 군기` rank 1 admits canonical 5-star transcendent troops and increases every eligible unit's movement toward the flag by 5% per rank, capped at +25%. The current 5-star roster is Ifrit and Ancient Sky Dragon. Grades 1–4 use ordinary-soldier permission, regardless of size, rarity, active-unit cap, or Command cost.
+- `초월의 군기` rank 1 admits canonical 5-star transcendent troops and increases every eligible unit's movement toward the flag by 5% per rank, capped at +25%. The current 5-star roster is Ifrit, Ancient Sky Dragon, and Continental Alliance Guardian. Grades 1–4 use ordinary-soldier permission, regardless of size, rarity, active-unit cap, or Command cost.
 - `전시 동원령` has three battle-local uses costing exactly 300, 400, and 500 Command. Each successful use deducts only its listed cost and adds exactly +100 maximum Command; stored Command above the cost is preserved. `동원 전술 훈련` adds +0.3 Command/s per rank to every activation, so rank 5 grants +1.5/s per use without changing the fixed maximum gain. The first activation requires enough `지휘 저장고` research to hold at least 300 Command.
 
-At maximum `군수 표준화`, every one of the 51 deployment costs uses `max(10, ceil(base Command × 0.85))`; cards, affordability checks, and deductions share that calculation.
+At maximum `군수 표준화`, every one of the 51 deployment costs uses `min(200, max(10, ceil(authored Command × 1.10 × 0.85)))`; cards, affordability checks, deductions, and the roster audit share that calculation.
 
 ## 6. Campaign curve
 
@@ -432,7 +463,7 @@ Stages 13–30 add a basic enemy-fortress shot as a separate, visible difficulty
 
 - Shared campaign-beast base stats: 5,200 HP, 82 ATK, 68 range, 1.5 s attack interval, and 20 movement speed.
 - Its normal strike cleaves all valid targets in its melee range at full secondary damage.
-- Stomp radius is 175, knockback is 55, and its 850 ms warning remains unchanged.
+- Stomp radius is 175 and its 850 ms warning remains unchanged. Base knockback is 55: ordinary ground units take 55, large grade-1–3 troops and ungraded large heroes take 33, large 4-star troops take 16.5, and large ground 5-star troops take 0. Flying units are not hit.
 - Bounded rank-5 armor and weapon produce 5,550 HP and 112 ATK before stage modifiers. Campaign boss modifiers are: stage 6 `×1.08 HP / ×1.00 ATK / ×1.00 cadence`, stage 12 `×2.40 / ×1.35 / ×0.82`, stage 18 `×2.44 / ×1.32 / ×0.85`, stage 24 `×3.00 / ×1.40 / ×0.80`, and stage 30 `×3.10 / ×1.48 / ×0.75`. Every campaign boss stands in front of a separately damageable fortress; both must fall. Its weak garrison continues while that fortress survives and stops immediately when it falls. No boss has mastery scaling.
 
 ### Beast-only challenges and terrain
@@ -442,12 +473,12 @@ Stages 13–30 add a basic enemy-fortress shot as a separate, visible difficulty
 | 오우거 대족장 | stage 6 | 400 | 오우거 파쇄자 | ×10 / ×2.5 / ×1 | ×1.5 / ×1 / ×0.92 | 오우거 파쇄자 |
 | 월식의 늑대왕 | stage 12 | 700 | 다이어울프 | ×10 / ×2.5 / ×1.25 | ×12 / ×1.1 / ×0.78 | 다이어울프 |
 | 폭풍의 대정령 | stage 18 | 1,000 | 폭풍 정령 | ×10 / ×2.5 / ×1.15 | ×8 / ×1.05 / ×0.68 | 폭풍 정령 |
-| 룬 심장의 파수자 | stage 24 | 1,400 | 룬 골렘 | ×10 / ×2.5 / ×0.9 | ×3 / ×1.1 / ×0.62 | 룬 골렘 |
+| 룬 심장의 파수자 | stage 24 | 1,400 | 룬 골렘 | ×10 / ×2.5 / ×0.9 | ×1.38 / ×1.1 / ×0.62 | 룬 골렘 |
 | 심연의 마염수 | stage 27 | 1,800 | 마염견 | ×10 / ×2.5 / ×1.2 | ×12 / ×1.05 / ×0.56 | 마염견 |
-| 태양 감옥의 이프리트 | stage 30 | 2,400 | 이프리트 | ×10 / ×2.5 / ×1.1 | ×4/3 / ×8/9 / ×0.52 | 이프리트 |
-| 창공의 고룡 | stage 30 | 3,000 | 창공의 고룡 | ×10 / ×2.5 / ×1.15 | ×8/9 / ×28/45 / ×0.48 | 창공의 고룡 |
+| 태양 감옥의 이프리트 | stage 30 | 2,400 | 이프리트 | ×10 / ×2.5 / ×1.1 | ×4/3 / ×16/75 / ×0.52 | 이프리트 |
+| 창공의 고룡 | stage 30 | 3,000 | 창공의 고룡 | ×10 / ×2.5 / ×1.15 | ×8/9 / ×28/135 / ×0.48 | 창공의 고룡 |
 
-Challenges contain no enemy fortress, fortress fire, waves, reinforcements, or elite. The enemy is derived from the same base troop later granted to the player, then receives rank-5 stage equipment, the visible terrain multipliers, and its named-boss modifier. The common HP ×10 terrain rule remains legible while the named modifier preserves progression; combined pre-equipment HP multipliers in unlock order are ×15, ×120, ×80, ×30, ×120, ×40/3, and ×80/9. Their trained HP rises through approximately 20,250 / 28,200 / 72,000 / 124,200 / 153,000 / 264,000 / 240,000; the last two are parallel finale challenges rather than a strict internal ordering. The stage-6 through stage-27 rewards deliberately mix 2-, 3-, and 4-star troops, while only the two stage-30 encounters grant 5-star transcendents. Because the apex stat capstone now contributes three equipment ranks instead of one, the 4-star Rune Golem receives the same fixed-rank stat capstone before its named modifier. Challenge 104 uses ×4/3 HP and ×8/9 ATK to preserve 264,000 trained HP and its prior attack pressure. Challenge 105 likewise uses ×8/9 HP and ×28/45 ATK, preserving 240,000 trained HP and 672 trained attack. Every challenge boss also uses a presentation-only 1.5× battlefield scale and the shared 1.08× phase-two visual growth; those multipliers are deliberately excluded from hit geometry and all threat calculations. First-clear acquisition is persistent and does not advance the campaign; the acquired troop never receives terrain or named-boss multipliers. Listed battle gold is repeatable and defeat still grants 20%.
+Challenges contain no enemy fortress, fortress fire, waves, reinforcements, or elite. The enemy is derived from the same base troop later granted to the player, then receives rank-5 stage equipment, the visible terrain multipliers, and its named-boss modifier. The common HP ×10 terrain rule remains legible while the named modifier preserves progression; combined pre-equipment HP multipliers in unlock order are ×15, ×120, ×80, ×13.8, ×120, ×40/3, and ×80/9. Their trained HP remains approximately 20,250 / 28,200 / 72,000 / 124,200 / 153,000 / 264,000 / 240,000; the last two are parallel finale challenges rather than a strict internal ordering. The Rune Golem's named HP multiplier falls to ×1.38 to offset its new 5,000 base HP plus three-rank large-legendary capstone while preserving the established 124,200 challenge durability. Challenge 104 uses ×4/3 HP and ×16/75 ATK, producing an 864-damage trained strike on its slower 2.4-second cycle. Challenge 105 uses ×8/9 HP and ×28/135 ATK, producing a 1,120-damage trained strike on its slower 2.8-second cycle. These attack offsets preserve bounded sustained pressure while making each telegraphed hit substantially more legible. Every challenge boss also uses a presentation-only 1.5× battlefield scale and the shared 1.08× phase-two visual growth; those multipliers are deliberately excluded from hit geometry and all threat calculations. First-clear acquisition is persistent and does not advance the campaign; the acquired troop never receives terrain or named-boss multipliers. Listed battle gold is repeatable and defeat still grants 20%.
 
 ### Continuous enemy reinforcements
 
@@ -498,7 +529,7 @@ The pure estimator in `src/game/difficulty.ts` combines seven axes:
 - objective durability from fortress HP at `HP / 5`, reflecting that every campaign battle—including boss sieges—retains a real fortress damage window;
 - enemy-fortress fire from its damage per second weighted by range, applied only to stages whose fortress can actually shoot;
 - battlefield endurance from half of the virtual distance beyond the stage-1 baseline, representing the extra travel and reinforcement window;
-- scripted-army pressure from trained unit threat, squad expansion, spawn timing, movement domain, single/pierce/cleave/splash/directional/ground-burst geometry, guard interception, attack windup/recovery commitment, close-range dead zones, and support healing per second;
+- scripted-army pressure from trained unit threat, squad expansion, spawn timing, movement domain, single/pierce/cleave/splash/directional/ground-burst geometry, explicit fortress-piercing access, guard interception, attack windup/recovery commitment, close-range dead zones, and support healing per second;
 - recurring pressure from reinforcement composition, interval, and living-enemy cap;
 - explicit elite HP, attack, and defense modifiers;
 - boss durability, damage, phase pressure, and stage stomp cadence.
@@ -511,9 +542,9 @@ Opening waves measure complete deployments including squad-size capstones. Reinf
 
 ### Command-efficiency audit
 
-`scripts/unit-efficiency.test.ts` estimates each base deployment as `estimateUnitThreat(unit) × squadSize`, then divides by its Command cost. The shared threat estimate accounts for effective HP, flat defense, DPS, healing per second, range, movement, flying/charge/anti-large traits, all implemented attack geometries, guard interception/attenuation, windup commitment, and minimum-range exposure. Every troop costing at least 150 Command must score at least 1.0 estimated threat per Command, and no base troop may cost more than the unupgraded 200 maximum Command.
+`scripts/unit-efficiency.test.ts` estimates each base deployment as `estimateUnitThreat(unit) × squadSize`, then divides by its effective unresearched field Command cost after the 10% wartime surcharge and the definition's cap. The shared threat estimate accounts for effective HP, flat defense, DPS, healing per second, range, movement, flying/charge/anti-large traits, all implemented attack geometries, guard interception/attenuation, windup commitment, and minimum-range exposure. Every troop costing at least 150 effective Command must score at least 1.0 estimated threat per Command. All troops except Continental Alliance Guardian retain the unupgraded 200 ceiling; Guardian is regression-locked to its explicit 300 cost.
 
-The current 150+ Command range runs from the Ogre Crusher at 1.25 estimated threat per Command to the post-finale Ancient Sky Dragon at 16.33. This is a minimum-value regression guard, not a promise that the estimator perfectly orders every matchup: target motion during windup, dead-zone screening, focus fire, path congestion, active-body limits, aerial counter availability, and real area density still require playtesting. Ifrit and Ancient Sky Dragon are gated behind stage 30 challenges 104 and 105, full-base-capacity 200 Command costs, one-body deployments, long cooldowns, and living caps of two and one rather than being treated as ordinary campaign recruits.
+The current effective 150+ Command range runs from the 160-Command Gargoyle at 1.02 estimated threat per Command to the post-finale Ancient Sky Dragon at 24.31. The slow-striking 5-star band is deliberately separated from ordinary legendaries: Ifrit scores 14.71, the 300-Command Continental Alliance Guardian 11.68, and Ancient Sky Dragon 24.31 estimated threat per Command. The estimator applies a modest ×1.06 value factor only to explicit fortress-piercing attacks. Guardian's 13,000 HP, 18 defense, guard protection, 900-damage cleave, and 2.4-second cycle are valued as durable burst support rather than dragon-level ranged reach; its unique 300 cost additionally requires at least three `지휘 저장고` ranks before logistics discounts. This is a minimum-value regression guard, not a promise that the estimator perfectly orders every matchup: target motion during windup, dead-zone screening, focus fire, path congestion, total/per-unit active-body limits, aerial counter availability, and real area density still require playtesting. Ifrit and Ancient Sky Dragon are gated behind stage 30 challenges 104 and 105, capped 200 Command costs, one-body deployments, long cooldowns, and living caps of two and one. Continental Alliance Guardian instead requires the stage-30 clear, fortress tier 3, and 20,000 Gold, with a one-body living cap and 9-second deployment cooldown.
 
 ### Focused-upgrade progression stress report
 
@@ -560,9 +591,9 @@ Each row lists aligned `target / Gold / Royal Gem` sequences. Every threshold is
 | Hero skill uses | 5 / 15 / 50 / 100 / 200 / 500 | 90 / 180 / 400 / 650 / 900 / 2,000 | 4 / 8 / 15 / 22 / 30 / 65 |
 | Fortress bombardments | 1 / 10 / 50 / 100 / 200 / 500 | 60 / 160 / 400 / 650 / 900 / 2,000 | 2 / 7 / 15 / 22 / 30 / 65 |
 | Battles | 1 / 10 / 25 / 50 / 100 / 250 | 50 / 220 / 500 / 900 / 1,800 / 4,000 | 2 / 10 / 18 / 30 / 55 / 110 |
-| Codex entries | 10 / 30 / 45 / 59 | 100 / 180 / 350 / 600 | 6 / 12 / 24 / 40 |
+| Codex entries | 10 / 30 / 45 / 60 | 100 / 180 / 350 / 600 | 6 / 12 / 24 / 40 |
 
-- The codex ladder uses 10 entries, `ceil(CODEX_TOTAL × 0.5)`, `ceil(CODEX_TOTAL × 0.75)`, and `CODEX_TOTAL`; with the current 59-entry codex these resolve to 10/30/45/59.
+- The codex ladder uses 10 entries, `ceil(CODEX_TOTAL × 0.5)`, `ceil(CODEX_TOTAL × 0.75)`, and `CODEX_TOTAL`; with the current 60-entry codex these resolve to 10/30/45/60.
 - The 64 definitions remain presented as twelve compact series by default, with the full list available as an alternate view.
 
 ## 9. Balance change workflow
