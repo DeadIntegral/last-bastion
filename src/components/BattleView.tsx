@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { battleMobilizationTuning, castleBattleStats, mobilizationCommandCost, rallyCommandTuning } from '../data/castle';
 import { troopDefinitions, unitGradeLabels } from '../data/units';
 import { getStage } from '../data/stages';
@@ -72,7 +72,10 @@ export function BattleView({ stageId, onResult, onExit }: BattleViewProps) {
   const [exitConfirmationOpen, setExitConfirmationOpen] = useState(false);
   const stage = getStage(stageId);
   const battleCastleStats = applyFortressItems(castleBattleStats(castleTechLevels), fortressItemSlots);
-  const unitItems = Object.fromEntries(equippedUnits.map((id) => [id, formationItemSlots[formationSlots.indexOf(id)] ?? null])) as Partial<Record<UnitId, ItemId | null>>;
+  const unitItems = useMemo(
+    () => Object.fromEntries(equippedUnits.map((id) => [id, formationItemSlots[formationSlots.indexOf(id)] ?? null])) as Partial<Record<UnitId, ItemId | null>>,
+    [equippedUnits, formationItemSlots, formationSlots],
+  );
 
   useEffect(() => {
     const onHud = (next: BattleHudState) => setHud(next);
