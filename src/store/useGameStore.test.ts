@@ -37,19 +37,63 @@ describe('shared troop progression', () => {
     expect(useGameStore.getState().stats.codexEntries).toBe(2);
   });
 
-  it('grants, validates, and migrates formation and fortress items', () => {
-    expect(useGameStore.getState().completeStage(4)?.itemId).toBe('veteran-standard');
-    expect(useGameStore.getState().ownedItems).toContain('veteran-standard');
+  it('drops, validates, combines, and migrates counted items', () => {
+    const earlyDrop = encounterResult([]);
+    earlyDrop.victory = true;
+    earlyDrop.lootRoll = 0;
+    expect(useGameStore.getState().recordBattle(earlyDrop).drops).toEqual([{ id: 'veteran-standard', count: 1 }]);
+    expect(useGameStore.getState().itemInventory['veteran-standard']).toBe(1);
     expect(useGameStore.getState().assignFormationItem('veteran-standard', 0)).toBe(true);
     expect(useGameStore.getState().assignFortressItem('veteran-standard', 0)).toBe(false);
 
-    expect(useGameStore.getState().completeStage(18)?.itemId).toBe('guardian-keystone');
+    const fortressDrop = encounterResult([]);
+    fortressDrop.victory = true;
+    fortressDrop.stageId = 13;
+    fortressDrop.lootRoll = 0.22;
+    expect(useGameStore.getState().recordBattle(fortressDrop).drops).toEqual([{ id: 'guardian-keystone', count: 1 }]);
     expect(useGameStore.getState().assignFortressItem('guardian-keystone', 0)).toBe(true);
     expect(useGameStore.getState().formationItemSlots[0]).toBe('veteran-standard');
     expect(useGameStore.getState().fortressItemSlots[0]).toBe('guardian-keystone');
 
-    expect(useGameStore.getState().importSave(JSON.stringify({ unlockedStage: 25, clearedStages: [4, 8, 12, 18, 24] }))).toBe(true);
-    expect(useGameStore.getState().ownedItems).toEqual(expect.arrayContaining(['veteran-standard', 'runed-whetstone', 'clockwork-horn', 'guardian-keystone', 'quartermaster-seal']));
+    expect(useGameStore.getState().importSave(JSON.stringify({
+      unlockedStage: 19,
+      clearedStages: [12, 18],
+      itemInventory: { 'veteran-standard': 2, 'runed-whetstone': 1, unknown: 9 },
+      formationItemSlots: ['veteran-standard', 'veteran-standard', 'guardian-keystone'],
+    }))).toBe(true);
+    expect(useGameStore.getState().itemInventory).toEqual({ 'veteran-standard': 2, 'runed-whetstone': 1 });
+    expect(useGameStore.getState().formationItemSlots.slice(0, 3)).toEqual(['veteran-standard', null, null]);
+    useGameStore.getState().unequipFormationItem(0);
+    expect(useGameStore.getState().craftItem('craft-war-standard')).toBe(true);
+    expect(useGameStore.getState().itemInventory['war-standard']).toBe(1);
+    expect(useGameStore.getState().itemInventory['veteran-standard']).toBe(1);
+  });
+
+  it('does not restore experimental milestone-owned items from schema-seven saves', () => {
+    expect(useGameStore.getState().importSave(JSON.stringify({
+      gold: 500,
+      unlockedStage: 31,
+      clearedStages: [4, 8, 12, 18, 24, 30],
+      ownedItems: ['veteran-standard', 'starfire-lens'],
+      formationItemSlots: ['veteran-standard'],
+      fortressItemSlots: ['starfire-lens'],
+    }))).toBe(true);
+    expect(useGameStore.getState().itemInventory).toEqual({});
+    expect(useGameStore.getState().formationItemSlots.every((id) => id === null)).toBe(true);
+    expect(useGameStore.getState().fortressItemSlots).toEqual([null, null]);
+  });
+
+  it('does not consume crafting materials when the result stack is full', () => {
+    useGameStore.setState({
+      clearedStages: [12],
+      itemInventory: { 'veteran-standard': 1, 'runed-whetstone': 1, 'war-standard': 99 },
+    });
+    expect(useGameStore.getState().craftItem('craft-war-standard')).toBe(false);
+    expect(useGameStore.getState().itemInventory).toEqual({
+      'veteran-standard': 1,
+      'runed-whetstone': 1,
+      'war-standard': 99,
+    });
   });
 
   it('grants the daily gem reward only once per local date key', () => {

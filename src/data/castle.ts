@@ -44,10 +44,11 @@ export const fortressResearchTuning = {
   reinforcedFoundationHpPerRank: 1_500,
   citadelCoreHpPerRank: 3_000,
   citadelCoreDamageReductionPerRank: 12,
+  itemDropChancePerRank: 0.04,
 } as const;
 
 export const castleTechOrder: CastleTechId[] = [
-  'war_coffers', 'logistics', 'command_vault', 'drill_yard', 'supply_standardization', 'spoils_accounting', 'field_manuals', 'war_tithe',
+  'war_coffers', 'logistics', 'command_vault', 'drill_yard', 'supply_standardization', 'spoils_accounting', 'field_manuals', 'loot_recovery', 'war_tithe',
   'fortified_walls', 'stone_plating', 'reinforced_foundations', 'citadel_core', 'watchtower', 'battlements', 'mending_stone',
   'black_powder', 'rapid_reload', 'wide_blast', 'giantbreaker_shells', 'siege_calculus',
   'rally_orders', 'heroic_orders', 'mobilization_drill', 'field_recovery', 'transcendent_orders',
@@ -61,6 +62,7 @@ export const castleTechDefinitions: Record<CastleTechId, CastleTechDefinition> =
   supply_standardization: { id: 'supply_standardization', branch: 'command', name: '군수 표준화', description: '병사 소환 지휘 비용 -3%', icon: '▦', maxLevel: 5, baseCost: 300, requiredTier: 2, prerequisite: { id: 'command_vault', level: 3 } },
   spoils_accounting: { id: 'spoils_accounting', branch: 'growth', name: '전리품 회계', description: '전투 골드 획득량 +5%', icon: '●', maxLevel: 5, baseCost: 350, requiredTier: 2 },
   field_manuals: { id: 'field_manuals', branch: 'growth', name: '왕립 야전 교범', description: '전투 숙련 경험치 획득량 +5%', icon: '▤', maxLevel: 5, baseCost: 400, requiredTier: 2 },
+  loot_recovery: { id: 'loot_recovery', branch: 'growth', name: '전리품 탐색대', description: `전투 아이템 드롭률 +${fortressResearchTuning.itemDropChancePerRank * 100}%`, icon: '⌕', maxLevel: 5, baseCost: 500, requiredTier: 2, prerequisite: { id: 'spoils_accounting', level: 2 } },
   war_tithe: { id: 'war_tithe', branch: 'command', name: '승전 공납제', description: `적 처치 지휘력 +${fortressResearchTuning.warTitheCommandPerRank}`, icon: '♢', maxLevel: 5, baseCost: 400, requiredTier: 3, prerequisite: { id: 'drill_yard', level: 3 } },
   fortified_walls: { id: 'fortified_walls', branch: 'defense', name: '강화 성벽', description: `성채 최대 체력 +${fortressResearchTuning.fortifiedWallHpPerRank}`, icon: '▰', maxLevel: 5, baseCost: 100, requiredTier: 1 },
   stone_plating: { id: 'stone_plating', branch: 'defense', name: '석재 장갑', description: '받는 공격 피해 -3', icon: '◆', maxLevel: 5, baseCost: 150, requiredTier: 1, prerequisite: { id: 'fortified_walls', level: 1 } },
@@ -149,6 +151,7 @@ export function castleBattleStats(levels: Record<CastleTechId, number>): CastleB
     commandPerKill: fortressResearchTuning.baseCommandPerKill + levels.war_tithe * fortressResearchTuning.warTitheCommandPerRank,
     battleGoldMultiplier: 1 + levels.spoils_accounting * 0.05,
     masteryXpMultiplier: 1 + levels.field_manuals * 0.05,
+    itemDropChanceBonus: levels.loot_recovery * fortressResearchTuning.itemDropChancePerRank,
     maxHp: 1800
       + levels.fortified_walls * fortressResearchTuning.fortifiedWallHpPerRank
       + levels.reinforced_foundations * fortressResearchTuning.reinforcedFoundationHpPerRank

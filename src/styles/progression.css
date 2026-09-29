@@ -262,5 +262,13 @@
 .item-inventory-card .item-icon { width: 52px; height: 52px; display: grid; place-items: center; border: 1px solid rgba(141,198,208,.28); border-radius: 50%; background: radial-gradient(circle, rgba(99,174,189,.2), rgba(11,25,34,.55)); color: #d5eef0; font: 27px Georgia; }
 .item-copy { display: grid; gap: 3px; }.item-copy small { color: #7c959e; font-size: 8px; }.item-copy b { color: #e4eceb; font-size: 12px; }.item-copy p { margin: 0; color: #83949b; font-size: 9px; line-height: 1.45; }
 .item-inventory-card > em { position: absolute; right: 8px; top: 7px; color: var(--gold-bright); font: normal 700 8px 'Cinzel'; }
+.item-count { position: absolute; right: 9px; bottom: 7px; color: #a9cbd0; font: 700 10px 'Cinzel'; }
 .item-inventory-card.rarity-4 { border-color: rgba(184,133,221,.34); }.item-inventory-card.rarity-5 { border-color: rgba(240,190,73,.55); box-shadow: inset 0 0 20px rgba(218,160,42,.08); }
 .item-inventory-card.locked { opacity: .48; filter: grayscale(.8); }
+.item-crafting-section { width: min(1180px, calc(100% - 40px)); margin: 18px auto 0; padding: 17px; border: 1px solid rgba(174,132,212,.26); border-radius: var(--panel-radius); background: linear-gradient(145deg, rgba(41,32,54,.94), rgba(17,24,34,.96)); }
+.item-crafting-section > header { margin-bottom: 13px; }.item-crafting-section h3 { margin: 2px 0; font-size: 18px; }.item-crafting-section header p { margin: 0; color: #8d83a0; font-size: 10px; }
+.item-recipe-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.item-recipe-card { display: grid; grid-template-columns: 54px minmax(0, 1fr) 126px; align-items: center; gap: 10px; min-width: 0; padding: 12px; border: 1px solid rgba(158,123,190,.3); border-radius: var(--control-radius); background: rgba(17,21,34,.58); }
+.item-recipe-card > .item-icon { width: 48px; height: 48px; display: grid; place-items: center; border: 1px solid rgba(205,171,229,.32); border-radius: 50%; color: #dfc5ef; background: rgba(101,65,126,.18); font: 25px Georgia; }
+.item-recipe-card h4 { margin: 2px 0; font-size: 12px; }.item-recipe-card small { color: #8f81a0; font-size: 8px; }.item-recipe-card p { margin: 3px 0; color: #918da0; font-size: 9px; }.item-recipe-card em { color: #c7ad75; font: normal 8px 'Cinzel'; }
+.item-recipe-card > button { min-width: 0; padding: 9px; }.item-recipe-card.locked { opacity: .52; filter: grayscale(.7); }

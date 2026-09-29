@@ -27,7 +27,7 @@ Phaser BattleScene       App navigation/shell
 | Context | Owner | May depend on | Must not own |
 |---|---|---|---|
 | Troop/hero/stage/castle content | `src/data/*` | `src/types` | React state, Phaser objects |
-| Item definitions/acquisition | `src/data/items.ts` + stage rewards | `src/types` | slot UI, Phaser objects |
+| Item definitions/drop/crafting rules | `src/data/items.ts` | `src/types`, stage metadata | slot UI, Phaser objects |
 | Persistent campaign progression | `src/store/useGameStore.ts` | data, pure rules | screen layout, Phaser rendering |
 | Damage, ranges, upgrades, labels | `src/game/rules.ts` | types, data | live entities |
 | Line traversal and area targeting | `src/game/combatTargeting.ts` | types | Phaser containers, UI |

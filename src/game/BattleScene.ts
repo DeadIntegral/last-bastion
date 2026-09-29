@@ -2320,6 +2320,7 @@ export class BattleScene extends Phaser.Scene {
         summons: { ...this.summons }, usedHeroId: this.heroId,
         heroSkillUses: this.heroSkillUses, castleSkillUses: this.castleSkillUses,
         encounteredEnemies: [...this.encounteredEnemies],
+        lootRoll: Math.random(),
         masteryContributions: {
           units: Object.fromEntries(
             allTroopOrder

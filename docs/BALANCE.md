@@ -39,7 +39,7 @@ Farms are ordinary recorded victories or defeats and therefore still grant role-
 
 Hero Training Ground unlocks from the stage-9 first clear. It supplements rather than replaces battle-earned hero mastery XP and refuses purchases at the level-30 cap.
 
-Fortress growth research has two independent tier-2 roots in one branch: each `전리품 회계` rank multiplies repeat and first-clear battle Gold by 1.05, and each `왕립 야전 교범` rank multiplies soldier and hero battle mastery XP by 1.05. Both cap at ×1.25 at rank 5 and round to the nearest whole value. Neither root requires investment in the command/supply tree or the other growth root. Achievement Gold, regional treasure Gold, daily rewards, recruitment costs, and paid Hero Training packages are not multiplied.
+Fortress growth research has two independent tier-2 roots in one branch: each `전리품 회계` rank multiplies repeat and first-clear battle Gold by 1.05, and each `왕립 야전 교범` rank multiplies soldier and hero battle mastery XP by 1.05. Both cap at ×1.25 at rank 5 and round to the nearest whole value. `전리품 탐색대` branches from Spoils Accounting rank 2, costs 500/1,000/1,500/2,000/2,500 Gold, and adds 4 percentage points to victory item-drop chance per rank, up to +20 points. Final item chance is capped at 100%. Achievement Gold, regional treasure Gold, daily rewards, recruitment costs, and paid Hero Training packages are not multiplied.
 
 | Training package | Gold cost | Hero XP | Gold per XP |
 |---|---:|---:|---:|
@@ -248,17 +248,23 @@ Expansion troops created through `makeTroop` derive readable fixed growth once a
 ### Item loadout balance
 
 | Item | Source | Target | Implemented effect |
-|---|---:|---|---|
-| 고참병의 군기 | stage 4 | formation slot | troop maximum HP ×1.12 |
-| 각인 숫돌 | stage 8 | formation slot | troop attack and healing ×1.10 |
-| 태엽 출전 나팔 | stage 12 | formation slot | summon cooldown ×0.88 |
-| 수호자의 주춧돌 | stage 18 | fortress | player fortress maximum HP ×1.20 |
-| 총병참관의 인장 | stage 24 | fortress | starting Command +50; maximum Command +100 |
-| 성화 조준 렌즈 | stage 30 | fortress | bombardment damage ×1.25; range +150 |
+|---|---|---|---|
+| 고참병의 군기 | region 1+ drop | formation slot | troop maximum HP ×1.12 |
+| 각인 숫돌 | region 1+ drop | formation slot | troop attack and healing ×1.10 |
+| 태엽 출전 나팔 | region 1+ drop | formation slot | summon cooldown ×0.88 |
+| 수호자의 주춧돌 | region 2+ drop | fortress | player fortress maximum HP ×1.20 |
+| 총병참관의 인장 | region 2+ drop | fortress | starting Command +50; maximum Command +100 |
+| 성화 조준 렌즈 | region 3 drop | fortress | bombardment damage ×1.25; range +150 |
+| 전쟁 영웅의 군기 | Veteran Standard + Runed Whetstone; stage 12 | formation slot | troop maximum HP ×1.18; attack/healing ×1.14 |
+| 신속 강습 장비 | Runed Whetstone + Clockwork Horn; stage 18 | formation slot | attack/healing ×1.12; summon cooldown ×0.82 |
+| 왕국 보루의 심장 | Guardian Keystone + Quartermaster Seal; stage 30 | fortress | fortress HP ×1.30; starting Command +70; maximum Command +150 |
+| 왕립 공성 핵 | Quartermaster Seal + Starfire Lens; stage 30 | fortress | starting Command +70; maximum Command +150; bombardment damage ×1.35; range +220 |
 
-Formation items apply after equipment, mastery, and Victory Monument troop resolution and affect every body created by that one deployment without multiplying Command cost or squad size. Items remain on numbered slots when troops move. Fortress effects resolve after technology stats; only two of the three owned fortress items may be active. Full-set engraving remains a separate Planned system.
+Victory drop chances before research are normal campaign 30%, campaign boss 60%, treasure guardian 45%, ordinary farm 50%, beast challenge 65%, and post-finale farm 80%. The eligible pool is region 1 material through stage 12, regions 1–2 from stage 13, and all three regions from stage 25; a successful roll selects uniformly within that cumulative pool. One victory grants at most one item and defeat grants none. Inventory counts clamp to 99 per ID.
 
-The item-aware pressure audit treats a single-slot item as a bounded fraction of the whole formation and checks the stage immediately after acquisition. Current pressure steps are approximately 4→5 ×1.15, 8→9 ×1.18, 12→13 ×1.05, 18→19 ×1.12, and 24→25 ×1.09. Each exceeds its representative item-power floor plus a 1% safety margin. Stage 25 receives an additional 1,400 fortress HP specifically to keep the Command-seal transition from flattening.
+Formation items apply after equipment, mastery, and Victory Monument troop resolution and affect every body created by that one deployment without multiplying Command cost or squad size. Items remain on numbered slots when troops move. Fortress effects resolve after technology stats; only two different fortress items may be active. An item ID can occupy only one slot, so duplicate drops are crafting stock rather than a way to repeat the same multiplier across the whole formation. Crafting consumes only unequipped ingredients. Every crafted result uses one slot, retains both ingredient roles, and strictly exceeds each ingredient's corresponding values; the slot compression is intentionally valuable but bounded by recipe milestones and repeated drop acquisition. Full-set engraving remains a separate Planned system.
+
+The item-aware pressure audit treats a single-slot item as a bounded fraction of the whole formation and checks representative drop/craft power at the next progression step. Current pressure steps are approximately 4→5 ×1.15, 8→9 ×1.18, 12→13 ×1.074, 18→19 ×1.123, 24→25 ×1.09, and 30→303 ×1.612. Each exceeds its representative power floor plus a 1% safety margin. Stage 13 receives 1,500 additional enemy-fortress HP over its prior curve and stage 14 receives 500 to prevent the stage-12 War Hero Standard recipe from flattening the new-region opening; stage 25 retains its additional 1,400 HP for the Command-seal transition.
 - Soldier mastery maximum: level 50. Hero mastery maximum: level 30.
 - XP for next mastery level: `round(45 × level^1.32)`.
 - Mastery uses character-specific flat gains. At level `L`, add `(L - 1) × listed gain` to canonical HP and ATK before adding equipment.
@@ -355,12 +361,12 @@ Each awakening rank also enables one level of a nearby-allied aura: Edric gives 
 - The rule is faction-symmetric. When the enemy fortress reaches zero HP, its remaining rear defenders immediately become valid targets. Challenge bosses receive no enemy-fortress shield because challenges contain no enemy fortress. Campaign bosses and named elite guards retain their forward authored spawn points.
 - This increases the tactical value of fortress durability and provides a recovery window after an army is pushed back. It changes engagement geometry but no unit stat, reward, cost, or authored campaign-pressure input.
 
-Fortress research has five ranks per node. Rank cost is `baseCost × (currentRank + 1)`, so every node has a readable five-step arithmetic sequence. Twenty-five nodes across five implemented branches—Command, Growth, Defense, Artillery, and Expedition—provide 125 total purchasable research ranks.
+Fortress research has five ranks per node. Rank cost is `baseCost × (currentRank + 1)`, so every node has a readable five-step arithmetic sequence. Twenty-six nodes across five implemented branches—Command, Growth, Defense, Artillery, and Expedition—provide 130 total purchasable research ranks.
 
 | Fortress tier | Promotion requirement | Promotion cost | New permits |
 |---:|---:|---:|---|
 | 1 · 변경 요새 | starting | 0 | ten foundation nodes; kingdom regular troops |
-| 2 · 왕립 성채 | 8 total research ranks | 1,000 | nine tier-2 nodes; Raider, Bulwark, and Royal Cavalry recruitment |
+| 2 · 왕립 성채 | 8 total research ranks | 1,000 | ten tier-2 nodes; Raider, Bulwark, and Royal Cavalry recruitment |
 | 3 · 최후의 보루 | 24 total research ranks | 2,500 | six tier-3 nodes; Crossbow and Griffin Rider recruitment |
 
 - Promotion requirements count ranks purchased across all branches.
@@ -377,6 +383,7 @@ Fortress research has five ranks per node. Rank cost is `baseCost × (currentRan
 | Command | 2 | 군수 표준화 | 300 | soldier Command cost -3% | 지휘 저장고 3 |
 | Growth | 2 | 전리품 회계 | 350 | battle and first-clear Gold +5% | — |
 | Growth | 2 | 왕립 야전 교범 | 400 | battle-earned mastery XP +5% | — |
+| Growth | 2 | 전리품 탐색대 | 500 | victory item-drop chance +4 percentage points | 전리품 회계 2 |
 | Command | 3 | 승전 공납제 | 400 | Command per normal kill +0.5 | 상비군 훈련소 3 |
 | Defense | 1 | 강화 성벽 | 100 | fortress HP +250 | — |
 | Defense | 1 | 석재 장갑 | 150 | flat damage reduction +3 | 강화 성벽 1 |
@@ -384,7 +391,7 @@ Fortress research has five ranks per node. Rank cost is `baseCost × (currentRan
 | Defense | 3 | 불락의 성벽핵 | 800 | fortress HP +3,000; flat damage reduction +12 | 심층 기초 보강 5 |
 | Defense | 1 | 수호 망루 | 200 | tower damage +22; interval improves by 250 ms | 강화 성벽 1 |
 | Defense | 2 | 고층 흉벽 | 250 | tower range +45 | 수호 망루 2 |
-| Defense | 3 | 재생 석재 | 400 | fortress regeneration +4 HP/s | 고층 흉벽 3 |
+| Defense | 3 | 재생 석재 | 400 | fortress regeneration +10 HP/s | 고층 흉벽 3 |
 | Artillery | 1 | 흑색 화약 | 100 | bombardment damage +45 | — |
 | Artillery | 1 | 신속 장전 | 150 | cooldown -3 s | 흑색 화약 1 |
 | Artillery | 1 | 광역 탄두 | 200 | radius +20 | 흑색 화약 2 |
@@ -438,8 +445,8 @@ At maximum `군수 표준화`, all 52 deployment costs use `min(per-unit cap, ma
 
 | Stage | Name | Fortress HP | Type |
 |---:|---|---:|---|
-| 13 | 백은 평원 | 24,000 | army + elite |
-| 14 | 바람 절벽 | 26,000 | army + elite |
+| 13 | 백은 평원 | 25,500 | army + elite |
+| 14 | 바람 절벽 | 26,500 | army + elite |
 | 15 | 망각의 초소 | 29,750 | army + elite |
 | 16 | 붉은 수로 | 33,500 | army + elite |
 | 17 | 용광로 성벽 | 37,250 | army + elite |

@@ -15,11 +15,6 @@ describe('campaign rewards', () => {
     }
   });
 
-  it('distributes every canonical item through campaign first clears', async () => {
-    const { itemOrder } = await import('./items');
-    expect(stages.flatMap((stage) => stage.firstClearReward.itemId ?? [])).toEqual(itemOrder);
-  });
-
   it('adds repeatable gold and mastery farms without advancing campaign progression', () => {
     expect(farmingStages.map((stage) => stage.id)).toEqual([301, 302, 303]);
     expect(farmingStages.map((stage) => stage.farmingKind)).toEqual(['gold', 'mastery', 'gold']);

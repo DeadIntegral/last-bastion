@@ -83,7 +83,7 @@ const campaignStageBlueprints: Array<Omit<StageDefinition, 'fortressDistance' | 
   {
     id: 4, name: '파쇄자의 길', subtitle: '창끝을 세워 오우거 전열을 쓰러뜨리세요', reward: 400, enemyCastleHp: 1800,
     enemyUpgrades: { equipment: { weapon: 2, armor: 3, boots: 1 } },
-    firstClearReward: { label: '잿불 마녀와 고참병의 군기', description: '영웅 셀레네가 합류하고 편성 아이템 고참병의 군기를 획득합니다.', icon: '✹', heroId: 'pyromancer', itemId: 'veteran-standard' },
+    firstClearReward: { label: '잿불 마녀 영입', description: '영웅 셀레네가 무료로 원정대에 합류합니다.', icon: '✹', heroId: 'pyromancer' },
     waves: [
       { timeMs: 1000, unitId: 'lancer', count: 5, intervalMs: 1800 },
       { timeMs: 8000, unitId: 'brute', count: 1, intervalMs: 6000 },
@@ -135,7 +135,7 @@ const campaignStageBlueprints: Array<Omit<StageDefinition, 'fortressDistance' | 
   {
     id: 8, name: '유리 사막', subtitle: '빠른 기동대와 장거리 사격을 견뎌내세요', reward: 800, enemyCastleHp: 7600,
     enemyUpgrades: { equipment: { weapon: 5, armor: 5, boots: 5 } },
-    firstClearReward: { label: '사막의 전리품과 각인 숫돌', description: '금화 800개와 편성 아이템 각인 숫돌을 획득합니다.', icon: '◇', gold: 800, itemId: 'runed-whetstone' },
+    firstClearReward: { label: '사막의 전리품', description: '금화 800개를 획득합니다.', icon: '◇', gold: 800 },
     waves: [
       { timeMs: 700, unitId: 'raider', count: 2, intervalMs: 2600 },
       { timeMs: 8000, unitId: 'archer', count: 2, intervalMs: 2800 },
@@ -193,7 +193,7 @@ const campaignStageBlueprints: Array<Omit<StageDefinition, 'fortressDistance' | 
     id: 12, name: '철갑 마수의 귀환', subtitle: '배신한 인간군이 깨운 철갑 마수와 동부 성채를 함께 끝내세요', reward: 1200, enemyCastleHp: 14_500, boss: true, bossName: '왕도 철갑 마수',
     bossModifiers: { hpMultiplier: 2.4, attackMultiplier: 1.35, stompCadenceMultiplier: 0.82 },
     enemyUpgrades: { equipment: { weapon: 5, armor: 5, boots: 5 } },
-    firstClearReward: { label: '새벽의 성녀와 출전 나팔', description: '영웅 미레나, 금화 1,200개, 편성 아이템 태엽 출전 나팔을 획득합니다.', icon: '✚', heroId: 'saint', gold: 1200, itemId: 'clockwork-horn' },
+    firstClearReward: { label: '새벽의 성녀 합류', description: '영웅 미레나가 합류하고 금화 1,200개를 획득합니다.', icon: '✚', heroId: 'saint', gold: 1200 },
     waves: [],
     reinforcement: { startMs: 5_000, intervalMs: 6_500, unitIds: ['militia', 'raider', 'archer'], maxAlive: 5 },
   },
@@ -316,7 +316,8 @@ function createLateStage(id: number): Omit<StageDefinition, 'fortressDistance' |
   const [name, subtitle] = lateStageNames[progress];
   const composition = boss ? [] : lateStageComposition(id);
   const waveInterval = Math.max(1_450, 2_150 - progress * 30);
-  const regionOpeningFortressBonus = !boss && id % 6 === 1 ? 1_250 + (id === 13 ? 500 : id === 25 ? 1_400 : 0) : 0;
+  const regionOpeningFortressBonus = !boss && id % 6 === 1 ? 1_250 + (id === 13 ? 2_000 : id === 25 ? 1_400 : 0) : 0;
+  const craftedItemHardening = id === 14 ? 500 : 0;
   const fortressHardening = 2_000 + progress * 250;
   const waves = composition.map(({ unitId, signature }, index) => ({
     timeMs: 700 + index * 4_500,
@@ -337,7 +338,7 @@ function createLateStage(id: number): Omit<StageDefinition, 'fortressDistance' |
     name,
     subtitle,
     reward: id * 100,
-    enemyCastleHp: (boss ? 9_000 : 13_250) + progress * 2_500 + fortressHardening + regionOpeningFortressBonus + (id === 28 ? 1_000 : id === 29 ? 1_750 : 0) + (id - 6) * 1_000,
+    enemyCastleHp: (boss ? 9_000 : 13_250) + progress * 2_500 + fortressHardening + regionOpeningFortressBonus + craftedItemHardening + (id === 28 ? 1_000 : id === 29 ? 1_750 : 0) + (id - 6) * 1_000,
     enemyFortressAttack: lateFortressAttack(id),
     enemyUpgrades: { equipment: { weapon: 5, armor: 5, boots: 5 } },
     firstClearReward: id === 15 ? {
@@ -346,16 +347,12 @@ function createLateStage(id: number): Omit<StageDefinition, 'fortressDistance' |
       icon: '⚒', heroId: 'orcChampion', gold: 1_500,
     } : id === 18 ? {
       label: '해방군 기수 합류',
-      description: '영웅 브란, 금화 1,800개, 성채 아이템 수호자의 주춧돌을 획득합니다.',
-      icon: '⚑', heroId: 'marshal', gold: 1_800, itemId: 'guardian-keystone',
+      description: '영웅 브란이 합류하고 금화 1,800개를 획득합니다.',
+      icon: '⚑', heroId: 'marshal', gold: 1_800,
     } : id === 24 ? {
       label: '바람 정령의 자유 계약',
-      description: '영웅 네리스, 금화 2,400개, 성채 아이템 총병참관의 인장을 획득합니다.',
-      icon: '✧', heroId: 'windSpirit', gold: 2_400, itemId: 'quartermaster-seal',
-    } : id === 30 ? {
-      label: '마왕성 성화 렌즈',
-      description: '금화 3,000개와 5성 성채 아이템 성화 조준 렌즈를 획득합니다.',
-      icon: '◎', gold: 3_000, itemId: 'starfire-lens',
+      description: '영웅 네리스가 합류하고 금화 2,400개를 획득합니다.',
+      icon: '✧', heroId: 'windSpirit', gold: 2_400,
     } : {
       label: boss ? `${name} 정복 보급` : `${name} 원정 보급`,
       description: `최초 승리 보상으로 금화 ${(id * 100).toLocaleString()}개를 획득합니다.`,

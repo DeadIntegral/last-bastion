@@ -84,7 +84,9 @@
 @media (max-width: 820px) {
   .item-loadout-grid { width: calc(100% - 24px); grid-template-columns: 1fr; }
   .item-inventory-section { width: calc(100% - 24px); }
+  .item-crafting-section { width: calc(100% - 24px); }
   .item-inventory-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .item-recipe-grid { grid-template-columns: 1fr; }
   .item-formation-sockets { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .opening-story { margin-inline: auto; }
   .shell-header { grid-template-columns: 58px 1fr auto; padding: 0 14px; }
@@ -161,6 +163,7 @@
   .item-inventory-grid, .item-formation-sockets { grid-template-columns: 1fr 1fr; }
   .item-inventory-card { grid-template-columns: 46px minmax(0, 1fr); }
   .item-inventory-card .item-icon { width: 42px; height: 42px; font-size: 22px; }
+  .item-recipe-card { grid-template-columns: 46px minmax(0, 1fr); }.item-recipe-card > button { grid-column: 1 / -1; }
   .opening-screen { min-height: 100svh; }
   .opening-screen::after { background: linear-gradient(180deg, rgba(4,7,11,.04), rgba(4,7,11,.34) 35%, rgba(4,7,11,.94) 68%); }
   .opening-visual { inset: -2% -22%; width: 144%; height: 104%; }

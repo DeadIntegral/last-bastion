@@ -83,11 +83,11 @@ Difficulty and acceptance criteria:
 
 Status: **Implemented**. Authoritative behavior and exact values now live in `docs/GAME_SPEC.md` and `docs/BALANCE.md`.
 
-- Six canonical items ship through `src/data/items.ts`, with explicit stage-4/8/12/18/24/30 first-clear acquisition and old-save milestone recovery.
-- Schema 7 persists owned IDs, fixed nullable formation-item slots matching formation capacity, and exactly two fortress slots. Hydration removes invalid, duplicate, unowned, or wrong-target assignments.
-- `ItemVault` provides inventory disclosure, drag/drop, select-then-slot fallback, removal, locked source hints, and target validation. Formation items remain bound to numbered positions when troops move.
-- `applyFormationItem` and `applyFortressItems` integrate the six HP, attack/healing, cooldown, fortress HP, Command, and artillery effects into player battle values only.
-- KO/EN/JA messages, pure effect tests, store acquisition/migration tests, navigation coverage, and an item-aware campaign-transition audit are implemented.
+- Six repeatable battle-drop materials and four stronger crafted items ship through `src/data/items.ts`, with region pools, encounter-type chances, and recipes unlocked at stages 12/18/30.
+- Schema 8 persists bounded inventory counts, fixed nullable formation-item slots matching formation capacity, and exactly two fortress slots. Hydration removes invalid, duplicate-equipped, unowned, or wrong-target assignments and does not retain the superseded schema-7 milestone grants.
+- `ItemVault` provides inventory quantities, drag/drop, select-then-slot fallback, per-slot removal, recipe requirements, equipped-material protection, and target validation. Formation items remain bound to numbered positions when troops move.
+- `applyFormationItem` and `applyFortressItems` integrate base and crafted HP, attack/healing, cooldown, fortress HP, Command, and artillery effects into player battle values only. Every crafted item preserves both ingredient roles in one slot and exceeds each ingredient's matching values.
+- KO/EN/JA messages, pure effect/drop tests, store acquisition/crafting/migration tests, navigation coverage, and an item-aware campaign/free-expedition pressure audit are implemented.
 
 ## 5C. Five-star full-set transcendence engraving
 

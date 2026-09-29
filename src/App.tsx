@@ -10,6 +10,7 @@ import { TRIUMPH_MONUMENT, triumphMonumentBonuses, triumphMonumentCost } from '.
 import { gameFeatures, heroTrainingPackages, isGameFeatureUnlocked } from './data/features';
 import { OPENING_SCENE_DURATION_MS, openingScenes } from './data/opening';
 import { HERO_AWAKENING_LEVELS, HERO_MASTERY_MAX_LEVEL, heroAwakeningAuras, heroAwakeningSelfBonuses, heroMasteryGrowth, heroSkillPower } from './data/mastery';
+import { itemDefinitions, itemDropRuleForStage } from './data/items';
 import { mapTreasures } from './data/mapTreasures';
 import { challengeStages, enemyFactionLabels, farmingStages, getStage, stages } from './data/stages';
 import { GAME_VERSION_LABEL } from './data/version';
@@ -624,6 +625,8 @@ export function StageSelect({ initialStageId, onBack, onSelect, onNavigate }: { 
   const liberatedRegionCount = campaignMapRegions.filter((region) => clearedStages.includes(region.stageEnd)).length;
   const difficulty = stageDifficultyPresentation(selected, campaignDifficultyReport);
   const progressionStats = castleBattleStats(castleTechLevels);
+  const itemDropRule = itemDropRuleForStage(selected);
+  const displayedItemDropChance = Math.round(Math.min(1, itemDropRule.chance + progressionStats.itemDropChanceBonus) * 100);
   const displayedBattleReward = scaledProgressionReward(selected.reward, progressionStats.battleGoldMultiplier);
   const displayedFirstClearGold = selected.firstClearReward.gold === undefined
     ? undefined
@@ -858,7 +861,7 @@ export function StageSelect({ initialStageId, onBack, onSelect, onNavigate }: { 
             <small>전투 데이터 분석</small>
           </div>
           <p>{locked ? '안개 너머의 지역입니다. 이전 전장을 먼저 정복해야 합니다.' : selected.subtitle}</p>
-          <div className="stage-context"><span>적 세력 <b>{enemyFactionLabels[selected.enemyFaction]}</b></span><span>지형 <b>{selected.terrain.name}</b></span></div>
+          <div className="stage-context"><span>적 세력 <b>{enemyFactionLabels[selected.enemyFaction]}</b></span><span>지형 <b>{selected.terrain.name}</b></span><span>승리 아이템 드롭 <b>{displayedItemDropChance}%</b></span></div>
           {(isTreasureMission || isFarmingMission) && selected.gimmick && <div className="treasure-gimmick-preview"><small>TACTICAL GIMMICK</small><strong>{selected.gimmick.name}</strong><span>{selected.gimmick.description}</span></div>}
           {isChallenge && <div className="challenge-terrain-preview"><small>TERRAIN AMPLIFICATION</small><strong>적 HP ×{selected.terrain.enemyHpMultiplier} · 공격 ×{selected.terrain.enemyAttackMultiplier}</strong><span>{selected.terrain.description}</span></div>}
           <div className="mission-objective"><small>MISSION · 전선 거리 {selected.fortressDistance}</small><strong>{isChallenge ? `${selected.bossName ?? selected.name} 단독 격파` : isTreasureMission ? '기믹 방어선을 돌파하고 보물 수비 성채 파괴' : isFarmingMission ? '반복 방어선을 돌파하고 보급 거점 성채 파괴' : selected.boss ? '성채 수비대와 마수를 돌파하고 적 성채 파괴' : '적 성채 파괴'}</strong></div>
@@ -1400,6 +1403,10 @@ function ResultScreen({ result, onMenu, onRetry }: { result: BattleResult; onMen
             })}</div>
           </div>
         )}
+        {result.itemDrops && result.itemDrops.length > 0 && <div className="result-loot">
+          <span className="eyebrow">ITEM DROP</span>
+          {result.itemDrops.map((drop) => <strong key={drop.id}>{itemDefinitions[drop.id].icon} {itemDefinitions[drop.id].name} ×{drop.count}</strong>)}
+        </div>}
         {result.newAchievements && result.newAchievements.length > 0 && (
           <div className="result-achievements">
             <span className="eyebrow">ACHIEVEMENT UNLOCKED</span>
@@ -1489,7 +1496,7 @@ export default function App() {
           : playedStage.sideMission ? completeTreasureMission(battleResult.stageId) : completeStage(campaignClearId)
       : undefined;
     const record = recordBattle(battleResult);
-    setResult({ ...battleResult, reward: battleGoldReward, newAchievements: record.unlocked, masteryGains: record.gains, firstClearReward });
+    setResult({ ...battleResult, reward: battleGoldReward, newAchievements: record.unlocked, masteryGains: record.gains, itemDrops: record.drops, firstClearReward });
     setScreen('result');
   }, [addReward, completeChallenge, completeStage, completeTreasureMission, recordBattle]);
 

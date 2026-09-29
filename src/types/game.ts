@@ -16,7 +16,7 @@ export type UnitGrade = 1 | 2 | 3 | 4 | 5;
 export type HeroId = 'warden' | 'pyromancer' | 'huntress' | 'saint' | 'marshal' | 'orcChampion' | 'windSpirit';
 export type FortressTier = 1 | 2 | 3;
 export type CastleTechId =
-  | 'war_coffers' | 'logistics' | 'command_vault' | 'drill_yard' | 'supply_standardization' | 'spoils_accounting' | 'field_manuals' | 'war_tithe'
+  | 'war_coffers' | 'logistics' | 'command_vault' | 'drill_yard' | 'supply_standardization' | 'spoils_accounting' | 'field_manuals' | 'loot_recovery' | 'war_tithe'
   | 'fortified_walls' | 'stone_plating' | 'reinforced_foundations' | 'citadel_core' | 'watchtower' | 'battlements' | 'mending_stone'
   | 'black_powder' | 'rapid_reload' | 'wide_blast' | 'giantbreaker_shells' | 'siege_calculus'
   | 'rally_orders' | 'heroic_orders' | 'mobilization_drill' | 'field_recovery' | 'transcendent_orders';
@@ -46,7 +46,8 @@ export type BattleSpeed = 1 | 1.5;
 export type Screen = 'menu' | 'opening' | 'credits' | 'stages' | 'merchant' | 'monument' | 'armory' | 'items' | 'heroes' | 'fortress' | 'achievements' | 'codex' | 'battle' | 'result';
 export type GameFeatureId = 'hero-training';
 export type HeroTrainingPackageId = 'field-drill' | 'tactical-lesson' | 'royal-tutoring';
-export type ItemId = 'veteran-standard' | 'runed-whetstone' | 'clockwork-horn' | 'guardian-keystone' | 'quartermaster-seal' | 'starfire-lens';
+export type ItemId = 'veteran-standard' | 'runed-whetstone' | 'clockwork-horn' | 'guardian-keystone' | 'quartermaster-seal' | 'starfire-lens'
+  | 'war-standard' | 'rapid-assault-kit' | 'bastion-heart' | 'royal-siege-core';
 export type ItemTarget = 'formation' | 'fortress';
 export type MapTreasureId = 'western-reliquary' | 'capital-vault' | 'highland-cache' | 'tundra-sanctum' | 'rift-treasury';
 
@@ -189,7 +190,6 @@ export interface FirstClearReward {
   unitId?: UnitId;
   heroId?: HeroId;
   featureId?: GameFeatureId;
-  itemId?: ItemId;
 }
 
 export interface BattleHudState {
@@ -248,6 +248,8 @@ export interface BattleResult {
   heroSkillUses: number;
   castleSkillUses: number;
   encounteredEnemies: CodexEnemyId[];
+  lootRoll?: number;
+  itemDrops?: Array<{ id: ItemId; count: number }>;
   masteryContributions?: {
     units: Partial<Record<UnitId, MasteryContribution>>;
     hero: MasteryContribution;
@@ -337,6 +339,7 @@ export interface CastleBattleStats {
   commandPerKill: number;
   battleGoldMultiplier: number;
   masteryXpMultiplier: number;
+  itemDropChanceBonus: number;
   maxHp: number;
   damageReduction: number;
   castleRegenPerSecond: number;

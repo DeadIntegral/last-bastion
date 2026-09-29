@@ -16,6 +16,7 @@ describe('castle technology tree', () => {
     levels.supply_standardization = 2;
     levels.spoils_accounting = 2;
     levels.field_manuals = 3;
+    levels.loot_recovery = 3;
     levels.war_tithe = 3;
     levels.battlements = 2;
     levels.mending_stone = 4;
@@ -39,6 +40,7 @@ describe('castle technology tree', () => {
     expect(stats.commandPerKill).toBe(4.5);
     expect(stats.battleGoldMultiplier).toBe(1.1);
     expect(stats.masteryXpMultiplier).toBe(1.15);
+    expect(stats.itemDropChanceBonus).toBeCloseTo(0.12);
     expect(stats.towerRange).toBe(400);
     expect(stats.castleRegenPerSecond).toBe(40);
     expect(stats.bombardBossBonus).toBe(140);
@@ -110,8 +112,8 @@ describe('castle technology tree', () => {
     expect(fortressTierDefinitions[3].promotionCost).toBe(2_500);
   });
 
-  it('provides twenty-five five-rank nodes gated by fortress tier', () => {
-    expect(castleTechOrder).toHaveLength(25);
+  it('provides twenty-six five-rank nodes gated by fortress tier', () => {
+    expect(castleTechOrder).toHaveLength(26);
     expect(castleTechOrder.every((id) => castleTechDefinitions[id].maxLevel === 5)).toBe(true);
     const levels = emptyCastleTech();
     levels.command_vault = 2;
@@ -129,7 +131,7 @@ describe('castle technology tree', () => {
     expect(castleTechChildren('stone_plating')).toEqual(['reinforced_foundations']);
     expect(castleTechChildren('reinforced_foundations')).toEqual(['citadel_core']);
     expect(castleTechChildren('supply_standardization')).toEqual([]);
-    expect(castleTechChildren('spoils_accounting')).toEqual([]);
+    expect(castleTechChildren('spoils_accounting')).toEqual(['loot_recovery']);
     expect(castleTechChildren('black_powder')).toEqual(['rapid_reload', 'wide_blast']);
     expect(castleTechChildren('rally_orders')).toEqual(['heroic_orders', 'mobilization_drill']);
     expect(castleTechChildren('heroic_orders')).toEqual(['field_recovery', 'transcendent_orders']);
