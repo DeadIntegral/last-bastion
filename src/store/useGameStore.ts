@@ -11,7 +11,7 @@ import { MAP_TREASURE_IDS, mapTreasureById } from '../data/mapTreasures';
 import { getStage, stages } from '../data/stages';
 import { allTroopOrder, heroDefinitions, heroOrder, troopDefinitions } from '../data/units';
 import { GAME_VERSION, SAVE_SCHEMA_VERSION } from '../data/version';
-import { emptyEquipment, equipmentCost, heroMasteryLevelFromXp, scaledProgressionReward, totalMasteryXpForLevel } from '../game/rules';
+import { emptyEquipment, emptyMasteryContribution, equipmentCost, heroBattleMasteryXp, heroMasteryLevelFromXp, scaledProgressionReward, totalMasteryXpForLevel, unitBattleMasteryXp } from '../game/rules';
 import { canClaimDailyReward, localDateKey } from '../game/daily';
 import { initializeSaveSlots, writeActiveSaveSlot } from '../game/saveSlots';
 import type { BattleResult, BattleSpeed, CastleTechId, CodexEnemyId, EquipmentLevels, EquipmentSlot, FirstClearReward, FortressTier, HeroId, HeroTrainingPackageId, MapTreasureId, PlayerStats, UnitId } from '../types/game';
@@ -540,13 +540,17 @@ export const useGameStore = create<GameProfile>()(
         const nextUnitXp = { ...state.unitMasteryXp };
         for (const [id, count] of Object.entries(result.summons) as Array<[UnitId, number]>) {
           if (count <= 0) continue;
-          const amount = scaledProgressionReward(count * 8 + (result.victory ? 12 : 4), masteryXpMultiplier);
+          const xp = unitBattleMasteryXp(count, result.victory, result.masteryContributions?.units[id] ?? emptyMasteryContribution());
+          const amount = scaledProgressionReward(xp.total, masteryXpMultiplier);
+          const participationAmount = scaledProgressionReward(xp.participation, masteryXpMultiplier);
           nextUnitXp[id] = (nextUnitXp[id] ?? 0) + amount;
-          gains.push({ id, amount, kind: 'unit' });
+          gains.push({ id, amount, kind: 'unit', participationAmount, contributionAmount: amount - participationAmount });
         }
-        const heroXp = scaledProgressionReward(24 + result.heroSkillUses * 5 + (result.victory ? 18 : 6), masteryXpMultiplier);
+        const heroXpBreakdown = heroBattleMasteryXp(result.heroSkillUses, result.victory, result.masteryContributions?.hero ?? emptyMasteryContribution());
+        const heroXp = scaledProgressionReward(heroXpBreakdown.total, masteryXpMultiplier);
+        const heroParticipationXp = scaledProgressionReward(heroXpBreakdown.participation, masteryXpMultiplier);
         const nextHeroXp = { ...state.heroMasteryXp, [result.usedHeroId]: state.heroMasteryXp[result.usedHeroId] + heroXp };
-        gains.push({ id: result.usedHeroId, amount: heroXp, kind: 'hero' });
+        gains.push({ id: result.usedHeroId, amount: heroXp, kind: 'hero', participationAmount: heroParticipationXp, contributionAmount: heroXp - heroParticipationXp });
 
         const allUnlocked = unlockedAchievements(nextStats);
         const newlyUnlocked = allUnlocked.filter((id) => !state.unlockedAchievementIds.includes(id));

@@ -1,8 +1,8 @@
 import { battleMobilizationTuning, fortressDeploymentTuning, mobilizationCommandCost } from '../data/castle';
 import { deadZoneRetreatTuning, knockbackResistanceTuning } from '../data/combat';
 import { triumphMonumentBonuses } from '../data/endgame';
-import { HERO_AWAKENING_COOLDOWN_REDUCTION_MS, HERO_AWAKENING_LEVELS, HERO_MASTERY_MAX_LEVEL, SOLDIER_MASTERY_MAX_LEVEL, heroAwakeningAuras, heroAwakeningSelfBonuses, heroMasteryGrowth, soldierMasteryGrowth, type MasteryStatGrowth } from '../data/mastery';
-import type { BattleSpeed, EquipmentLevels, HeroDefinition, HeroId, Side, StageDefinition, TerrainEffect, UnitDefinition, UnitId } from '../types/game';
+import { HERO_AWAKENING_COOLDOWN_REDUCTION_MS, HERO_AWAKENING_LEVELS, HERO_MASTERY_MAX_LEVEL, SOLDIER_MASTERY_MAX_LEVEL, battleMasteryTuning, heroAwakeningAuras, heroAwakeningSelfBonuses, heroMasteryGrowth, soldierMasteryGrowth, type MasteryStatGrowth } from '../data/mastery';
+import type { BattleSpeed, EquipmentLevels, HeroDefinition, HeroId, MasteryContribution, Side, StageDefinition, TerrainEffect, UnitDefinition, UnitId } from '../types/game';
 
 export const COMMAND_MAX = 200;
 export const COMMAND_REGEN_PER_SECOND = 10;
@@ -18,6 +18,44 @@ export function scaledBattleDelta(deltaMs: number, speed: BattleSpeed): number {
 
 export function scaledProgressionReward(amount: number, multiplier: number): number {
   return Math.max(0, Math.round(amount * multiplier));
+}
+
+export const emptyMasteryContribution = (): MasteryContribution => ({
+  damageDealt: 0,
+  damageTaken: 0,
+  healingDone: 0,
+  protectionDone: 0,
+  kills: 0,
+  activeMs: 0,
+});
+
+function squareRootContributionXp(value: number, divisor: number, cap: number): number {
+  return Math.min(cap, Math.floor(Math.sqrt(Math.max(0, value)) / divisor));
+}
+
+export function masteryContributionXp(contribution: MasteryContribution): number {
+  return squareRootContributionXp(contribution.damageDealt, battleMasteryTuning.damageDealtDivisor, battleMasteryTuning.damageDealtCap)
+    + squareRootContributionXp(contribution.damageTaken, battleMasteryTuning.damageTakenDivisor, battleMasteryTuning.damageTakenCap)
+    + squareRootContributionXp(contribution.healingDone, battleMasteryTuning.healingDivisor, battleMasteryTuning.healingCap)
+    + squareRootContributionXp(contribution.protectionDone, battleMasteryTuning.protectionDivisor, battleMasteryTuning.protectionCap)
+    + Math.min(battleMasteryTuning.killXpCap, Math.max(0, contribution.kills) * battleMasteryTuning.killXp)
+    + Math.min(battleMasteryTuning.activeXpCap, Math.floor(Math.max(0, contribution.activeMs) / battleMasteryTuning.activeMsPerXp));
+}
+
+export function unitBattleMasteryXp(deployments: number, victory: boolean, contribution: MasteryContribution): { participation: number; contribution: number; total: number } {
+  const participation = battleMasteryTuning.unitParticipationBase
+    + Math.min(battleMasteryTuning.unitDeploymentXpCap, Math.max(0, deployments) * battleMasteryTuning.unitDeploymentXp)
+    + (victory ? battleMasteryTuning.victoryXp : battleMasteryTuning.defeatXp);
+  const contributionXp = masteryContributionXp(contribution);
+  return { participation, contribution: contributionXp, total: participation + contributionXp };
+}
+
+export function heroBattleMasteryXp(skillUses: number, victory: boolean, contribution: MasteryContribution): { participation: number; contribution: number; total: number } {
+  const participation = battleMasteryTuning.heroParticipationBase
+    + Math.max(0, skillUses) * battleMasteryTuning.heroSkillUseXp
+    + (victory ? battleMasteryTuning.heroVictoryXp : battleMasteryTuning.heroDefeatXp);
+  const contributionXp = masteryContributionXp(contribution);
+  return { participation, contribution: contributionXp, total: participation + contributionXp };
 }
 
 export function fortressRearSpawnX(side: Side, fortressX: number, squadIndex = 0): number {

@@ -243,9 +243,22 @@ export interface BattleResult {
   heroSkillUses: number;
   castleSkillUses: number;
   encounteredEnemies: CodexEnemyId[];
+  masteryContributions?: {
+    units: Partial<Record<UnitId, MasteryContribution>>;
+    hero: MasteryContribution;
+  };
   newAchievements?: string[];
-  masteryGains?: Array<{ id: UnitId | HeroId; amount: number; kind: 'unit' | 'hero' }>;
+  masteryGains?: Array<{ id: UnitId | HeroId; amount: number; kind: 'unit' | 'hero'; participationAmount?: number; contributionAmount?: number }>;
   firstClearReward?: FirstClearReward;
+}
+
+export interface MasteryContribution {
+  damageDealt: number;
+  damageTaken: number;
+  healingDone: number;
+  protectionDone: number;
+  kills: number;
+  activeMs: number;
 }
 
 export interface PlayerStats {

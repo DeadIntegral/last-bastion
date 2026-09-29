@@ -1366,7 +1366,7 @@ function ResultScreen({ result, onMenu, onRetry }: { result: BattleResult; onMen
             <span className="eyebrow">MASTERY XP</span>
             <div>{result.masteryGains.map((gain) => {
               const name = gain.kind === 'unit' ? troopDefinitions[gain.id as UnitId].name : heroDefinitions[gain.id as HeroId].name;
-              return <span key={`${gain.kind}-${gain.id}`}>{name} <strong>+{gain.amount} XP</strong></span>;
+              return <span key={`${gain.kind}-${gain.id}`}>{name} <strong>+{gain.amount} XP</strong>{gain.participationAmount !== undefined && <small>{t('참전 {participation} · 기여 {contribution}', { participation: gain.participationAmount, contribution: gain.contributionAmount ?? 0 })}</small>}</span>;
             })}</div>
           </div>
         )}

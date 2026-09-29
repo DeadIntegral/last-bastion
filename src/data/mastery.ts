@@ -33,6 +33,30 @@ export interface HeroAwakeningSelfBonus {
   healingPerRank?: number;
 }
 
+export const battleMasteryTuning = {
+  unitParticipationBase: 6,
+  unitDeploymentXp: 2,
+  unitDeploymentXpCap: 8,
+  heroParticipationBase: 18,
+  heroSkillUseXp: 3,
+  victoryXp: 6,
+  defeatXp: 2,
+  heroVictoryXp: 8,
+  heroDefeatXp: 3,
+  damageDealtDivisor: 8,
+  damageDealtCap: 20,
+  damageTakenDivisor: 10,
+  damageTakenCap: 16,
+  healingDivisor: 7,
+  healingCap: 18,
+  protectionDivisor: 7,
+  protectionCap: 18,
+  killXp: 2,
+  killXpCap: 10,
+  activeMsPerXp: 20_000,
+  activeXpCap: 10,
+} as const;
+
 const soldierMasteryOverrides: Partial<Record<UnitId, MasteryStatGrowth>> = {
   militia: { hp: 5, attack: 1 },
   guardian: { hp: 12, attack: 1 },

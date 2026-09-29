@@ -240,9 +240,10 @@ Expansion troops created through `makeTroop` derive readable fixed growth once a
 - XP for next mastery level: `round(45 × level^1.32)`.
 - Mastery uses character-specific flat gains. At level `L`, add `(L - 1) × listed gain` to canonical HP and ATK before adding equipment.
 - Expansion-troop mastery values are generated as fixed `max(4, round(base HP × 0.035))` HP and `max(1, round(base ATK × 0.05))` ATK per rank. The original twelve troops retain their authored overrides listed below.
-- Used troop XP is committed at the result screen: `8 × summon count + 12` on victory or `8 × summon count + 4` on defeat. One deployment therefore earns 20/12 XP; troops never summoned receive zero.
-- Selected hero XP is committed at the result screen: `24 + 5 × skill uses + 18` on victory or `24 + 5 × skill uses + 6` on defeat, or 42/30 XP before skill uses.
-- `왕립 야전 교범` multiplies both awards by 1.05 per rank up to ×1.25 and rounds to the nearest whole XP. Pause-menu abandonment commits no battle record and therefore grants neither award.
+- Used troop participation XP is committed at the result screen: `6 + min(8, deployment count × 2) + 6` on victory or `+2` on defeat. Troops never deployed receive zero.
+- Selected hero participation XP is `18 + 3 × skill uses + 8` on victory or `+3` on defeat.
+- Both then add contribution XP: `min(20, floor(sqrt(damage dealt) / 8)) + min(16, floor(sqrt(damage taken) / 10)) + min(18, floor(sqrt(effective healing) / 7)) + min(18, floor(sqrt(protection) / 7)) + min(10, kills × 2) + min(10, floor(living body-ms / 20,000))`. Body-time sums simultaneous squad members. Protection includes stopped pierce/directional pressure plus hero shield absorption, Warden reduction, and aura defense. Damage and healing use effective, HP-changing values rather than overkill or overheal.
+- `왕립 야전 교범` multiplies the combined award by 1.05 per rank up to ×1.25 and rounds to the nearest whole XP. The result UI reports the rounded participation share and assigns the remainder to contribution so the displayed parts always equal the saved total. Pause-menu abandonment commits no battle record and therefore grants neither award.
 
 | Troop | HP per mastery rank | ATK per mastery rank |
 |---|---:|---:|

@@ -106,8 +106,9 @@
 .result-stats div:last-child strong { color: var(--gold-bright); }
 .result-progression, .result-achievements { margin: -14px 0 24px; padding: 12px; background: rgba(8,14,20,.3); text-align: left; }
 .result-progression > div { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 8px; }
-.result-progression > div span { color: #8999a2; font-size: 9px; }
+.result-progression > div span { display: grid; gap: 2px; color: #8999a2; font-size: 9px; }
 .result-progression strong { color: #9edbe4; }
+.result-progression small { color: #697f89; font-size: 8px; }
 .result-achievements { display: grid; gap: 6px; border: 1px solid rgba(221,189,112,.2); }
 .result-achievements strong { color: var(--gold-bright); font-size: 11px; }
 .result-first-clear { display: grid; grid-template-columns: 52px 1fr; gap: 14px; align-items: center; margin: -14px 0 24px; padding: 14px; text-align: left; background: rgba(127,92,30,.18); border: 1px solid rgba(221,189,112,.34); }
@@ -122,4 +123,3 @@
 .loading-screen span { color: var(--gold); font: 52px Georgia; animation: pulse 1.1s ease-in-out infinite alternate; }
 .loading-screen p { margin: 0; font-size: 12px; letter-spacing: .08em; }
 @keyframes pulse { to { opacity: .45; transform: scale(.94); } }
-

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { heroAwakeningSelfBonuses, heroMasteryGrowth, heroSkillPower, soldierMasteryGrowth } from '../data/mastery';
 import { allTroopOrder, bossCombatTuning, bossDefinition, heroDefinitions, troopDefinitions } from '../data/units';
 import { challengeStages, stages } from '../data/stages';
-import { ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL, STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS, applyEnemyTerrain, applyTriumphMonumentStats, attackPatternLabel, attackRangeLabel, attackRecoveryMs, attackTimingLabel, calculateDamage, canActivateMobilization, canAttackTarget, canReceiveRallyOrder, cooldownFillRatio, deadZoneRetreatDestination, enemyFortressCanReinforce, enemyObjectiveDefeated, equipmentCost, fortressRearSpawnX, guardProtectionLabel, hasEquipmentCapstone, healedHp, heroAuraBonuses, heroAwakeningRank, heroMasteryLevelFromXp, heroSelfAwakeningBonuses, isBehindLivingFortress, isWithinAttackBand, knockbackMultiplier, masteryLevelFromXp, mobilizedCommandStats, regenerateCommand, retreatsFromDeadZone, scaledBattleDelta, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, spacingTraitLabel, unitDeploymentCapacity, upgradedStats, upgradeCost, usesStatEquipmentCapstone } from './rules';
+import { ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL, STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS, applyEnemyTerrain, applyTriumphMonumentStats, attackPatternLabel, attackRangeLabel, attackRecoveryMs, attackTimingLabel, calculateDamage, canActivateMobilization, canAttackTarget, canReceiveRallyOrder, cooldownFillRatio, deadZoneRetreatDestination, enemyFortressCanReinforce, enemyObjectiveDefeated, equipmentCost, fortressRearSpawnX, guardProtectionLabel, hasEquipmentCapstone, healedHp, heroAuraBonuses, heroAwakeningRank, heroBattleMasteryXp, heroMasteryLevelFromXp, heroSelfAwakeningBonuses, isBehindLivingFortress, isWithinAttackBand, knockbackMultiplier, masteryContributionXp, masteryLevelFromXp, mobilizedCommandStats, regenerateCommand, retreatsFromDeadZone, scaledBattleDelta, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, spacingTraitLabel, unitBattleMasteryXp, unitDeploymentCapacity, upgradedStats, upgradeCost, usesStatEquipmentCapstone } from './rules';
 
 describe('combat rules', () => {
   it('applies anti-large damage bonus', () => {
@@ -206,6 +206,13 @@ describe('combat rules', () => {
     expect(masteryLevelFromXp(0).level).toBe(1);
     expect(masteryLevelFromXp(45).level).toBe(2);
     expect(upgradedStats(troopDefinitions.militia, 0, 4).maxHp).toBeGreaterThan(troopDefinitions.militia.maxHp);
+  });
+
+  it('rewards bounded damage, tanking, healing, protection, kills, and active time', () => {
+    const contribution = { damageDealt: 6_400, damageTaken: 2_500, healingDone: 1_225, protectionDone: 441, kills: 3, activeMs: 60_000 };
+    expect(masteryContributionXp(contribution)).toBe(32);
+    expect(unitBattleMasteryXp(1, true, contribution)).toEqual({ participation: 14, contribution: 32, total: 46 });
+    expect(heroBattleMasteryXp(2, false, contribution)).toEqual({ participation: 27, contribution: 32, total: 59 });
   });
 
   it('caps hero mastery at 30 while soldier mastery retains level 50', () => {

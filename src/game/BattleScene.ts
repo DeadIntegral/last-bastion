@@ -9,7 +9,7 @@ import { fortressArtDefinitions, fortressArtLayout } from '../data/fortressArt';
 import { heroAwakeningAuras, heroSkillPower } from '../data/mastery';
 import { allTroopOrder, bossCombatTuning, bossDefinition, heroDefinitions, troopDefinitions } from '../data/units';
 import { t } from '../shared/i18n/i18n';
-import type { BattleHudState, BattleSpeed, CastleBattleStats, CastleTechId, CodexEnemyId, EnemyId, EquipmentLevels, HeroDefinition, HeroId, Side, StageDefinition, UnitDefinition, UnitId } from '../types/game';
+import type { BattleHudState, BattleSpeed, CastleBattleStats, CastleTechId, CodexEnemyId, EnemyId, EquipmentLevels, HeroDefinition, HeroId, MasteryContribution, Side, StageDefinition, UnitDefinition, UnitId } from '../types/game';
 import { BattleEvent, battleEvents } from './EventBus';
 import { attackMotionDurationMs, attackMotionStyle, createAttackMotionPose, projectileVisualStyle, sampleAttackMotion, type AttackMotionPose, type AttackMotionStyle, type ProjectileVisualStyle } from './combatMotion';
 import { resolveDirectionalTargets, resolveGroundBurstTargets, resolvePierceTargets, type LaneTargetAccess } from './combatTargeting';
@@ -23,6 +23,7 @@ import {
   deadZoneRetreatDestination,
   enemyFortressCanReinforce,
   enemyObjectiveDefeated,
+  emptyMasteryContribution,
   fortressRearSpawnX,
   heroMasteryLevelFromXp,
   heroAwakeningRank,
@@ -273,6 +274,8 @@ export class BattleScene extends Phaser.Scene {
   private heroSkillUses = 0;
   private castleSkillUses = 0;
   private summons: Record<UnitId, number> = Object.fromEntries(allTroopOrder.map((id) => [id, 0])) as Record<UnitId, number>;
+  private unitMasteryContributions: Record<UnitId, MasteryContribution> = Object.fromEntries(allTroopOrder.map((id) => [id, emptyMasteryContribution()])) as Record<UnitId, MasteryContribution>;
+  private heroMasteryContribution: MasteryContribution = emptyMasteryContribution();
   private encounteredEnemies = new Set<CodexEnemyId>();
   private playerCastleBar!: Phaser.GameObjects.Rectangle;
   private enemyBar!: Phaser.GameObjects.Rectangle;
@@ -445,6 +448,8 @@ export class BattleScene extends Phaser.Scene {
 
     for (const unit of this.units) {
       if (!unit.alive) continue;
+      const masteryContribution = this.masteryContributionFor(unit);
+      if (masteryContribution) masteryContribution.activeMs += safeDelta;
       if (unit.damageFlashMs > 0 || unit.attackMotionMs > 0) this.updateUnitFeedback(unit, safeDelta);
       unit.attackTimer -= safeDelta;
       unit.targetSearchCooldownMs = Math.max(0, unit.targetSearchCooldownMs - safeDelta);
@@ -697,6 +702,12 @@ export class BattleScene extends Phaser.Scene {
     return this.livingUnitCounts[side][id] ?? 0;
   }
 
+  private masteryContributionFor(unit?: CombatUnit): MasteryContribution | undefined {
+    if (!unit || unit.side !== 'player' || unit.isBoss) return undefined;
+    if (unit.isHero) return this.heroMasteryContribution;
+    return this.unitMasteryContributions[unit.definition.id as UnitId];
+  }
+
   private spawnEliteGuard(elite: NonNullable<StageDefinition['eliteGuards']>[number]): void {
     this.encounteredEnemies.add(elite.unitId);
     const trained = applyEnemyTerrain(upgradedStats(troopDefinitions[elite.unitId], this.stageDefinition.enemyUpgrades.equipment), this.stageDefinition.terrain);
@@ -922,7 +933,7 @@ export class BattleScene extends Phaser.Scene {
 
   private applyPassiveAuraHealing(unit: CombatUnit, delta: number, healingPerSecond: number): void {
     if (healingPerSecond > 0 && unit.hp < unit.maxHp) {
-      this.healUnit(unit, healingPerSecond * delta / 1000);
+      this.healUnit(unit, healingPerSecond * delta / 1000, false, this.hero);
     }
   }
 
@@ -990,7 +1001,7 @@ export class BattleScene extends Phaser.Scene {
       const healingRange = attacker.definition.healingRange ?? 0;
       if (target?.alive && target.side === attacker.side && !target.isBoss && target.hp < target.maxHp
         && Math.abs(target.container.x - attacker.container.x) <= healingRange) {
-        this.healUnit(target, attacker.definition.healingPower ?? 0, true);
+        this.healUnit(target, attacker.definition.healingPower ?? 0, true, attacker);
         musicEngine.playEffect('skill');
       }
       return;
@@ -1002,15 +1013,17 @@ export class BattleScene extends Phaser.Scene {
     const edgeOffset = targetsEnemyCastle ? 65 : 58;
     const edgeDistance = Math.max(0, Math.abs(castleX - attacker.container.x) - edgeOffset);
     if (!castleAlive || !isWithinAttackBand(attacker.definition, edgeDistance, this.heroAuraFor(attacker).rangeBonus)) return;
-    this.damageCastle(targetsEnemyCastle ? 'enemy' : 'player', this.attackDamage(attacker));
+    this.damageCastle(targetsEnemyCastle ? 'enemy' : 'player', this.attackDamage(attacker), attacker);
     const rearTargets = this.fortressPierceTargets(attacker, targetsEnemyCastle);
     for (const rearTarget of rearTargets) {
       const pattern = attacker.definition.attackPattern;
       if (pattern.kind !== 'pierce') break;
       const damage = Math.round((calculateDamage(attacker.definition, rearTarget.definition) + this.heroAuraFor(attacker).attackBonus) * pattern.secondaryDamageMultiplier);
-      this.damageUnit(rearTarget, damage);
+      this.damageUnit(rearTarget, damage, attacker);
       if (rearTarget.definition.guardProtection?.stopsPierce) {
         this.showGuardInterception(attacker, rearTarget);
+        const protection = this.masteryContributionFor(rearTarget);
+        if (protection) protection.protectionDone += damage;
         break;
       }
     }
@@ -1142,8 +1155,12 @@ export class BattleScene extends Phaser.Scene {
         this.showStrike(hitTarget.container.x, hitTarget.container.y, attacker.definition.color);
         if (attacker.definition.grade === 5) this.showTranscendentImpact(hitTarget.container.x, hitTarget.container.y, attacker.definition.accent);
       }
-      if (this.guardStopsAttack(attacker, target, hitTarget)) this.showGuardInterception(attacker, hitTarget);
-      this.damageUnit(hitTarget, damage);
+      if (this.guardStopsAttack(attacker, target, hitTarget)) {
+        this.showGuardInterception(attacker, hitTarget);
+        const protection = this.masteryContributionFor(hitTarget);
+        if (protection) protection.protectionDone += damage;
+      }
+      this.damageUnit(hitTarget, damage, attacker);
     }
   }
 
@@ -1180,7 +1197,7 @@ export class BattleScene extends Phaser.Scene {
       const baseDamage = calculateDamage(attacker.definition, hitTarget.definition) + this.heroAuraFor(attacker).attackBonus;
       const damage = Math.round(baseDamage * (hitTarget.id === primaryTargetId ? 1 : pattern.secondaryDamageMultiplier));
       this.showStrike(hitTarget.container.x, hitTarget.container.y, attacker.definition.accent);
-      this.damageUnit(hitTarget, damage);
+      this.damageUnit(hitTarget, damage, attacker);
     }
   }
 
@@ -1253,19 +1270,30 @@ export class BattleScene extends Phaser.Scene {
     return baseDamage;
   }
 
-  private damageUnit(target: CombatUnit, rawDamage: number): void {
+  private damageUnit(target: CombatUnit, rawDamage: number, source?: CombatUnit): void {
     if (!target.alive) return;
     let damage = rawDamage;
     if (target.side === 'player' && !target.isHero && this.heroDefinition.id === 'warden' && this.hero?.alive && Math.abs(this.hero.container.x - target.container.x) <= 135) {
+      this.heroMasteryContribution.protectionDone += damage * 0.15;
       damage *= 0.85;
     }
-    damage = Math.max(1, damage - this.heroAuraFor(target).defenseBonus);
+    const auraDefense = this.heroAuraFor(target).defenseBonus;
+    if (target.side === 'player' && auraDefense > 0 && this.hero?.alive) {
+      this.heroMasteryContribution.protectionDone += Math.max(0, Math.min(damage - 1, auraDefense));
+    }
+    damage = Math.max(1, damage - auraDefense);
     if (target.shield > 0) {
       const absorbed = Math.min(target.shield, damage);
       target.shield -= absorbed;
       damage -= absorbed;
+      if (target.side === 'player') this.heroMasteryContribution.protectionDone += absorbed;
     }
-    target.hp -= Math.round(damage);
+    const appliedDamage = Math.min(target.hp, Math.max(0, Math.round(damage)));
+    const targetContribution = this.masteryContributionFor(target);
+    if (targetContribution) targetContribution.damageTaken += appliedDamage;
+    const sourceContribution = this.masteryContributionFor(source);
+    if (sourceContribution) sourceContribution.damageDealt += appliedDamage;
+    target.hp -= appliedDamage;
     target.hpBar.displayWidth = target.hpBarFullWidth * Phaser.Math.Clamp(target.hp / target.maxHp, 0, 1);
     target.hpBg.setVisible(true);
     target.hpBar.setVisible(true);
@@ -1277,12 +1305,18 @@ export class BattleScene extends Phaser.Scene {
       this.enemyHp = Math.max(0, target.hp);
     }
     if (target.isBoss && this.bossPhase === 1 && target.hp <= target.maxHp * bossCombatTuning.phaseTwoHpRatio) this.enterBossPhaseTwo();
-    if (target.hp <= 0) this.killUnit(target);
+    if (target.hp <= 0) {
+      if (sourceContribution) sourceContribution.kills += 1;
+      this.killUnit(target);
+    }
   }
 
-  private healUnit(target: CombatUnit, amount: number, showEffect = false): void {
+  private healUnit(target: CombatUnit, amount: number, showEffect = false, source?: CombatUnit): void {
     if (!target.alive || amount <= 0 || target.hp >= target.maxHp) return;
+    const before = target.hp;
     target.hp = healedHp(target.hp, target.maxHp, amount);
+    const sourceContribution = this.masteryContributionFor(source);
+    if (sourceContribution) sourceContribution.healingDone += target.hp - before;
     target.hpBar.displayWidth = target.hpBarFullWidth * Phaser.Math.Clamp(target.hp / target.maxHp, 0, 1);
     if (!target.alwaysShowHealthBar && target.hp >= target.maxHp) {
       target.hpBg.setVisible(false);
@@ -1329,7 +1363,7 @@ export class BattleScene extends Phaser.Scene {
     this.pendingUnitRemovalIds.clear();
   }
 
-  private damageCastle(side: Side, amount: number): void {
+  private damageCastle(side: Side, amount: number, source?: CombatUnit): void {
     musicEngine.playEffect('castle');
     if (side === 'player') {
       this.playerCastleHp = Math.max(0, this.playerCastleHp - Math.max(1, amount - this.castleStats.damageReduction));
@@ -1339,7 +1373,10 @@ export class BattleScene extends Phaser.Scene {
       }
       if (this.playerCastleHp <= 0) this.finish(false);
     } else {
-      this.enemyHp = Math.max(0, this.enemyHp - amount);
+      const appliedDamage = Math.min(this.enemyHp, Math.max(0, amount));
+      this.enemyHp = Math.max(0, this.enemyHp - appliedDamage);
+      const sourceContribution = this.masteryContributionFor(source);
+      if (sourceContribution) sourceContribution.damageDealt += appliedDamage;
       if (enemyObjectiveDefeated(this.stageDefinition, this.enemyHp, this.boss?.alive ?? false)) this.finish(true);
     }
   }
@@ -1408,9 +1445,9 @@ export class BattleScene extends Phaser.Scene {
         const blast = this.add.circle(centerX, GROUND_Y, 30, 0xff6a42, 0.7).setDepth(650);
         this.tweens.add({ targets: blast, radius: 155, alpha: 0, duration: 430, onComplete: () => blast.destroy() });
         for (const target of this.units) {
-          if (target.alive && target.side === 'enemy' && Math.abs(target.container.x - centerX) <= 150) this.damageUnit(target, unitDamage);
+          if (target.alive && target.side === 'enemy' && Math.abs(target.container.x - centerX) <= 150) this.damageUnit(target, unitDamage, this.hero);
         }
-        if (!this.stageDefinition.challenge && Math.abs(this.enemyCastleX - centerX) <= 150) this.damageCastle('enemy', castleDamage);
+        if (!this.stageDefinition.challenge && Math.abs(this.enemyCastleX - centerX) <= 150) this.damageCastle('enemy', castleDamage, this.hero);
       },
     });
   }
@@ -1438,7 +1475,7 @@ export class BattleScene extends Phaser.Scene {
           onComplete: () => {
             arrow.destroy();
             this.showStrike(target.container.x, target.container.y, 0xc7ef8a);
-            this.damageUnit(target, target.isBoss ? bossDamage : unitDamage);
+            this.damageUnit(target, target.isBoss ? bossDamage : unitDamage, this.hero);
           },
         });
       });
@@ -1462,9 +1499,11 @@ export class BattleScene extends Phaser.Scene {
     const prayer = this.add.circle(centerX, GROUND_Y, 30, 0xffedaa, 0.18).setStrokeStyle(4, 0xfff7d6, 0.8).setDepth(700);
     this.tweens.add({ targets: prayer, radius: 245, alpha: 0, duration: 650, onComplete: () => prayer.destroy() });
     for (const unit of this.units) {
-      if (unit.alive && unit.side === 'player' && Math.abs(unit.container.x - centerX) <= 240) this.healUnit(unit, heal, true);
+      if (unit.alive && unit.side === 'player' && Math.abs(unit.container.x - centerX) <= 240) this.healUnit(unit, heal, true, this.hero);
     }
+    const castleHpBefore = this.playerCastleHp;
     this.playerCastleHp = Math.min(this.playerCastleMaxHp, this.playerCastleHp + castleHeal);
+    this.heroMasteryContribution.healingDone += this.playerCastleHp - castleHpBefore;
   }
 
   private activateMarshalSkill(): void {
@@ -1503,7 +1542,7 @@ export class BattleScene extends Phaser.Scene {
     this.cameras.main.shake(160, 0.004);
     for (const unit of this.units) {
       if (!unit.alive || Math.abs(unit.container.x - centerX) > 205) continue;
-      if (unit.side === 'enemy') this.damageUnit(unit, damage);
+      if (unit.side === 'enemy') this.damageUnit(unit, damage, this.hero);
       else {
         unit.shield += shield;
         this.flashAt(unit.container.x, unit.container.y, 0xd9ab68);
@@ -1529,11 +1568,11 @@ export class BattleScene extends Phaser.Scene {
     this.tweens.add({ targets: storm, radius: 190, angle: 300, alpha: 0, duration: 720, onComplete: () => storm.destroy() });
     for (const unit of this.units) {
       if (unit.alive && unit.side === 'enemy' && Math.abs(unit.container.x - centerX) <= 185) {
-        this.damageUnit(unit, unitDamage);
+        this.damageUnit(unit, unitDamage, this.hero);
         this.flashAt(unit.container.x, unit.container.y, 0x8beaf1);
       }
     }
-    if (!this.stageDefinition.challenge && Math.abs(this.enemyCastleX - centerX) <= 185) this.damageCastle('enemy', castleDamage);
+    if (!this.stageDefinition.challenge && Math.abs(this.enemyCastleX - centerX) <= 185) this.damageCastle('enemy', castleDamage, this.hero);
   }
 
   private activateCastleSkill(): void {
@@ -2224,6 +2263,14 @@ export class BattleScene extends Phaser.Scene {
         summons: { ...this.summons }, usedHeroId: this.heroId,
         heroSkillUses: this.heroSkillUses, castleSkillUses: this.castleSkillUses,
         encounteredEnemies: [...this.encounteredEnemies],
+        masteryContributions: {
+          units: Object.fromEntries(
+            allTroopOrder
+              .filter((id) => this.summons[id] > 0)
+              .map((id) => [id, { ...this.unitMasteryContributions[id] }]),
+          ),
+          hero: { ...this.heroMasteryContribution },
+        },
       });
     });
   }

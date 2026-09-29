@@ -80,15 +80,33 @@ describe('shared troop progression', () => {
     result.summons.militia = 1;
     const record = useGameStore.getState().recordBattle(result);
     expect(record.gains).toEqual(expect.arrayContaining([
-      { id: 'militia', amount: 13, kind: 'unit' },
-      { id: 'warden', amount: 33, kind: 'hero' },
+      expect.objectContaining({ id: 'militia', amount: 11, kind: 'unit', participationAmount: 11, contributionAmount: 0 }),
+      expect.objectContaining({ id: 'warden', amount: 23, kind: 'hero', participationAmount: 23, contributionAmount: 0 }),
     ]));
-    expect(useGameStore.getState().unitMasteryXp.militia).toBe(13);
-    expect(useGameStore.getState().heroMasteryXp.warden).toBe(33);
+    expect(useGameStore.getState().unitMasteryXp.militia).toBe(11);
+    expect(useGameStore.getState().heroMasteryXp.warden).toBe(23);
 
     useGameStore.setState({ unlockedAchievementIds: ['first_blood'] });
     useGameStore.getState().claimAchievement('first_blood');
     expect(useGameStore.getState().gold).toBe(250);
+  });
+
+  it('adds bounded role contribution XP to participation XP at battle result time', () => {
+    const result = encounterResult([]);
+    result.victory = true;
+    result.summons.militia = 1;
+    result.masteryContributions = {
+      units: {
+        militia: { damageDealt: 6_400, damageTaken: 2_500, healingDone: 1_225, protectionDone: 441, kills: 3, activeMs: 60_000 },
+      },
+      hero: { damageDealt: 0, damageTaken: 0, healingDone: 0, protectionDone: 0, kills: 0, activeMs: 0 },
+    };
+
+    const record = useGameStore.getState().recordBattle(result);
+    expect(record.gains).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'militia', amount: 46, participationAmount: 14, contributionAmount: 32 }),
+      expect.objectContaining({ id: 'warden', amount: 26, participationAmount: 26, contributionAmount: 0 }),
+    ]));
   });
 
   it('applies the battle-gold multiplier to first-clear gold', () => {

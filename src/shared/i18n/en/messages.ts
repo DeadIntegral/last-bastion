@@ -33,6 +33,7 @@ export const messages: Record<string, string> = {
   '자신 방어 +{value}': 'Self DEF +{value}',
   '자신 사거리 +{value}': 'Self range +{value}',
   '자신 이동 +{value}': 'Self move +{value}',
+  '참전 {participation} · 기여 {contribution}': 'Participation {participation} · Contribution {contribution}',
   '자신 치유 +{value}': 'Self healing +{value}',
   '각성 {rank}단계 · {bonuses}': 'Awakening rank {rank} · {bonuses}',
   '숙련 10에 해금 · 각성 1단계당 {bonuses}': 'Unlocks at mastery 10 · per awakening: {bonuses}',

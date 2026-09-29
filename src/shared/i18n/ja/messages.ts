@@ -1,6 +1,7 @@
 // Japanese overrides use the original Korean copy as stable source keys.
 // English resources are merged first, so untranslated long-form copy remains readable.
 export const messages: Record<string, string> = {
+  '참전 {participation} · 기여 {contribution}': '参戦 {participation}・貢献 {contribution}',
   // Global navigation and title
   'Last Bastion — 최후의 성채': 'Last Bastion — 最後の要塞',
   '병력을 지휘해 최후의 성채를 지키는 웹 공성 전략 게임': '兵を指揮し、最後の要塞を守るWeb攻城戦略ゲーム',
