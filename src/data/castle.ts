@@ -170,7 +170,7 @@ export function castleBattleStats(levels: Record<CastleTechId, number>): CastleB
   };
 }
 
-export function soldierCommandCost(baseCost: number, multiplier: number, maximumCost = battleDeploymentTuning.maximumCommandCost): number {
+export function soldierCommandCost(baseCost: number, multiplier: number, maximumCost: number = battleDeploymentTuning.maximumCommandCost): number {
   const adjustedCost = Math.round(baseCost * battleDeploymentTuning.baseCommandCostMultiplier * multiplier * 1_000_000) / 1_000_000;
   return Math.min(
     maximumCost,
