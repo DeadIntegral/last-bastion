@@ -54,6 +54,7 @@ Phaser BattleScene       App navigation/shell
 | Shared progression stat/equipment presentation | `src/components/ProgressionUi.tsx` | types only | store access, screen state |
 | Shared rounded React actions/filters | `src/components/GameButton.tsx` + `src/styles/components.css` | native button attributes, base tokens | screen state, gameplay rules |
 | App navigation and shared shell | `src/App.tsx` | screen components, store | extracted screen internals |
+| Chapter opening cinematics | `src/components/Opening.tsx`, `src/data/opening.ts` | ordered scene copy/assets/timing, injected completion | chapter unlock rules, store mutation, battle setup |
 | Localization | `src/shared/i18n/*` | message resources | gameplay branching |
 | Global tokens/reset/shared primitives | `src/styles/base.css` | none | feature-specific layout |
 | Reusable React controls | `src/styles/components.css` | base tokens | feature-specific layout |

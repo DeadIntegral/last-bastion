@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import { allTroopOrder, bossDefinition, heroDefinitions, heroOrder, troopDefinitions, unitGradeLabels, unitGradeStars } from './data/units';
 import { bossCodex, CODEX_TOTAL, codexEntryCount, heroCodex, troopCodex } from './data/codex';
@@ -6,7 +6,7 @@ import { achievementById, achievementGroups, achievementProgress, achievements, 
 import { canUpgradeCastleTech, castleBattleStats, castleTechChildren, castleTechCost, castleTechDefinitions, castleTechPrerequisiteStatus, castleTechRoots, fortressTierDefinitions, totalCastleResearch } from './data/castle';
 import { battleFormationCapacity, BATTLE_SPEED_LICENSE, DAILY_REWARD, FORMATION_SLOT_LICENSES, MAX_FORMATION_SLOT_PURCHASES } from './data/economy';
 import { monumentDeeds, TRIUMPH_MONUMENT } from './data/endgame';
-import { OPENING_SCENE_DURATION_MS, openingScenes } from './data/opening';
+import { Opening } from './components/Opening';
 import { itemDefinitions } from './data/items';
 import { getStage, stages } from './data/stages';
 import { GAME_VERSION_LABEL } from './data/version';
@@ -349,48 +349,6 @@ function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
   )}</Localized>;
 }
 
-function Opening({ onComplete }: { onComplete: () => void }) {
-  const [sceneIndex, setSceneIndex] = useState(0);
-  const scene = openingScenes[sceneIndex];
-  const isLast = sceneIndex === openingScenes.length - 1;
-  const advance = useCallback(() => {
-    if (isLast) onComplete();
-    else setSceneIndex((current) => current + 1);
-  }, [isLast, onComplete]);
-
-  useEffect(() => {
-    const timer = window.setTimeout(advance, OPENING_SCENE_DURATION_MS);
-    return () => window.clearTimeout(timer);
-  }, [advance, sceneIndex]);
-
-  useEffect(() => {
-    const handleKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onComplete();
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [onComplete]);
-
-  return <Localized>{(
-    <main className={`opening-screen opening-${scene.art}`} style={{ '--opening-duration': `${OPENING_SCENE_DURATION_MS}ms` } as CSSProperties}>
-      <img className="opening-visual" src={scene.image} style={{ objectPosition: scene.imagePosition }} alt="" aria-hidden="true" key={scene.image} />
-      <div className="opening-atmosphere" aria-hidden="true" />
-      <div className="opening-preload" aria-hidden="true">
-        {openingScenes.map((entry) => <img src={entry.image} alt="" key={entry.image} />)}
-      </div>
-      <button className="opening-skip" onClick={onComplete}>오프닝 건너뛰기 <span>Esc</span></button>
-      <section className="opening-story" aria-live="polite" key={scene.title}>
-        <span className="eyebrow">{scene.eyebrow}</span>
-        <h1>{scene.title}</h1>
-        <p>{scene.text}</p>
-        <div className="opening-progress" aria-label={`오프닝 ${sceneIndex + 1}/${openingScenes.length}`}>
-          {openingScenes.map((entry, index) => <i className={index < sceneIndex ? 'complete' : index === sceneIndex ? 'active' : ''} key={entry.title} />)}
-        </div>
-        <small>자동 재생 · {sceneIndex + 1} / {openingScenes.length}</small>
-      </section>
-    </main>
-  )}</Localized>;
-}
 
 function Credits({ onBack }: { onBack: () => void }) {
   return <Localized><main className="panel-screen credits-screen">
@@ -943,6 +901,7 @@ function ResultScreen({ result, onMenu, onRetry }: { result: BattleResult; onMen
 export default function App() {
   useTranslation();
   const [screen, setScreen] = useState<Screen>('menu');
+  const [openingChapter, setOpeningChapter] = useState<1 | 2>(1);
   const [stageId, setStageId] = useState(1);
   const [mapMonumentId, setMapMonumentId] = useState<string | undefined>();
   const [lastBattleStageId, setLastBattleStageId] = useState<number | null>(null);
@@ -978,6 +937,7 @@ export default function App() {
   }, []);
 
   const navigate = useCallback((nextScreen: Screen) => {
+    if (nextScreen === 'opening') setOpeningChapter(1);
     if (nextScreen === 'menu') { setLastBattleStageId(null); setMapMonumentId(undefined); }
     if (screen === 'menu' && nextScreen === 'stages') {
       const profile = useGameStore.getState();
@@ -997,10 +957,26 @@ export default function App() {
     });
   }, [screen]);
 
+  const requestChapterTwoOpening = () => {
+    const profile = useGameStore.getState();
+    if (!isChapterTwoUnlocked(profile.builtMonumentIds) || profile.chapterTwoOpeningSeen) return false;
+    setLastBattleStageId(401);
+    setMapMonumentId(undefined);
+    setOpeningChapter(2);
+    setScreen('opening');
+    return true;
+  };
+
+  const finishOpening = useCallback(() => {
+    if (openingChapter === 2) useGameStore.getState().markChapterTwoOpeningSeen();
+    setScreen('stages');
+  }, [openingChapter]);
+
   const startStage = (id: number) => {
     setMapMonumentId(undefined);
     const profile = useGameStore.getState();
     if (getStage(id).chapter === 2 && !canEnterChapterTwoStage(id, profile.builtMonumentIds, profile.clearedChapterTwoStages)) return;
+    if (getStage(id).chapter === 2 && requestChapterTwoOpening()) return;
     setStageId(id);
     setLastBattleStageId(id);
     setResult(null);
@@ -1031,11 +1007,11 @@ export default function App() {
 
   const renderScreen = () => {
   if (screen === 'menu') return <MainMenu onNavigate={navigate} />;
-  if (screen === 'opening') return <Opening onComplete={() => setScreen('stages')} />;
+  if (screen === 'opening') return <Opening chapter={openingChapter} key={openingChapter} onComplete={finishOpening} />;
   if (screen === 'credits') return <Credits onBack={() => navigate('menu')} />;
-  if (screen === 'stages') return <CampaignMap initialMonumentId={mapMonumentId} initialStageId={lastBattleStageId ?? undefined} header={<ShellHeader title="왕국 지도" onBack={() => navigate('menu')} />} operations={<MapCommandCenter onNavigate={navigate} />} onSelect={startStage} onMonuments={() => navigate('monument')} />;
+  if (screen === 'stages') return <CampaignMap initialMonumentId={mapMonumentId} initialStageId={lastBattleStageId ?? undefined} header={<ShellHeader title="왕국 지도" onBack={() => navigate('menu')} />} operations={<MapCommandCenter onNavigate={navigate} />} onSelect={startStage} onMonuments={() => navigate('monument')} onChapterTwoEntry={requestChapterTwoOpening} />;
   if (screen === 'merchant') return <MysteryMerchant onBack={() => navigate('stages')} />;
-  if (screen === 'monument') return <TriumphMonument header={<ShellHeader title={TRIUMPH_MONUMENT.name} onBack={() => navigate('stages')} />} onViewBuilding={(id) => { setMapMonumentId(id); navigate('stages'); }} onEnterChapterTwo={() => { setLastBattleStageId(401); setMapMonumentId(undefined); navigate('stages'); }} onViewMission={(id) => { setMapMonumentId(undefined); setLastBattleStageId(id); navigate('stages'); }} />;
+  if (screen === 'monument') return <TriumphMonument header={<ShellHeader title={TRIUMPH_MONUMENT.name} onBack={() => navigate('stages')} />} onViewBuilding={(id) => { setMapMonumentId(id); navigate('stages'); }} onEnterChapterTwo={() => { if (requestChapterTwoOpening()) return; setLastBattleStageId(401); setMapMonumentId(undefined); navigate('stages'); }} onViewMission={(id) => { setMapMonumentId(undefined); setLastBattleStageId(id); navigate('stages'); }} />;
   if (screen === 'armory') return <Armory header={<ShellHeader title="왕립 병영" onBack={() => navigate('stages')} />} />;
   if (screen === 'items') return <ItemVault header={<ShellHeader title="원정 장비고" onBack={() => navigate('stages')} />} />;
   if (screen === 'heroes') return <HeroHall header={<ShellHeader title="영웅의 전당" onBack={() => navigate('stages')} />} />;

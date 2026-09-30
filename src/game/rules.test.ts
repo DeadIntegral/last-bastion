@@ -6,6 +6,20 @@ import { monumentBuildings } from '../data/endgame';
 import { ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL, STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS, applyEnemyTerrain, applyTriumphMonumentStats, attackPatternLabel, attackRangeLabel, attackRecoveryMs, attackTimingLabel, calculateDamage, canActivateMobilization, canAttackTarget, canReceiveRallyOrder, cooldownFillRatio, deadZoneRetreatDestination, enemyFortressCanReinforce, enemyObjectiveDefeated, equipmentCost, fortressRearSpawnX, guardProtectionLabel, hasEquipmentCapstone, healedHp, heroAuraBonuses, heroAwakeningRank, heroBattleMasteryXp, heroMasteryLevelFromXp, heroSelfAwakeningBonuses, isBehindLivingFortress, isWithinAttackBand, knockbackMultiplier, masteryContributionXp, masteryLevelFromXp, mobilizedCommandStats, regenerateCommand, retreatsFromDeadZone, scaledBattleDelta, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, spacingTraitLabel, unitBattleMasteryXp, unitDeploymentCapacity, upgradedStats, upgradeCost, usesStatEquipmentCapstone } from './rules';
 
 describe('combat rules', () => {
+  it.each([1, 20, 50])('keeps the ground-burst specialist below Archmage durability and direct DPS at equal mastery %i', (mastery) => {
+    for (const rank of [0, 5]) {
+      const equipment = { weapon: rank, armor: rank, boots: rank };
+      const archmage = upgradedStats(troopDefinitions.archmage, equipment, mastery);
+      const abyss = upgradedStats(troopDefinitions.demonMage, equipment, mastery);
+      expect(abyss.maxHp).toBeLessThan(archmage.maxHp);
+      expect(abyss.attackDamage / abyss.attackIntervalMs).toBeLessThan(archmage.attackDamage / archmage.attackIntervalMs);
+      expect(abyss.attackRange).toBeLessThan(archmage.attackRange);
+    }
+    expect(troopDefinitions.demonMage.cost).toBeGreaterThan(troopDefinitions.archmage.cost);
+    expect(troopDefinitions.demonMage.spawnCooldownMs).toBeGreaterThanOrEqual(troopDefinitions.archmage.spawnCooldownMs);
+    expect(troopDefinitions.demonMage.attackPattern).toMatchObject({ kind: 'groundBurst', maxTargets: 4, targetDomain: 'ground', telegraphMs: troopDefinitions.demonMage.attackWindupMs });
+    expect(troopDefinitions.archmage.attackPattern).toMatchObject({ kind: 'directional', targetDomain: 'all' });
+  });
   it('applies anti-large damage bonus', () => {
     expect(calculateDamage(troopDefinitions.lancer, bossDefinition)).toBe(Math.round(troopDefinitions.lancer.attackDamage * 1.75));
   });

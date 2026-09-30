@@ -21,7 +21,7 @@ import { ChapterTwoMap, ChapterTwoMission } from './ChapterTwoMap';
 const mapPositions = stages.map((stage) => campaignMapStagePosition(stage.id));
 const campaignDifficultyReport = analyzeCampaignDifficulty(stages);
 
-export function CampaignMap({ initialStageId, initialMonumentId, header, operations, onSelect, onMonuments }: { initialStageId?: number; initialMonumentId?: string; header: ReactNode; operations: ReactNode; onSelect: (id: number) => void; onMonuments: () => void }) {
+export function CampaignMap({ initialStageId, initialMonumentId, header, operations, onSelect, onMonuments, onChapterTwoEntry }: { initialStageId?: number; initialMonumentId?: string; header: ReactNode; operations: ReactNode; onSelect: (id: number) => void; onMonuments: () => void; onChapterTwoEntry?: () => boolean }) {
   const builtMonumentIds = useGameStore((state) => state.builtMonumentIds);
   const clearedChapterTwoStages = useGameStore((state) => state.clearedChapterTwoStages);
   const chapterTwoOpen = isChapterTwoUnlocked(builtMonumentIds);
@@ -130,6 +130,7 @@ export function CampaignMap({ initialStageId, initialMonumentId, header, operati
       event.stopPropagation();
       return;
     }
+    if (getStage(id).chapter === 2 && onChapterTwoEntry?.()) return;
     initialMonumentFocus.current = undefined;
     setSelectedId(id);
   };
@@ -178,7 +179,7 @@ export function CampaignMap({ initialStageId, initialMonumentId, header, operati
                 <span>{String(index + 1).padStart(2, '0')}</span><b>{region.name}</b><small>{liberated ? '해방 완료' : '교전 중'}</small>
               </button>;
             })}
-            {chapterTwoOpen && <GameButton className={isChapterTwo ? 'active' : ''} onClick={() => { initialMonumentFocus.current = undefined; setSelectedId(chapterTwoStages.find((stage) => !clearedChapterTwoStages.includes(stage.id))?.id ?? 406); mapRef.current?.scrollTo({ left: chapterTwoMapRegion.x - mapOriginX, top: chapterTwoMapRegion.y - mapOriginY, behavior: 'smooth' }); }}><span>Ⅱ</span><b>장막 접경지</b><small>챕터 2 · 장막 너머</small></GameButton>}
+            {chapterTwoOpen && <GameButton className={isChapterTwo ? 'active' : ''} onClick={() => { if (onChapterTwoEntry?.()) return; initialMonumentFocus.current = undefined; setSelectedId(chapterTwoStages.find((stage) => !clearedChapterTwoStages.includes(stage.id))?.id ?? 406); mapRef.current?.scrollTo({ left: chapterTwoMapRegion.x - mapOriginX, top: chapterTwoMapRegion.y - mapOriginY, behavior: 'smooth' }); }}><span>Ⅱ</span><b>장막 접경지</b><small>챕터 2 · 장막 너머</small></GameButton>}
           </nav>
           <div className="campaign-map-layout">
         <section

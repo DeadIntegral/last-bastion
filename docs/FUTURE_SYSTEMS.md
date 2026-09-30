@@ -104,6 +104,8 @@ Status: **Planned**. Current 5-star behavior still grants its existing non-stack
 
 ## 5D. Monuments and chapter progression
 
+The Chapter 2 narrative opening is **Implemented**: three original illustrated scenes on the first deliberate frontier entry, a shared cinematic module, skip/automatic completion, and schema-12 per-slot completion with legacy-progress migration. Broader regional narrative and additional Chapter 2 content remain **Planned**. It does not disclose future unlock requirements or unseen enemy identities.
+
 The implemented construction economy was revised on 2026-09-30 to a 46,000 base / 36,800 fully discounted total, replacing the long repeat-battle grind with a short post-finale funding target. Effects and progression rules are unchanged; GAME_SPEC/BALANCE own the current prices.
 
 Status: **Implemented** for five one-time regional monuments, existing four deeds, schema-10 migration and map markers, and the first six encounters of Chapter 2. Further Chapter 2 regions remain **Planned**. Current behavior and numbers are authoritative in GAME_SPEC/BALANCE. The five enemy-only Veil constructs have distinct existing combat roles, no recruitment/grade/mastery/capstone path, five original SVG portraits, a separate discovered codex, and independent sequential campaign progression. Canonical data owns every identity, encounter, and gate; saves normalize unique built IDs and a gated prefix of Chapter 2 clears.

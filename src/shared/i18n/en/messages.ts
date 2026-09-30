@@ -1,6 +1,16 @@
 // English translations use the original Korean copy as stable source keys.
 // Missing entries deliberately fall back to Korean so new content never renders as an empty label.
 export const messages: Record<string, string> = {
+  '오프닝 {current}/{total}': 'Opening {current}/{total}',
+  '장막 너머 · 서막': 'BEYOND THE VEIL · PROLOGUE',
+  '장막 너머 · 징조': 'BEYOND THE VEIL · OMEN',
+  '장막 너머 · 진군': 'BEYOND THE VEIL · MARCH',
+  '승리 뒤의 침묵': 'Silence After Victory',
+  '돌에 새겨진 빛': 'Light Within the Stone',
+  '끝나지 않은 원정': 'The Unfinished Campaign',
+  '마왕성의 검은 깃발이 내려갔다. 전쟁은 끝난 듯했다. 북쪽 산맥의 안개만은 걷히지 않았다.': 'The black banner fell from the Demon King’s fortress. The war seemed over. Only the mist over the northern mountains remained.',
+  '승리를 기리던 돌에서 빛이 흘러나왔다. 빛이 가리킨 산맥 너머에는 지도에 없는 길이 있었다.': 'Light seeped from the stones raised in victory. Beyond the mountains, it revealed a road no map had ever shown.',
+  '정찰대는 돌아오지 않았다. 남겨진 푸른 깃발을 거두고, 원정대는 다시 안개 속으로 향했다.': 'The scouts never returned. Gathering the blue banner they left behind, the expedition marched once more into the mist.',
   '병종·영웅 기록과 아이템 자료를 살펴볼 수 있습니다.': 'Browse troop and hero records, or consult the item reference.',
   '보유 아이템 {count}종': 'Owned items · {count} types',
   '보유한 아이템이 없습니다.': 'No items owned yet.',

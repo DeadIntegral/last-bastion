@@ -39,6 +39,8 @@ interface BattleRecord {
 }
 
 interface GameProfile {
+  chapterTwoOpeningSeen: boolean;
+  markChapterTwoOpeningSeen: () => void;
   seenTutorialIds: TutorialId[];
   markTutorialsSeen: (ids: readonly TutorialId[]) => void;
   gold: number;
@@ -154,6 +156,7 @@ const emptyStats = (): PlayerStats => ({
 
 const defaults = {
   seenTutorialIds: [] as TutorialId[],
+  chapterTwoOpeningSeen: false,
   gold: 100,
   gems: 0,
   lastDailyClaimDate: null as string | null,
@@ -245,6 +248,8 @@ function hydrateSavedProfile(saved: SavedGameProfile | undefined, current: GameP
   })) as Partial<Record<ItemId, number>>;
   const builtMonumentIds = normalizeBuiltMonuments(saved?.builtMonumentIds, saved?.triumphMonumentLevel, clearedStages);
   const discoveredEnemies = (Array.isArray(saved?.discoveredEnemies) ? saved.discoveredEnemies : []).filter((id): id is CodexEnemyId => id === 'boss' || validUnit(id) || (isChapterTwoUnlocked(builtMonumentIds) && exclusiveEnemyIds.some((enemyId) => enemyId === id)));
+  const clearedChapterTwoStages = normalizeChapterTwoClears(saved?.clearedChapterTwoStages, builtMonumentIds);
+  const chapterTwoOpeningSeen = isChapterTwoUnlocked(builtMonumentIds) && (saved?.chapterTwoOpeningSeen === true || clearedChapterTwoStages.length > 0 || (saved?.chapterTwoOpeningSeen === undefined && exclusiveEnemyIds.some((id) => discoveredEnemies.includes(id))));
   const formationSlotPurchases = Math.min(
     MAX_FORMATION_SLOT_PURCHASES,
     nonNegative(saved?.formationSlotPurchases, saved?.formationSlotUnlocked === true ? 1 : 0),
@@ -334,7 +339,8 @@ function hydrateSavedProfile(saved: SavedGameProfile | undefined, current: GameP
     formationItemSlots,
     fortressItemSlots,
     clearedStages,
-    clearedChapterTwoStages: normalizeChapterTwoClears(saved?.clearedChapterTwoStages, builtMonumentIds),
+    clearedChapterTwoStages,
+    chapterTwoOpeningSeen,
     clearedChallenges,
     clearedMapTreasureGuardianIds,
     claimedMapTreasureIds,
@@ -354,19 +360,19 @@ function hydrateSavedProfile(saved: SavedGameProfile | undefined, current: GameP
     battleSpeed: saved?.battleSpeedUnlocked === true && saved?.battleSpeed === 1.5 ? 1.5 : 1,
     formationSlotPurchases,
     builtMonumentIds,
-    seenTutorialIds: normalizeSeenTutorials(saved?.seenTutorialIds, { clearedStages, clearedChapterTwoStages: normalizeChapterTwoClears(saved?.clearedChapterTwoStages, builtMonumentIds), unlockedStage, stats, formationSlotPurchases, itemInventory, castleTechLevels }, Boolean(saved)),
+    seenTutorialIds: normalizeSeenTutorials(saved?.seenTutorialIds, { clearedStages, clearedChapterTwoStages, unlockedStage, stats, formationSlotPurchases, itemInventory, castleTechLevels }, Boolean(saved)),
     monumentDeedIds: normalizeMonumentDeeds(saved?.monumentDeedIds, clearedStages, clearedChallenges),
   };
 }
 
 function persistedProfile({
   gold, gems, lastDailyClaimDate, unlockedStage, equipmentLevels, unlockedUnits, equippedUnits, formationSlots, itemInventory, formationItemSlots, fortressItemSlots, clearedStages, clearedChallenges, clearedMapTreasureGuardianIds, claimedMapTreasureIds, unitMasteryXp, selectedHero, unlockedHeroes,
-  heroEquipmentLevels, heroMasteryXp, fortressTier, castleTechLevels, stats, clearedChapterTwoStages, seenTutorialIds,
+  heroEquipmentLevels, heroMasteryXp, fortressTier, castleTechLevels, stats, clearedChapterTwoStages, seenTutorialIds, chapterTwoOpeningSeen,
   unlockedAchievementIds, claimedAchievementIds, discoveredEnemies, muted, battleSpeedUnlocked, battleSpeed, formationSlotPurchases, builtMonumentIds, monumentDeedIds,
 }: GameProfile) {
   return {
     gold, gems, lastDailyClaimDate, unlockedStage, equipmentLevels, unlockedUnits, equippedUnits, formationSlots, itemInventory, formationItemSlots, fortressItemSlots, clearedStages, clearedChallenges, clearedMapTreasureGuardianIds, claimedMapTreasureIds, unitMasteryXp, selectedHero, unlockedHeroes,
-    heroEquipmentLevels, heroMasteryXp, fortressTier, castleTechLevels, stats, clearedChapterTwoStages, seenTutorialIds,
+    heroEquipmentLevels, heroMasteryXp, fortressTier, castleTechLevels, stats, clearedChapterTwoStages, seenTutorialIds, chapterTwoOpeningSeen,
     unlockedAchievementIds, claimedAchievementIds, discoveredEnemies, muted, battleSpeedUnlocked, battleSpeed, formationSlotPurchases, builtMonumentIds, monumentDeedIds,
   };
 }
@@ -376,6 +382,7 @@ export const useGameStore = create<GameProfile>()(
     (set, get) => ({
       ...defaults,
       markTutorialsSeen: (ids) => set((state) => ({ seenTutorialIds: tutorialIds.filter((id) => state.seenTutorialIds.includes(id) || ids.includes(id)) })),
+      markChapterTwoOpeningSeen: () => { if (isChapterTwoUnlocked(get().builtMonumentIds)) set({ chapterTwoOpeningSeen: true }); },
       addReward: (amount, clearedStage) => {
         const state = get();
         const reward = scaledProgressionReward(amount, castleBattleStats(state.castleTechLevels).battleGoldMultiplier);
@@ -421,7 +428,7 @@ export const useGameStore = create<GameProfile>()(
         const stage = chapterTwoStages.find((entry) => entry.id === stageId);
         if (!stage || !canEnterChapterTwoStage(stageId, state.builtMonumentIds, state.clearedChapterTwoStages) || state.clearedChapterTwoStages.includes(stageId)) return undefined;
         const gold = scaledProgressionReward(stage.firstClearReward.gold ?? 0, castleBattleStats(state.castleTechLevels).battleGoldMultiplier);
-        set({ gold: state.gold + gold, clearedChapterTwoStages: [...state.clearedChapterTwoStages, stageId] });
+        set({ gold: state.gold + gold, clearedChapterTwoStages: [...state.clearedChapterTwoStages, stageId], chapterTwoOpeningSeen: true });
         return { ...stage.firstClearReward, gold };
       },
       completeChallenge: (stageId) => {

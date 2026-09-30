@@ -2,7 +2,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
-import { OPENING_SCENE_DURATION_MS } from './data/opening';
+import { OPENING_SCENE_DURATION_MS, openingSequences } from './data/opening';
 import { achievementGroups, achievements } from './data/achievements';
 import { setActiveSaveSlot } from './game/saveSlots';
 import { monumentBuildings } from './data/endgame';
@@ -31,6 +31,7 @@ describe('title and kingdom-map navigation', () => {
     act(() => root.unmount());
     host.remove();
     vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   it('keeps the title focused and exposes progression from the map hub', () => {
@@ -174,11 +175,35 @@ describe('title and kingdom-map navigation', () => {
     expect(host.querySelectorAll('.map-monument')).toHaveLength(4);
     act(() => { useGameStore.getState().constructMonument(monumentBuildings[4].id); });
     act(() => [...host.querySelectorAll<HTMLButtonElement>('.map-region-nav button')].at(-1)!.click());
+    expect(host.querySelector('.opening-screen')?.getAttribute('data-opening-chapter')).toBe('2');
+    expect(host.querySelector('.opening-story h1')?.textContent).toBe('승리 뒤의 침묵');
+    expect(useGameStore.getState().chapterTwoOpeningSeen).toBe(false);
+    act(() => window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape' })));
+    expect(useGameStore.getState().chapterTwoOpeningSeen).toBe(true);
     expect(host.querySelectorAll('.campaign-map')).toHaveLength(1);
     expect(host.querySelector('.veil-mission-detail')).not.toBeNull();
     expect(host.querySelector('.veil-enemies')?.textContent).not.toContain('공허 방벽');
     act(() => host.querySelectorAll<HTMLButtonElement>('.veil-campaign-node')[1].click());
     expect(host.querySelector<HTMLButtonElement>('.veil-mission-detail button')?.disabled).toBe(true);
+    expect(host.querySelector('.opening-screen')).toBeNull();
+  });
+
+  it('automatically completes the chapter-two story and starts a new slot with the original opening', () => {
+    vi.useFakeTimers();
+    act(() => host.querySelector<HTMLButtonElement>('.save-slot-card.empty')!.click());
+    act(() => host.querySelector<HTMLButtonElement>('.opening-skip')!.click());
+    act(() => useGameStore.setState({ clearedStages: [30], unlockedStage: 30, builtMonumentIds: monumentBuildings.map((entry) => entry.id) }));
+    act(() => host.querySelector<HTMLButtonElement>('.veil-campaign-node')!.click());
+    for (const scene of openingSequences[2].scenes) {
+      expect(host.querySelector('.opening-story h1')?.textContent).toBe(scene.title);
+      act(() => vi.advanceTimersByTime(openingSequences[2].durationMs));
+    }
+    expect(useGameStore.getState().chapterTwoOpeningSeen).toBe(true);
+    expect(host.querySelector('.veil-mission-detail h2')?.textContent).toBe('장막의 문턱');
+    act(() => host.querySelector<HTMLButtonElement>('.back-button')!.click());
+    act(() => host.querySelector<HTMLButtonElement>('.save-slot-card.empty')!.click());
+    expect(host.querySelector('.opening-screen')?.getAttribute('data-opening-chapter')).toBe('1');
+    expect(useGameStore.getState().chapterTwoOpeningSeen).toBe(false);
   });
 
   it('removes an equipped troop from the persistent formation strip across faction filters', () => {

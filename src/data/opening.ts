@@ -1,5 +1,14 @@
 export const OPENING_SCENE_DURATION_MS = 5_200;
 
+export interface OpeningScene {
+  eyebrow: string;
+  title: string;
+  text: string;
+  art: string;
+  image: string;
+  imagePosition: string;
+}
+
 export const openingScenes = [
   {
     eyebrow: 'PROLOGUE I',
@@ -34,3 +43,35 @@ export const openingScenes = [
     imagePosition: 'center center',
   },
 ] as const;
+
+export const chapterTwoOpeningScenes = [
+  {
+    eyebrow: '장막 너머 · 서막',
+    title: '승리 뒤의 침묵',
+    text: '마왕성의 검은 깃발이 내려갔다. 전쟁은 끝난 듯했다. 북쪽 산맥의 안개만은 걷히지 않았다.',
+    art: 'aftermath',
+    image: '/assets/opening/chapter-two-01-aftermath-v1.webp',
+    imagePosition: 'center center',
+  },
+  {
+    eyebrow: '장막 너머 · 징조',
+    title: '돌에 새겨진 빛',
+    text: '승리를 기리던 돌에서 빛이 흘러나왔다. 빛이 가리킨 산맥 너머에는 지도에 없는 길이 있었다.',
+    art: 'veil-light',
+    image: '/assets/opening/chapter-two-02-beacon-v1.webp',
+    imagePosition: '15% center',
+  },
+  {
+    eyebrow: '장막 너머 · 진군',
+    title: '끝나지 않은 원정',
+    text: '정찰대는 돌아오지 않았다. 남겨진 푸른 깃발을 거두고, 원정대는 다시 안개 속으로 향했다.',
+    art: 'veil-march',
+    image: '/assets/opening/chapter-two-03-threshold-v1.webp',
+    imagePosition: 'center center',
+  },
+] as const satisfies readonly OpeningScene[];
+
+export const openingSequences = {
+  1: { scenes: openingScenes, durationMs: OPENING_SCENE_DURATION_MS },
+  2: { scenes: chapterTwoOpeningScenes, durationMs: 6_000 },
+} as const;

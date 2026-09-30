@@ -20,21 +20,21 @@ This is the canonical reference for implemented economy, progression, combat, an
 
 | Side mission | Reveal clear | First treasure Gold | Repeat battle Gold | Pressure / region boss |
 |---|---:|---:|---:|---:|
-| 봉화대 매복전 | 1 | 600 | 200 | ×0.85 vs stage 6 |
-| 왕도 금고 수복전 | 7 | 1,200 | 400 | ×0.79 vs stage 12 |
+| 봉화대 매복전 | 1 | 600 | 200 | ×0.87 vs stage 6 |
+| 왕도 금고 수복전 | 7 | 1,200 | 400 | ×0.78 vs stage 12 |
 | 용광로 창고 급습 | 13 | 1,800 | 600 | ×0.76 vs stage 18 |
-| 정령 제단 공명전 | 19 | 2,400 | 800 | ×0.77 vs stage 24 |
-| 균열 봉인고 공성전 | 25 | 3,000 | 1,000 | ×1.00 vs stage 30 |
+| 정령 제단 공명전 | 19 | 2,400 | 800 | ×0.78 vs stage 24 |
+| 균열 봉인고 공성전 | 25 | 3,000 | 1,000 | ×0.99 vs stage 30 |
 
-The total one-time map-treasure income is 9,000 Gold. It is excluded from the no-repeat normal-progression budget because every chest requires defeating an optional encounter benchmarked near that region's later boss, not merely clearing the reveal stage. The separate side-mission audit requires pressure to rise monotonically and remain between ×0.70 and ×1.45 of its region boss; current missions range from ×0.76 to ×1.00 after the introductory ×0.85 encounter.
+The total one-time map-treasure income is 9,000 Gold. It is excluded from the no-repeat normal-progression budget because every chest requires defeating an optional encounter benchmarked near that region's later boss, not merely clearing the reveal stage. The separate side-mission audit requires pressure to rise monotonically and remain between ×0.70 and ×1.45 of its region boss; current missions range from ×0.76 to ×0.99, with the introductory encounter at ×0.87.
 
 | Repeatable farm | Unlock clear | Base Gold | Battle mastery | Pressure benchmark |
 |---|---:|---:|---:|---|
 | 황금 수송로 탈환전 | 12 | 2,000 | ×1 | ×0.72 vs stage 18 |
 | 왕립 대훈련장 | 18 | 700 | ×2 | ×0.73 vs stage 24 |
-| 마왕군 잔당 대토벌 | 30 | 5,000 | ×1 | ×1.61 vs stage 30 |
+| 마왕군 잔당 대토벌 | 30 | 5,000 | ×1 | ×1.59 vs stage 30 |
 
-Farms are ordinary recorded victories or defeats and therefore still grant role-contribution mastery, encounter discovery, statistics, and achievements. They never advance `unlockedStage`, create a persisted first-clear reward, or reveal a treasure. Spoils Accounting multiplies their listed Gold. Royal Field Manuals multiply the complete mastery total after the training-ground ×2 modifier, so rank 5 resolves to ×2.5 rather than replacing the farm bonus. The two progression farms remain between ×0.70 and ×1.45 of their later regional benchmark. The post-finale 5,000-Gold free expedition intentionally sits at ×1.40–1.80 of stage 30; its current ×1.61 pressure prevents the best repeat reward from becoming a trivial clear.
+Farms are ordinary recorded victories or defeats and therefore still grant role-contribution mastery, encounter discovery, statistics, and achievements. They never advance `unlockedStage`, create a persisted first-clear reward, or reveal a treasure. Spoils Accounting multiplies their listed Gold. Royal Field Manuals multiply the complete mastery total after the training-ground ×2 modifier, so rank 5 resolves to ×2.5 rather than replacing the farm bonus. The two progression farms remain between ×0.70 and ×1.45 of their later regional benchmark. The post-finale 5,000-Gold free expedition intentionally sits at ×1.40–1.80 of stage 30; its current ×1.59 pressure prevents the best repeat reward from becoming a trivial clear.
 - No payment implementation currently exists. A future verified Quick Starter may combine a data-driven Gem grant with battle-speed access and exactly the first formation purchase; slots 6–7 remain ordinary campaign progression unless a future documented entitlement explicitly changes that rule.
 
 Hero Training Ground unlocks from the stage-9 first clear. It supplements rather than replaces battle-earned hero mastery XP and refuses purchases at the level-30 cap.
@@ -144,6 +144,7 @@ Only 5-star troops count as transcendent for `초월의 군기`. In particular, 
 | 마염견 | 170 | 1 | 850 | 70 | 46 | 900 ms | 76 | 4.8 s | challenge 103 | cleave, ×0.65 secondary |
 | 왕국 마법사 | 115 | 1 | 110 | 36 | 195 | 1300 ms | 37 | 3.5 s | encounter | ground burst r72, max 4, ×0.70 secondary |
 | 대마법사 | 190 | 1 | 700 | 110 | 245 | 1600 ms | 31 | 5.5 s | encounter | all-domain directional 245, ×0.70 secondary |
+| 심연 마도사 | 200 | 1 | 650 | 95 | 210 | 1700 ms | 33 | 5.5 s | encounter | ground burst r88, max 4, ×0.65 secondary |
 | 이프리트 | 200 | 1 | 11,000 | 900 | 215 | 2400 ms | 42 | 6.6 s | challenge 104 after stage 30 | pierce 3, ×0.75 follow-through, fortress pierce |
 | 창공의 고룡 | 200 | 1 | 15,000 | 1,200 | 250 | 2800 ms | 36 | 9.0 s | challenge 105 after stage 30 | pierce 3, ×0.80 follow-through, fortress pierce |
 | 대륙연합 수호자 | 300 | 1 | 13,000 | 900 | 54 | 2400 ms | 27 | 9.0 s | stage 30 + tier 3 + 20,000 | cleave ×0.78, guard ×0.10 |
@@ -165,6 +166,8 @@ Only 5-star troops count as transcendent for `초월의 군기`. In particular, 
 
 ### Attack commitment, guard protection, and area geometry
 
+The 2026-09-30 Abyss Mage adjustment removes its near-universal advantage over the same-grade Archmage: Command 185 → 200, base HP 750 → 650, attack cycle 1,450 → 1,700 ms, windup/ground warning 620 → 780 ms, and summon cooldown 3,500 → 5,500 ms. Its 95 damage, 75–210 range band, radius 88, four-ground-target limit and ×0.65 secondary hits remain intact. Derived armor growth is now +65 HP/rank and recruitment is 1,000 Gold; weapon/defense/boots growth remains +10/+1.5/+1 per rank. Archmage stays at 700 HP, 110 damage/1.6 s, 100–245 range and all-domain directional attacks. Base direct DPS is 55.9 vs 68.8; the Abyss Mage trades durability, range and direct pressure for guarded-ground-cluster bypass, rather than also arriving faster and cheaper. This is the shared definition for both sides. Equal-equipment/mastery role tests and all campaign/item/free-expedition audits pass; current campaign R² is 0.989, maximum deviation 5.3, treasure 205/finale pressure ×0.99, and farm 303/finale ×1.594. Authored stage equipment, waves, caps and fortress values are unchanged.
+
 `attackIntervalMs` is the complete attack-start-to-attack-start cycle. `attackWindupMs` is the immobile pre-impact commitment and recovery is exactly `attackIntervalMs - attackWindupMs`; the unit remains immobile for that remainder after impact and until its visible attack pose ends. The locked target is revalidated when windup ends. A melee attack misses when its target died, gained living-fortress cover, moved behind the attacker, or left the current minimum–maximum band. A ranged commitment still launches along its locked path after target loss; a pierce shot instead selects the nearest valid forward collision target when one has moved into that path. Fortress cover remains authoritative unless the pierce pattern explicitly sets `piercesFortress`; only Ifrit and Ancient Sky Dragon currently continue through a struck fortress, can damage at most `maxTargets - 1` defenders within their normal follow-through distance behind it, and still stop on a matching full guard. Ordinary ranged attacks select the nearest screen. Only combatants with authored `rangedTargeting: 'backline'` may skip that screen for the nearest valid ranged/support target, and only while that target is already inside the ordinary minimum–maximum band; this does not bypass fortress cover. Only Scout, Goblin Poison Archer, Storm Spirit, Huntress Ria, and Wind Spirit Neris have `retreatsInsideMinimumRange`; they finish the current visible attack before backing away to reopen distance, while every other ranged unit holds position and remains unable to attack inside its dead zone. One retreat uses a fixed destination: the missing range plus a 24-unit buffer, clamped to a 45–110-unit step, followed by a 1.6-second retrigger cooldown. The estimator reduces the normal dead-zone penalty to 35% for these five skirmishers rather than treating retreat as free or universal.
 
 | Combatant | Effective range | Windup | Recovery | Pattern |
@@ -180,7 +183,7 @@ Only 5-star troops count as transcendent for `초월의 군기`. In particular, 
 | Orc Shaman | 65–185 | 520 ms | 830 ms | ground burst radius 78, max 4, ×0.65 secondary, 520 ms warning |
 | Ogre Mage | 75–170 | 720 ms | 780 ms | ground burst radius 95, max 4, ×0.70 secondary, 720 ms warning |
 | Archmage | 100–245 | 780 ms | 820 ms | all-domain directional length 245, ×0.70 secondary |
-| Abyss Mage | 75–210 | 620 ms | 830 ms | ground burst radius 88, max 4, ×0.65 secondary, 620 ms warning |
+| Abyss Mage | 75–210 | 780 ms | 920 ms | ground burst radius 88, max 4, ×0.65 secondary, 780 ms warning |
 | Fire Spirit | 50–165 | 430 ms | 620 ms | ground/flying splash radius 68, ×0.60 secondary |
 | Swamp Hydra | 0–145 | 650 ms | 800 ms | ground venom directional length 145, ×0.82 secondary |
 | Ifrit | 100–215 | 850 ms | 800 ms | pierce 3 |
@@ -311,7 +314,7 @@ Victory drop chances before research are normal campaign 30%, campaign boss 60%,
 
 Formation items apply after equipment, mastery, and Victory Monument troop resolution and affect every body created by that one deployment without multiplying Command cost or squad size. Items remain on numbered slots when troops move. Fortress effects resolve after technology stats; two fortress copies may be active, including the same ID twice when two copies are owned. Each formation slot can independently use an owned copy of the same item. The existing per-slot formulas also apply to duplicates: fortress percentage multipliers multiply and flat bonuses add (two Guardian Keystones give HP ×1.44; two Bastion Hearts give HP ×1.69; two Quartermaster Seals give +100 starting/+200 maximum Command). Crafting consumes only unequipped ingredients. Every crafted result uses one slot, retains both ingredient roles, and strictly exceeds each ingredient's corresponding values; the slot compression is intentionally valuable but bounded by recipe milestones and repeated drop acquisition. Full-set engraving remains a separate Planned system.
 
-The item-aware pressure audit checks representative single-copy drop/craft power at the next progression step; it is not a difficulty guarantee for repeated farming that equips duplicate copies across the formation or both fortress slots. Duplicate-copy loadouts are intentionally allowed; item values and encounter stats remain unchanged. Current pressure steps are approximately 4→5 ×1.15, 8→9 ×1.18, 12→13 ×1.074, 18→19 ×1.123, 24→25 ×1.09, and 30→303 ×1.612. Each exceeds its representative power floor plus a 1% safety margin. Stage 13 receives 1,500 additional enemy-fortress HP over its prior curve and stage 14 receives 500 to prevent the stage-12 War Hero Standard recipe from flattening the new-region opening; stage 25 retains its additional 1,400 HP for the Command-seal transition.
+The item-aware pressure audit checks representative single-copy drop/craft power at the next progression step; it is not a difficulty guarantee for repeated farming that equips duplicate copies across the formation or both fortress slots. Duplicate-copy loadouts are intentionally allowed; item values and encounter stats remain unchanged. Current pressure steps are approximately 4→5 ×1.15, 8→9 ×1.18, 12→13 ×1.074, 18→19 ×1.123, 24→25 ×1.09, and 30→303 ×1.594. Each exceeds its representative power floor plus a 1% safety margin. Stage 13 receives 1,500 additional enemy-fortress HP over its prior curve and stage 14 receives 500 to prevent the stage-12 War Hero Standard recipe from flattening the new-region opening; stage 25 retains its additional 1,400 HP for the Command-seal transition.
 - Soldier mastery maximum: level 50. Hero mastery maximum: level 30.
 - XP for next mastery level: `round(45 × level^1.32)`.
 - Mastery uses character-specific flat gains. At level `L`, add `(L - 1) × listed gain` to canonical HP and ATK before adding equipment.

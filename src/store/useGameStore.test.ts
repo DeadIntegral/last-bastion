@@ -37,6 +37,27 @@ describe('shared troop progression', () => {
     expect(useGameStore.getState().stats.codexEntries).toBe(2);
   });
 
+  it('persists chapter-two opening completion per profile and migrates established chapter-two saves', () => {
+    const builtMonumentIds = monumentBuildings.map((entry) => entry.id);
+    useGameStore.getState().markChapterTwoOpeningSeen();
+    expect(useGameStore.getState().chapterTwoOpeningSeen).toBe(false);
+    useGameStore.setState({ clearedStages: [30], builtMonumentIds });
+    useGameStore.getState().markChapterTwoOpeningSeen();
+    const saved = useGameStore.getState().exportSave();
+    useGameStore.getState().resetProgress();
+    expect(useGameStore.getState().chapterTwoOpeningSeen).toBe(false);
+    useGameStore.getState().importSave(saved);
+    expect(useGameStore.getState().chapterTwoOpeningSeen).toBe(true);
+    useGameStore.getState().importSave(JSON.stringify({ gold: 100, clearedStages: [30], builtMonumentIds, clearedChapterTwoStages: [401] }));
+    expect(useGameStore.getState().chapterTwoOpeningSeen).toBe(true);
+    useGameStore.getState().importSave(JSON.stringify({ gold: 100, clearedStages: [30], builtMonumentIds, discoveredEnemies: ['voidSentinel'] }));
+    expect(useGameStore.getState().chapterTwoOpeningSeen).toBe(true);
+    useGameStore.getState().importSave(JSON.stringify({ gold: 100, clearedStages: [30], builtMonumentIds }));
+    expect(useGameStore.getState().chapterTwoOpeningSeen).toBe(false);
+    useGameStore.getState().importSave(JSON.stringify({ gold: 100, chapterTwoOpeningSeen: true }));
+    expect(useGameStore.getState().chapterTwoOpeningSeen).toBe(false);
+  });
+
   it('drops, validates, combines, and migrates counted items', () => {
     const earlyDrop = encounterResult([]);
     earlyDrop.victory = true;

@@ -21,3 +21,13 @@ These four project-owned 1672 × 941 WebP backgrounds are the runtime art for th
 4. `opening-04-counteroffensive.webp`: militia, shield formations, archers, mage, cavalry, and wagons marching from the Last Bastion across a ruined continent toward the Demon King's distant black citadel beneath a crimson storm.
 
 Do not regenerate or overwrite these selected files casually. Add a versioned sibling and update `src/data/opening.ts` plus this record when replacing a shot.
+
+## Chapter 2 — Beyond the Veil (2026-09-30)
+
+Three new original 1672 × 941 images use the same shared cinematic component. Canonical copy/order is `chapterTwoOpeningScenes` in `src/data/opening.ts`; each shot lasts 6 seconds, with an 18-second total. The first eligible map-node, frontier-shortcut or monument entry launches the sequence. Skip/Escape and automatic completion return to the first mission and persist completion per slot. Neither enemies nor unlock mechanics are explained in the story.
+
+Runtime WebPs were encoded with `cwebp -q 86 -m 6`. PNG masters are retained in `sources/`, with matching versioned filenames. Generation used the built-in imagegen tool, `stylized-concept`, full-bleed 16:9 dark-fantasy matte paintings with charcoal navy/slate/antique-gold colors, atmospheric depth and a quiet lower central third for story text. No text, readable inscriptions, UI, borders, watermarks, modern objects, identifiable enemy faces or franchise designs.
+
+1. `chapter-two-01-aftermath-v1.webp` / `sources/chapter-two-01-aftermath-v1.png`: day after reconquest, exhausted commander and blue/gold standard-bearer seen from behind on a breached castle wall, soldiers repairing stonework, liberated valleys with warm town lights at cold dawn, northern mountains swallowed by an unnatural gray-blue mist bank; restrained relief and unease rather than a celebration crowd.
+2. `chapter-two-02-beacon-v1.webp` / `sources/chapter-two-02-beacon-v1.png`: at night, a weathered victory monument with an original abstract crown/tower relief awakens with narrow gold light in its seams, two cloaked scouts, a faint thread of light along a ruined mountain pass and aqueduct into a wall of mist; no laser or sci-fi portal.
+3. `chapter-two-03-threshold-v1.webp` / `sources/chapter-two-03-threshold-v1.png`: kingdom soldiers and a cloaked commander enter a cold fogbound northern pass; a broken scout spear with a torn blue tower banner is left in the foreground, lanterns recede behind them, immense ruined gate pillars barely emerge ahead; unknown opponents remain unseen.
