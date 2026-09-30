@@ -1,6 +1,7 @@
 // Japanese overrides use the original Korean copy as stable source keys.
 // English resources are merged first, so untranslated long-form copy remains readable.
 export const messages: Record<string, string> = {
+  '챕터2 오프닝 미리보기 · 임시': 'チャプター2 オープニング試写 · 仮設',
   '오프닝 {current}/{total}': 'オープニング {current}/{total}',
   '장막 너머 · 서막': '帳の向こう · 序幕',
   '장막 너머 · 징조': '帳の向こう · 兆し',

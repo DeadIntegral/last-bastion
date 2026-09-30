@@ -188,6 +188,23 @@ describe('title and kingdom-map navigation', () => {
     expect(host.querySelector('.opening-screen')).toBeNull();
   });
 
+  it.each(['skip', 'complete'])('previews only the chapter-two opening from the title without touching a save: %s', (mode) => {
+    vi.useFakeTimers();
+    // An eligible but unseen profile catches accidental completion-flag writes too.
+    act(() => useGameStore.setState({ clearedStages: [30], builtMonumentIds: monumentBuildings.map((entry) => entry.id), chapterTwoOpeningSeen: false }));
+    const before = useGameStore.getState();
+    act(() => host.querySelector<HTMLButtonElement>('.chapter-two-preview')!.click());
+    expect(host.querySelector('.opening-screen')?.getAttribute('data-opening-chapter')).toBe('2');
+    expect(host.querySelector('.opening-story h1')?.textContent).toBe('승리 뒤의 침묵');
+    if (mode === 'skip') act(() => host.querySelector<HTMLButtonElement>('.opening-skip')!.click());
+    else for (const _scene of openingSequences[2].scenes) act(() => vi.advanceTimersByTime(openingSequences[2].durationMs));
+    expect(host.querySelector('.menu-screen')).not.toBeNull();
+    expect(host.querySelector('.campaign-map')).toBeNull();
+    expect(useGameStore.getState()).toBe(before);
+    act(() => host.querySelector<HTMLButtonElement>('.chapter-two-preview')!.click());
+    expect(host.querySelector('.opening-story h1')?.textContent).toBe('승리 뒤의 침묵');
+  });
+
   it('automatically completes the chapter-two story and starts a new slot with the original opening', () => {
     vi.useFakeTimers();
     act(() => host.querySelector<HTMLButtonElement>('.save-slot-card.empty')!.click());

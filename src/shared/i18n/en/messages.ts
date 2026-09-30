@@ -1,6 +1,7 @@
 // English translations use the original Korean copy as stable source keys.
 // Missing entries deliberately fall back to Korean so new content never renders as an empty label.
 export const messages: Record<string, string> = {
+  '챕터2 오프닝 미리보기 · 임시': 'Preview Chapter 2 opening · Temporary',
   '오프닝 {current}/{total}': 'Opening {current}/{total}',
   '장막 너머 · 서막': 'BEYOND THE VEIL · PROLOGUE',
   '장막 너머 · 징조': 'BEYOND THE VEIL · OMEN',
