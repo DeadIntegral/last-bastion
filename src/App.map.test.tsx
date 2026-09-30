@@ -3,6 +3,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CampaignMap } from './components/CampaignMap';
 import { monumentBuildings } from './data/endgame';
+import { mapLocationArt } from './data/campaignMapArt';
 import { useGameStore } from './store/useGameStore';
 
 const pointerEvent = (type: string, clientX: number, pointerId = 1, clientY = 0): MouseEvent => {
@@ -62,6 +63,10 @@ describe('campaign map pointer controls', () => {
     expect(stageOne.getAttribute('aria-label')).toContain('해방 완료');
     expect(host.querySelectorAll('.continent-painting')).toHaveLength(1);
     expect(host.querySelectorAll('.fortress-beacon img')).toHaveLength(12);
+    expect(host.querySelectorAll('.challenge-portrait')).toHaveLength(1);
+    expect(host.querySelector('.challenge-portrait')?.getAttribute('data-boss-id')).toBe('brute');
+    expect(host.querySelector('.challenge-portrait .character-sprite')?.getAttribute('style')).toContain('roster-atlas.png');
+    expect(host.querySelector('.challenge-map-node .node-beacon')).toBeNull();
     const regionButtons = [...host.querySelectorAll<HTMLButtonElement>('.map-region-nav button')];
     expect(regionButtons.map((button) => button.textContent)).toEqual(['01서부 변경해방 완료', '02점령 왕도교전 중']);
     act(() => regionButtons[1].click());
@@ -81,8 +86,10 @@ describe('campaign map pointer controls', () => {
     act(() => { useGameStore.getState().completeTreasureMission(201); });
     const treasure = host.querySelector<HTMLButtonElement>('.map-treasure-node')!;
     expect(treasure.textContent).toContain('변경 수복 궤짝');
+    expect(treasure.querySelector('img')?.getAttribute('src')).toBe(mapLocationArt.treasureClosed);
     act(() => treasure.click());
     expect(useGameStore.getState().gold).toBe(700);
+    expect(treasure.querySelector('img')?.getAttribute('src')).toBe(mapLocationArt.treasureOpen);
   });
 
   it('uses the supplied last battle as its initial selection instead of the furthest unlocked stage', () => {
@@ -115,6 +122,7 @@ describe('campaign map pointer controls', () => {
     act(() => useGameStore.setState({ unlockedStage: 13, clearedStages: Array.from({ length: 12 }, (_, index) => index + 1) }));
     const goldFarm = host.querySelector<HTMLButtonElement>('.farming-map-node.farming-gold')!;
     expect(goldFarm).toBeTruthy();
+    expect(goldFarm.querySelector('img')?.getAttribute('src')).toBe(mapLocationArt.supplyCaravan);
     expect(host.querySelector('.farming-map-node.farming-mastery')).toBeNull();
     act(() => goldFarm.click());
     expect(host.querySelector('.map-mission.farming-gold')?.textContent).toContain('기본 2,000골드');
@@ -126,6 +134,8 @@ describe('campaign map pointer controls', () => {
     act(() => useGameStore.setState({ unlockedStage: 30, clearedStages: Array.from({ length: 30 }, (_, i) => i + 1), builtMonumentIds: monumentBuildings.map((building) => building.id) }));
     expect(host.querySelectorAll('.campaign-map')).toHaveLength(1);
     expect(host.querySelectorAll('.veil-campaign-node')).toHaveLength(6);
+    expect(host.querySelectorAll('.challenge-portrait')).toHaveLength(7);
+    expect(host.querySelector('.challenge-portrait[data-boss-id="dragon"] .character-sprite')?.getAttribute('style')).toContain('transcendent-atlas.png');
     expect(host.querySelector('.campaign-map-world')?.getAttribute('style')).toContain('width: 2800px');
     const nodes = host.querySelectorAll<HTMLButtonElement>('.veil-campaign-node');
     act(() => nodes[1].click());

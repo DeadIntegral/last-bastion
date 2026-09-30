@@ -27,20 +27,29 @@ export const campaignMapMarkerArt = {
   liberated: '/assets/campaign-map/markers/liberated-keep.png?v=2',
 } as const;
 
+export const mapLocationArt = {
+  lastBastion: campaignMapMarkerArt.liberated,
+  supplyCaravan: '/assets/campaign-map/markers/supply-caravan-v1.png',
+  trainingYard: '/assets/campaign-map/markers/royal-training-yard-v1.png',
+  remnantCamp: '/assets/campaign-map/markers/remnant-camp-v1.png',
+  treasureClosed: '/assets/campaign-map/markers/treasure-closed-v1.png',
+  treasureOpen: '/assets/campaign-map/markers/treasure-open-v1.png',
+} as const;
+
 export const challengeRiftPresentation = {
-  'war-arena': { theme: 'arena', symbol: '✦' },
-  'moonlit-hunt': { theme: 'moon', symbol: '☾' },
-  'storm-eye': { theme: 'storm', symbol: 'ϟ' },
-  'ancient-rune-basin': { theme: 'rune', symbol: '◇' },
-  'abyss-rift': { theme: 'abyss', symbol: '◈' },
-  'sun-prison': { theme: 'sun', symbol: '☼' },
-  'sky-throne': { theme: 'sky', symbol: '♛' },
+  'war-arena': { theme: 'arena' },
+  'moonlit-hunt': { theme: 'moon' },
+  'storm-eye': { theme: 'storm' },
+  'ancient-rune-basin': { theme: 'rune' },
+  'abyss-rift': { theme: 'abyss' },
+  'sun-prison': { theme: 'sun' },
+  'sky-throne': { theme: 'sky' },
 } as const;
 
 export const farmingMissionPresentation = {
-  301: { x: 110, y: 1450, theme: 'gold', symbol: '●', label: '황금 수송로' },
-  302: { x: 2230, y: 1370, theme: 'mastery', symbol: '✦', label: '왕립 훈련장' },
-  303: { x: 260, y: 900, theme: 'gold', symbol: '♜', label: '자유 원정지' },
+  301: { x: 110, y: 1450, theme: 'gold', image: mapLocationArt.supplyCaravan, label: '황금 수송로' },
+  302: { x: 2230, y: 1370, theme: 'mastery', image: mapLocationArt.trainingYard, label: '왕립 훈련장' },
+  303: { x: 180, y: 800, theme: 'gold', image: mapLocationArt.remnantCamp, label: '자유 원정지' },
 } as const;
 
 export const campaignMapLandmarks = [

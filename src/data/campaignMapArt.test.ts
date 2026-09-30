@@ -2,8 +2,20 @@ import { describe, expect, it } from 'vitest';
 import { CAMPAIGN_MAP_WORLD_HEIGHT, CAMPAIGN_MAP_WORLD_WIDTH, continentMapArt, campaignMapMarkerArt, campaignMapRegions, campaignMapStagePosition, challengeRiftPresentation, campaignMapWorldWidth, campaignMapBounds, challengeMapPositions, chapterTwoMapPosition, farmingMissionPresentation } from './campaignMapArt';
 import { mapTreasures } from './mapTreasures';
 import { monumentBuildings } from './endgame';
+import { mapLocationArt } from './campaignMapArt';
+import { challengeStages } from './stages';
+import { characterArtFrames, characterStandaloneArt } from './characterArt';
 
 describe('campaign map art', () => {
+  it('uses real transparent art for every revealed challenge and utility destination', () => {
+    for (const challenge of challengeStages) {
+      const id = challenge.bossUnitId;
+      expect(id).toBeDefined();
+      expect(id && (characterArtFrames[id] ?? characterStandaloneArt[id])).toBeDefined();
+    }
+    expect(new Set(Object.values(farmingMissionPresentation).map((entry) => entry.image)).size).toBe(3);
+    expect(mapLocationArt.treasureClosed).not.toBe(mapLocationArt.treasureOpen);
+  });
   it('reveals five geographic areas on one continent, advancing from the southwest coast', () => {
     expect(campaignMapRegions).toHaveLength(5);
     expect(continentMapArt.image).toBe('/assets/campaign-map/continent-v1.webp');

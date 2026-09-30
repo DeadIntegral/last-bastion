@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
-import { campaignMapBounds, continentMapArt, campaignMapLandmarks, campaignMapMarkerArt, campaignMapRegions, campaignMapStagePosition, campaignMapRoadSegment, challengeMapPositions, chapterTwoMapRegion, chapterTwoMapPosition, challengeRiftPresentation, farmingMissionPresentation } from '../data/campaignMapArt';
+import { campaignMapBounds, continentMapArt, campaignMapLandmarks, campaignMapMarkerArt, campaignMapRegions, campaignMapStagePosition, campaignMapRoadSegment, challengeMapPositions, chapterTwoMapRegion, chapterTwoMapPosition, challengeRiftPresentation, farmingMissionPresentation, mapLocationArt } from '../data/campaignMapArt';
 import { monumentBuildings } from '../data/endgame';
 import { mapTreasures } from '../data/mapTreasures';
 import { challengeStages, enemyFactionLabels, farmingStages, getStage, stages } from '../data/stages';
@@ -194,7 +194,7 @@ export function CampaignMap({ initialStageId, initialMonumentId, header, operati
           <div className="campaign-map-world" style={{ width: `${mapWidth}px`, height: `${mapHeight}px` }} onDragStart={(event) => event.preventDefault()}>
           <div className="campaign-map-content" style={{ left: -mapOriginX, top: -mapOriginY, width: continentMapArt.width, height: continentMapArt.height }}>
           <ContinentTerrain regionCount={visibleRegionCount} chapterTwo={chapterTwoOpen} clearedStages={clearedStages} />
-          <div className="last-bastion-marker" style={{ left: 330, top: 1950 }}><i aria-hidden="true">⚑</i><strong>최후의 성채</strong></div>
+          <div className="last-bastion-marker" style={{ left: 330, top: 1950 }}><img className="last-bastion-art" src={mapLocationArt.lastBastion} alt="" aria-hidden="true" draggable={false} /><strong>최후의 성채</strong></div>
           {chapterTwoOpen && <ChapterTwoMap selectedId={selectedId} onSelect={selectMapStage} />}
           <MapMonuments builtIds={builtMonumentIds} onOpen={(event) => {
             if (suppressMapClickRef.current) { event.preventDefault(); event.stopPropagation(); return; }
@@ -205,7 +205,7 @@ export function CampaignMap({ initialStageId, initialMonumentId, header, operati
             return <Fragment key={region.id}>
               <div className={`map-region-zone region-theme-${index + 1} ${state}`} style={{ left: region.labelX, top: region.labelY }} aria-hidden="true">
               <span className="region-state"><b>{region.name}</b><small>{state === 'liberated' ? '해방 완료' : state === 'frontline' ? '교전 중' : '마왕군 점령'}</small></span>
-              {state === 'liberated' && <span className="liberation-beacon"><i>♜</i></span>}
+              {state === 'liberated' && <span className="liberation-beacon"><img src={campaignMapMarkerArt.liberated} alt="" draggable={false} /></span>}
               </div>
             </Fragment>;
           })}
@@ -255,8 +255,8 @@ export function CampaignMap({ initialStageId, initialMonumentId, header, operati
                 onClick={(event) => selectMapStage(event, challenge.id)}
                 aria-label={`마수 도전 ${challenge.name}`}
               >
-                <span className={`challenge-rift rift-${rift.theme}`} aria-hidden="true"><i>{rift.symbol}</i></span>
-                <span className={`node-beacon rift-${rift.theme}`}>{rift.symbol}</span>
+                <span className={`challenge-rift rift-${rift.theme}`} aria-hidden="true" />
+                <span className="challenge-portrait" data-boss-id={challenge.bossUnitId} aria-hidden="true"><CharacterSprite id={challenge.bossUnitId!} className="map-challenge-art" />{challengeCleared && <span className="map-node-completion">✓</span>}</span>
                 <strong>{challenge.name}</strong>
                 <small>{challengeCleared ? '격파 완료' : '마수 균열'}</small>
               </button>
@@ -272,7 +272,7 @@ export function CampaignMap({ initialStageId, initialMonumentId, header, operati
               aria-label={t('{name}, 반복 {kind} 파밍', { name: t(mission.name), kind: t(mission.farmingKind === 'gold' ? '골드' : '숙련 경험치') })}
               key={mission.id}
             >
-              <span className="farming-node-beacon" aria-hidden="true"><i>{presentation.symbol}</i></span>
+              <span className="map-site-art" aria-hidden="true"><img src={presentation.image} alt="" draggable={false} /></span>
               <strong>{mission.name}</strong>
               <small>{mission.farmingKind === 'gold' ? '금화 보급' : t('전투 숙련 XP ×{multiplier}', { multiplier: mission.masteryRewardMultiplier ?? 1 })}</small>
             </button>;
@@ -283,12 +283,12 @@ export function CampaignMap({ initialStageId, initialMonumentId, header, operati
               <button type="button" className={`map-node treasure-guardian-node ${defeated ? 'defeated' : ''} ${selectedId === treasure.missionStageId ? 'selected' : ''}`} style={{ left: `${treasure.guardianX}px`, top: `${treasure.guardianY}px` }} aria-label={`${treasure.name} 수호자, ${defeated ? '격파 완료' : '강적 도전'}`} onClick={(event) => selectMapStage(event, treasure.missionStageId)}>
                 <span className="treasure-guardian-crest" aria-hidden="true"><CharacterSprite id={treasure.guardianUnitId} className="treasure-guardian-art" /></span>
                 <strong>{getStage(treasure.missionStageId).name}</strong>
-                <small>{defeated ? 'GUARDIAN DEFEATED' : 'DANGER · GUARDIAN'}</small>
+                <small>{defeated ? '격파 완료' : '강적 도전'}</small>
               </button>
               {defeated && (() => {
                 const claimed = claimedMapTreasureIds.includes(treasure.id);
                 return <button type="button" className={`map-node map-treasure-node ${claimed ? 'claimed' : ''}`} style={{ left: `${treasure.x}px`, top: `${treasure.y}px` }} aria-label={`${treasure.name}, ${claimed ? '수령 완료' : `금화 ${treasure.gold.toLocaleString()}개 수령`}`} aria-disabled={claimed} onClick={(event) => collectMapTreasure(event, treasure.id)}>
-                  <span className="treasure-chest" aria-hidden="true"><i /></span><strong>{treasure.name}</strong><small>{claimed ? '수령 완료' : `● ${treasure.gold.toLocaleString()}`}</small>
+                  <span className="map-site-art treasure-chest" aria-hidden="true"><img src={claimed ? mapLocationArt.treasureOpen : mapLocationArt.treasureClosed} alt="" draggable={false} /></span><strong>{treasure.name}</strong><small>{claimed ? '수령 완료' : `● ${treasure.gold.toLocaleString()}`}</small>
                 </button>;
               })()}
             </Fragment>;

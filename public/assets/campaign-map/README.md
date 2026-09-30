@@ -60,3 +60,17 @@ Variants:
 3. Liberated keep: repaired blue-gray stone, open gate, deep-blue and aged-gold kingdom pennants, warm windows, green regrowth, and a modest gold beacon brazier.
 
 Do not overwrite selected assets casually. Add versioned siblings, verify node readability and panel seams at runtime, then update `campaignMapArt.ts` and this record.
+
+## Illustrated destinations — 2026-09-30
+
+All seven revealed challenge markers now reuse the exact boss portrait selected by each stage's `bossUnitId` through `CharacterSprite`/`characterArt.ts`. The existing character atlases were not regenerated or remapped. A faint terrain-specific rift remains behind each silhouette; cleared encounters use a check badge. Guardian portraits likewise render without the former circular opaque backplate. The Last Bastion and liberation beacons reuse the existing kingdom keep PNG. Existing monument SVG illustrations remain intact.
+
+Five new utility-marker assets use original 1254 × 1254 RGBA masters in `markers/sources/` and matching 320 × 320 RGBA runtime PNGs in `markers/`. Generated with the built-in imagegen tool (`stylized-concept`), then resized using `sips -Z 320`. Source and runtime alpha channels were checked for both fully transparent and opaque pixels. No black/white matte is added. Canonical paths live in `mapLocationArt`; farm presentation data selects its own image, while the existing claimed flag selects closed/open chest art.
+
+Shared prompt: one original isolated oblique three-quarter campaign-map miniature, premium hand-painted dark-fantasy style matching the map's fortress art, a chunky silhouette readable at 80–100 px, muted wood/slate/aged-metal colors, full subject within a square canvas and real transparent padding. No rectangular tile, circular badge, scenic backdrop, text, numbers, UI, border, watermark, recognizable franchise design or black/white/checkerboard background.
+
+- `supply-caravan-v1.png`: blue-canvas timber wagon, brass fittings, coin sacks, compact reinforced coffer and small kingdom pennant on a minimal irregular rocky patch. Gold supply mission 301.
+- `royal-training-yard-v1.png`: wooden sparring enclosure with straw dummies, spear/shield rack, blue supply awning and kingdom pennant, on irregular earth. Mastery training mission 302.
+- `remnant-camp-v1.png`: charcoal/crimson military tents, small rough watch platform, spiked palisade fragments, ember brazier and torn red pennant; no people. Free expedition 303, repositioned to `(180, 800)` to clear the capital treasure marker.
+- `treasure-closed-v1.png`: closed squat dark-oak royal coffer, two broad aged-gold bands, clear lock plate and blue inset; front/right three-quarter view, restrained warm seam glint, no ground patch or detached coins.
+- `treasure-open-v1.png`: imagegen edit of the closed master, retaining its materials, body and perspective while raising the lid to expose an empty wooden interior and removing the glow. No loot, sparkle or added objects. Claimed chest state.
