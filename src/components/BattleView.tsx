@@ -12,6 +12,7 @@ import { useGameStore } from '../store/useGameStore';
 import { musicEngine } from '../audio/music';
 import type { BattleHudState, BattleResult, ItemId, UnitId } from '../types/game';
 import { Localized } from '../shared/i18n/Localized';
+import { t } from '../shared/i18n/i18n';
 import { CharacterSprite } from './CharacterSprite';
 import { GameModal } from './GameModal';
 
@@ -149,7 +150,7 @@ export function BattleView({ stageId, onResult, onExit }: BattleViewProps) {
           <PercentBar value={hud.playerCastleHp} max={hud.playerCastleMaxHp} tone="blue" />
         </div>
         <div className="battle-clock">
-          <span className="eyebrow">STAGE {stageId}</span>
+          <span className="eyebrow">{t('전장 {stage}', { stage: stageId })}</span>
           <strong>{formatTime(hud.elapsedMs)}</strong>
           <small>{stage.terrain.name}</small>
           <span className="battle-population"><b>아군 {hud.playerUnitCount}</b><b>적군 {hud.enemyUnitCount}</b><i>{hud.framesPerSecond} FPS</i></span>
@@ -176,7 +177,7 @@ export function BattleView({ stageId, onResult, onExit }: BattleViewProps) {
               <span className="cooldown-mask">{Math.ceil(hud.heroRespawnMs / 1000)}</span>
             ) : hud.heroSkillCooldownMs > 0 ? (
               <span className="cooldown-mask">{Math.ceil(hud.heroSkillCooldownMs / 1000)}</span>
-            ) : <span className="skill-ready">READY</span>}
+            ) : <span className="skill-ready">준비 완료</span>}
           </button>
           <div className="hero-copy">
             <strong>{hud.heroSkillName}</strong>
@@ -277,7 +278,7 @@ export function BattleView({ stageId, onResult, onExit }: BattleViewProps) {
         </div>
       )}
       {exitConfirmationOpen && <GameModal
-        eyebrow="LEAVE BATTLE"
+        eyebrow="전투 이탈"
         title="전투에서 이탈할까요?"
         tone="danger"
         onClose={() => setExitConfirmationOpen(false)}

@@ -3,7 +3,7 @@ import { musicEngine } from '../audio/music';
 import { battleBackgroundDefinitions, battleBackgroundForTerrain } from '../data/backgroundArt';
 import { CHARACTER_ART_FRAME_HEIGHT, CHARACTER_ART_FRAME_WIDTH, characterArtFrameIndex, characterArtFrames, characterArtSheet, characterArtSheets, characterBattleOffsetY, TRANSCENDENT_BATTLE_ART_SCALE, type CharacterArtId } from '../data/characterArt';
 import { battleMobilizationTuning, castleBattleStats, mobilizationCommandCost, rallyCommandTuning, soldierCommandCost } from '../data/castle';
-import { deadZoneRetreatTuning } from '../data/combat';
+import { deadZoneRetreatTuning, fortressCombatGeometry } from '../data/combat';
 import { triumphMonumentBonuses } from '../data/endgame';
 import { fortressArtDefinitions, fortressArtLayout } from '../data/fortressArt';
 import { heroAwakeningAuras, heroSkillPower } from '../data/mastery';
@@ -25,6 +25,8 @@ import {
   enemyFortressCanReinforce,
   enemyObjectiveDefeated,
   emptyMasteryContribution,
+  fortressCollateralMultiplierForAttack,
+  fortressEdgeDistance,
   fortressRearSpawnX,
   heroMasteryLevelFromXp,
   heroAwakeningRank,
@@ -796,8 +798,9 @@ export class BattleScene extends Phaser.Scene {
     }
 
     const destination = unit.side === 'player' ? this.enemyCastleX : PLAYER_CASTLE_X;
-    const distanceToCastle = Math.abs(destination - unit.container.x);
-    const castleEdgeDistance = Math.max(0, distanceToCastle - (unit.side === 'player' ? 65 : 58));
+    const targetCastleSide: Side = unit.side === 'player' ? 'enemy' : 'player';
+    const castleHalfWidth = targetCastleSide === 'enemy' ? fortressCombatGeometry.enemyHalfWidth : fortressCombatGeometry.playerHalfWidth;
+    const castleEdgeDistance = fortressEdgeDistance(unit.container.x, unit.definition.size, destination, castleHalfWidth);
     if (!this.stageDefinition.challenge && unit.side === 'player' && isWithinAttackBand(unit.definition, castleEdgeDistance, aura.rangeBonus)) {
       if (unit.attackTimer <= 0) {
         this.beginAttack(unit, 'enemyCastle');
@@ -1029,8 +1032,9 @@ export class BattleScene extends Phaser.Scene {
     const targetsEnemyCastle = kind === 'enemyCastle';
     const castleX = targetsEnemyCastle ? this.enemyCastleX : PLAYER_CASTLE_X;
     const castleAlive = targetsEnemyCastle ? this.enemyHp > 0 && !this.stageDefinition.challenge : this.playerCastleHp > 0;
-    const edgeOffset = targetsEnemyCastle ? 65 : 58;
-    const edgeDistance = Math.max(0, Math.abs(castleX - attacker.container.x) - edgeOffset);
+    const targetCastleSide: Side = targetsEnemyCastle ? 'enemy' : 'player';
+    const edgeOffset = targetCastleSide === 'enemy' ? fortressCombatGeometry.enemyHalfWidth : fortressCombatGeometry.playerHalfWidth;
+    const edgeDistance = fortressEdgeDistance(attacker.container.x, attacker.definition.size, castleX, edgeOffset);
     if (!castleAlive || !isWithinAttackBand(attacker.definition, edgeDistance, this.heroAuraFor(attacker).rangeBonus)) return;
     this.damageCastle(targetsEnemyCastle ? 'enemy' : 'player', this.attackDamage(attacker), attacker);
     const rearTargets = this.fortressPierceTargets(attacker, targetsEnemyCastle);
@@ -1153,13 +1157,17 @@ export class BattleScene extends Phaser.Scene {
 
   private attackUnit(attacker: CombatUnit, target: CombatUnit): void {
     const targets = this.attackTargets(attacker, target);
+    const fortressCollateral = this.fortressCollateralForUnitAttack(attacker, target, targets);
     const ranged = attacker.definition.tags.includes('ranged');
     if (ranged) {
-      const pattern = attacker.definition.attackPattern;
-      const projectileTarget = pattern.kind === 'pierce' || pattern.kind === 'directional'
-        ? targets[targets.length - 1] ?? target
-        : target;
-      this.launchProjectile(attacker, projectileTarget);
+      if (fortressCollateral) this.launchProjectileToFortress(attacker, fortressCollateral.x);
+      else {
+        const pattern = attacker.definition.attackPattern;
+        const projectileTarget = pattern.kind === 'pierce' || pattern.kind === 'directional'
+          ? targets[targets.length - 1] ?? target
+          : target;
+        this.launchProjectile(attacker, projectileTarget);
+      }
     }
     const primaryDamage = this.attackDamage(attacker, target.definition);
     const secondaryDamageMultiplier = attacker.definition.attackPattern.kind === 'single'
@@ -1181,6 +1189,36 @@ export class BattleScene extends Phaser.Scene {
       }
       this.damageUnit(hitTarget, damage, attacker);
     }
+    if (fortressCollateral) {
+      const damage = Math.round((attacker.definition.attackDamage + this.heroAuraFor(attacker).attackBonus) * fortressCollateral.multiplier);
+      this.damageCastle(fortressCollateral.side, damage, attacker);
+      if (!ranged) {
+        const impactX = fortressCollateral.x + (fortressCollateral.side === 'enemy' ? -35 : 35);
+        this.showStrike(impactX, GROUND_Y - 40, attacker.definition.color);
+        this.showTranscendentImpact(impactX, GROUND_Y - 40, attacker.definition.accent);
+      }
+    }
+  }
+
+  private fortressCollateralForUnitAttack(attacker: CombatUnit, primary: CombatUnit, targets: CombatUnit[]): { side: Side; x: number; multiplier: number } | undefined {
+    const side: Side = attacker.side === 'player' ? 'enemy' : 'player';
+    const x = side === 'enemy' ? this.enemyCastleX : PLAYER_CASTLE_X;
+    const alive = side === 'enemy' ? this.enemyHp > 0 && !this.stageDefinition.challenge : this.playerCastleHp > 0;
+    if (!alive) return undefined;
+    const halfWidth = side === 'enemy' ? fortressCombatGeometry.enemyHalfWidth : fortressCombatGeometry.playerHalfWidth;
+    const pierceStopped = targets.some((candidate) => this.guardStopsAttack(attacker, primary, candidate));
+    const multiplier = fortressCollateralMultiplierForAttack(
+      attacker.definition,
+      attacker.side,
+      attacker.container.x,
+      primary.container.x,
+      x,
+      halfWidth,
+      targets.length,
+      pierceStopped,
+      this.heroAuraFor(attacker).rangeBonus,
+    );
+    return multiplier > 0 ? { side, x, multiplier } : undefined;
   }
 
   private guardStopsAttack(attacker: CombatUnit, primary: CombatUnit, target: CombatUnit): boolean {
@@ -1820,6 +1858,23 @@ export class BattleScene extends Phaser.Scene {
       style,
       attacker.definition.projectileArcHeight ?? 0,
       attacker.definition.grade === 5,
+    );
+  }
+
+  private launchProjectileToFortress(attacker: CombatUnit, fortressX: number): void {
+    const style = projectileVisualStyle(attacker.definition);
+    if (style === 'magicOrb' || style === 'magicSpear') this.flashAt(attacker.container.x, attacker.container.y - 5, attacker.definition.accent);
+    const direction = attacker.side === 'player' ? 1 : -1;
+    this.launchPooledProjectileTo(
+      attacker.container.x,
+      attacker.container.y - 5,
+      fortressX - direction * 35,
+      GROUND_Y - 85,
+      attacker.definition.accent,
+      style === 'magicOrb' || style === 'magicSpear' ? 220 : 150,
+      style,
+      attacker.definition.projectileArcHeight ?? 0,
+      true,
     );
   }
 

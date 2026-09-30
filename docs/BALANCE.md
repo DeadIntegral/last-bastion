@@ -68,6 +68,8 @@ Player and enemy troops use the same 52 base definitions. Player equipment/maste
 
 Grade is fixed canonical metadata, not an additional upgrade track. It applies equally to the player and computer form of a troop and contributes no runtime multiplier: all actual combat values come from the authored base definition, equipment, mastery where permitted, terrain, and explicit encounter modifiers. The labels communicate combat stature, rarity, and acquisition expectation. Authored 4-star definitions preserve at least 3,000 base HP and 5-star definitions exceed 10,000 base HP; these are data invariants, not hidden grade multipliers.
 
+All three current 5-star definitions explicitly author fortress collateral rather than deriving it from grade alone. Ifrit's three-target pierce damages an in-line fortress at ×0.75, Ancient Sky Dragon at ×0.80, and Continental Alliance Guardian's melee cleave at ×0.78. A fortress consumes one remaining pierce target, must be within follow-through distance from the primary body, and is not hit through a full-stop guard. Cleave collateral requires the fortress edge to be in the ordinary attack band. Fortress edge distance is `max(0, |fortressX - attackerX| - fortress half-width - attacker size)`, using half-width 65 for the enemy fortress and 58 for the player fortress. This removes the former large-body reach penalty without changing authored attack range.
+
 | Grade | Label | Troops |
 |---:|---|---|
 | ★☆☆☆☆ | General | Militia, Guardian, Archer, Lancer, Raider, Crossbow, Swordsman, Pikeman, Scout, Goblin Archer, Goblin Bomber, Slime, Imp |

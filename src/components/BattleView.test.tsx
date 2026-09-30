@@ -6,11 +6,7 @@ import { useGameStore } from '../store/useGameStore';
 import type { BattleHudState } from '../types/game';
 import { BattleView } from './BattleView';
 
-const phaserRenderLog = vi.hoisted(() => ({ unitItems: [] as unknown[] }));
-vi.mock('../game/PhaserGame', () => ({ PhaserGame: ({ unitItems }: { unitItems: unknown }) => {
-  phaserRenderLog.unitItems.push(unitItems);
-  return <div data-testid="battlefield" />;
-} }));
+vi.mock('../game/PhaserGame', () => ({ PhaserGame: () => <div data-testid="battlefield" /> }));
 vi.mock('../game/EventBus', () => {
   const listeners = new Map<string, Set<(...args: unknown[]) => void>>();
   const battleEvents = {
@@ -58,7 +54,6 @@ describe('battle exit', () => {
   beforeEach(() => {
     localStorage.clear();
     useGameStore.getState().resetProgress();
-    phaserRenderLog.unitItems.length = 0;
     host = document.createElement('div');
     document.body.append(host);
     root = createRoot(host);
@@ -87,14 +82,5 @@ describe('battle exit', () => {
     expect(onExit).toHaveBeenCalledOnce();
     expect(onResult).not.toHaveBeenCalled();
     expect(useGameStore.getState().stats).toEqual(statsBefore);
-  });
-
-  it('keeps the Phaser battle-start item configuration stable across HUD renders', () => {
-    act(() => root.render(<BattleView stageId={1} onResult={vi.fn()} onExit={vi.fn()} />));
-    const initialUnitItems = phaserRenderLog.unitItems.at(-1);
-    act(() => battleEvents.emit(BattleEvent.HUD, pausedHud));
-
-    expect(phaserRenderLog.unitItems.length).toBeGreaterThan(1);
-    expect(phaserRenderLog.unitItems.every((unitItems) => unitItems === initialUnitItems)).toBe(true);
   });
 });

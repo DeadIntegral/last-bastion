@@ -55,6 +55,7 @@ export function estimateUnitThreat(unit: UnitDefinition): number {
     * (unit.tags.includes('anti-large') ? 1.04 : 1)
     * (unit.rangedTargeting === 'backline' ? 1.04 : 1)
     * (unit.attackPattern.kind === 'pierce' && unit.attackPattern.piercesFortress ? 1.06 : 1)
+    * (unit.fortressCollateralMultiplier ? 1 + unit.fortressCollateralMultiplier * 0.06 : 1)
     * (unit.guardProtection ? 1 + (unit.guardProtection.stopsPierce ? 0.07 : 0) + (1 - unit.guardProtection.rearRangeMultiplier) * 0.1 : 1);
   return (effectiveHealth / 18 + damagePerSecond * 1.8 + healingPerSecond * 1.35 + unit.moveSpeed / 9)
     * rangeMultiplier * patternMultiplier(unit) * traitMultiplier * commitmentMultiplier * deadZoneMultiplier;

@@ -92,6 +92,36 @@ export function canAttackTarget(attacker: UnitDefinition, target: UnitDefinition
   return true;
 }
 
+export function fortressEdgeDistance(attackerX: number, attackerSize: number, fortressX: number, fortressHalfWidth: number): number {
+  return Math.max(0, Math.abs(fortressX - attackerX) - fortressHalfWidth - attackerSize);
+}
+
+export function fortressCollateralMultiplierForAttack(
+  definition: UnitDefinition,
+  side: Side,
+  attackerX: number,
+  primaryX: number,
+  fortressX: number,
+  fortressHalfWidth: number,
+  hitTargetCount: number,
+  pierceStopped: boolean,
+  rangeBonus = 0,
+): number {
+  const multiplier = definition.fortressCollateralMultiplier ?? 0;
+  if (multiplier <= 0) return 0;
+  const direction = side === 'player' ? 1 : -1;
+  const fortressNearEdgeX = fortressX - direction * fortressHalfWidth;
+  const forwardEdgeDistance = (fortressNearEdgeX - attackerX) * direction - definition.size;
+  if (forwardEdgeDistance < 0) return 0;
+  const pattern = definition.attackPattern;
+  if (pattern.kind === 'cleave') {
+    return forwardEdgeDistance <= definition.attackRange + rangeBonus ? multiplier : 0;
+  }
+  if (pattern.kind !== 'pierce' || !pattern.piercesFortress || pierceStopped || hitTargetCount >= pattern.maxTargets) return 0;
+  const followThroughDistance = (fortressNearEdgeX - primaryX) * direction;
+  return followThroughDistance >= -8 && followThroughDistance <= pattern.followThroughRange ? multiplier : 0;
+}
+
 export function knockbackMultiplier(definition: Pick<UnitDefinition, 'grade' | 'tags'>): number {
   if (definition.tags.includes('flying')) return 0;
   if (!definition.tags.includes('large')) return knockbackResistanceTuning.ordinaryMultiplier;
@@ -104,7 +134,7 @@ export function attackPatternLabel(definition: UnitDefinition): string {
   if (definition.attackName) return definition.attackName;
   const pattern = definition.attackPattern;
   if (pattern.kind === 'pierce') return `${pattern.maxTargets}명 관통${pattern.piercesFortress ? ' · 성채 관통' : ''}`;
-  if (pattern.kind === 'cleave') return '근접 범위 전체 공격';
+  if (pattern.kind === 'cleave') return `근접 범위 전체 공격${definition.fortressCollateralMultiplier ? ' · 성채 동시 타격' : ''}`;
   if (pattern.kind === 'splash') return `착탄 범위 공격 · 반경 ${pattern.radius}`;
   if (pattern.kind === 'directional') return `전방 파동 · 길이 ${pattern.length}`;
   if (pattern.kind === 'groundBurst') return `지면 발현 · 최대 ${pattern.maxTargets}명 · 반경 ${pattern.radius}`;

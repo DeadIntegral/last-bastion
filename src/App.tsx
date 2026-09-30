@@ -141,7 +141,7 @@ function LanguageSelect() {
         <i aria-hidden="true">⌄</i>
       </button>
       {open && <div className="language-dropdown-menu" role="listbox" aria-label={t('언어 선택')} ref={menuRef} onKeyDown={handleMenuKeyDown}>
-        <span className="language-menu-caption">LANGUAGE</span>
+        <span className="language-menu-caption">언어</span>
         {supportedLanguages.map((language) => (
           <button type="button" role="option" aria-selected={lang === language.id} className={lang === language.id ? 'active' : ''} onClick={() => chooseLanguage(language.id)} key={language.id}>
             <span>{language.id.toUpperCase()}</span><b>{language.label}</b><i aria-hidden="true">{lang === language.id ? '✓' : ''}</i>
@@ -335,7 +335,7 @@ function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
         <p className="korean-title">최후의 성채</p>
       </section>
       <section className="save-slot-menu" aria-label="저장 슬롯 선택">
-        <header><span className="eyebrow">CAMPAIGN ARCHIVE</span><strong>원정 기록을 선택하세요</strong></header>
+        <header><span className="eyebrow">원정 기록</span><strong>원정 기록을 선택하세요</strong></header>
         <div className="save-slot-grid">
           {slots.map((slot) => slot.occupied ? (
             <article className={`save-slot-card occupied ${currentSlot === slot.id ? 'active' : ''} ${slot.corrupted ? 'corrupted' : ''}`} key={slot.id}>
@@ -366,7 +366,7 @@ function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
       <p className="menu-tip">“세 개의 원정 기록은 각각 독립적으로 자동 저장됩니다.”</p>
       {notice && <div className="toast" role="status">{notice}</div>}
 
-      {activeModal === 'delete-slot' && selectedSlotId !== null && <GameModal eyebrow="DELETE CAMPAIGN" title={`슬롯 ${selectedSlotId}을 삭제할까요?`} tone="danger" onClose={closeModal} actions={<><button className="modal-button secondary" data-autofocus onClick={closeModal}>취소</button><button className="modal-button danger" onClick={confirmDelete}>원정 기록 삭제</button></>}>
+      {activeModal === 'delete-slot' && selectedSlotId !== null && <GameModal eyebrow="원정 기록 삭제" title={`슬롯 ${selectedSlotId}을 삭제할까요?`} tone="danger" onClose={closeModal} actions={<><button className="modal-button secondary" data-autofocus onClick={closeModal}>취소</button><button className="modal-button danger" onClick={confirmDelete}>원정 기록 삭제</button></>}>
         <p>이 슬롯의 진행도는 브라우저에서 완전히 삭제됩니다. 필요하다면 먼저 저장 파일로 내보내세요.</p>
       </GameModal>}
 
@@ -376,7 +376,7 @@ function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
         {cryptoError && <p className="modal-error" role="alert">{cryptoError}</p>}
       </GameModal>}
 
-      {activeModal === 'import-target' && pendingImport && <GameModal eyebrow="IMPORT CAMPAIGN" title="가져올 슬롯 선택" onClose={closeModal} actions={<button className="modal-button secondary" onClick={closeModal}>취소</button>}>
+      {activeModal === 'import-target' && pendingImport && <GameModal eyebrow="원정 기록 가져오기" title="가져올 슬롯 선택" onClose={closeModal} actions={<button className="modal-button secondary" onClick={closeModal}>취소</button>}>
         <p><strong>{pendingImport.name}</strong>{importPreview && !importPreview.corrupted ? ` · ${importPreview.unlockedStage}장 · 전투 ${importPreview.battles}회` : ''}</p>
         <div className="import-slot-list">{slots.map((slot) => <button data-autofocus={slot.id === 1 ? true : undefined} className={slot.occupied ? 'occupied' : ''} onClick={() => chooseImportTarget(slot.id)} key={slot.id}><span>SLOT {slot.id}</span><strong>{slot.occupied ? slot.corrupted ? '손상된 기록 덮어쓰기' : `${slot.unlockedStage}장 기록 교체` : '빈 슬롯에 가져오기'}</strong></button>)}</div>
       </GameModal>}
@@ -499,17 +499,17 @@ function MapCommandCenter({ onNavigate }: { onNavigate: (screen: Screen) => void
 
   return <Localized><>
     <section className="map-command-center" aria-label="원정대 관리">
-      <header><span>EXPEDITION</span><strong>왕국 운영</strong></header>
-      <button onClick={() => onNavigate('armory')}><i>♢</i><span>병영과 강화<small>ARMORY · {allTroopOrder.length}</small></span></button>
-      <button onClick={() => onNavigate('items')}><i>▣</i><span>원정 장비고<small>ITEM LOADOUT</small></span></button>
+      <header><span>원정 본부</span><strong>왕국 운영</strong></header>
+      <button onClick={() => onNavigate('armory')}><i>♢</i><span>병영과 강화<small>{t('병종 {count}', { count: allTroopOrder.length })}</small></span></button>
+      <button onClick={() => onNavigate('items')}><i>▣</i><span>원정 장비고<small>아이템 편성</small></span></button>
       <button onClick={() => onNavigate('heroes')}><i>{heroDefinitions[selectedHero].icon}</i><span>영웅의 전당<small>{heroDefinitions[selectedHero].name}</small></span></button>
-      <button onClick={() => onNavigate('fortress')}><i>♜</i><span>성채 기술<small>5 BRANCHES</small></span></button>
+      <button onClick={() => onNavigate('fortress')}><i>♜</i><span>성채 기술<small>5개 계열</small></span></button>
       <button className={monumentUnlocked ? 'monument-ready' : 'feature-locked'} disabled={!monumentUnlocked} onClick={() => onNavigate('monument')}><i>♜</i><span>{TRIUMPH_MONUMENT.name}<small>{monumentUnlocked ? `${triumphMonumentLevel}/${TRIUMPH_MONUMENT.maxLevel}단계` : `${TRIUMPH_MONUMENT.unlockStage}장 클리어 시 건립`}</small></span></button>
       <button onClick={() => onNavigate('achievements')}><i>✦</i><span>업적 기록<small>{claimable ? `${claimable} 보상 대기` : `${unlockedAchievements.length}/${achievements.length}`}</small></span></button>
       <button onClick={() => onNavigate('codex')}><i>▤</i><span>전쟁 사전<small>{codexEntries}/{CODEX_TOTAL}</small></span></button>
       <button className={dailyAvailable ? 'daily-ready' : ''} disabled={!dailyAvailable} onClick={receiveDaily}><i>◆</i><span>{DAILY_REWARD.label}<small>{dailyAvailable ? `보석 ${DAILY_REWARD.gems}개 받기` : '오늘 수령 완료'}</small></span></button>
       <button className={speedLicenseRevealed ? 'merchant-ready' : 'feature-locked'} disabled={!speedLicenseRevealed} onClick={() => onNavigate('merchant')}><i>?</i><span>수수께끼 상인<small>{!speedLicenseRevealed ? `${BATTLE_SPEED_LICENSE.unlockStage}장 보스 격파 시 출현` : merchantStatus}</small></span></button>
-      <button onClick={toggleMusic}><i>{muted ? '♩̸' : '♪'}</i><span>게임 사운드<small>{muted ? 'OFF' : 'ON'}</small></span></button>
+      <button onClick={toggleMusic}><i>{muted ? '♩̸' : '♪'}</i><span>게임 사운드<small>{muted ? '꺼짐' : '켜짐'}</small></span></button>
     </section>
     {notice && <div className="toast" role="status">{notice}</div>}
   </></Localized>;
@@ -548,14 +548,14 @@ function MysteryMerchant({ onBack }: { onBack: () => void }) {
       <section className="merchant-intro">
         <div className="merchant-silhouette" aria-hidden="true"><span>?</span></div>
         <div>
-          <span className="eyebrow">THE VEILED CARAVAN</span>
+          <span className="eyebrow">장막의 대상단</span>
           <h2>“값을 치를 준비가 됐다면, 물건의 내력은 묻지 마시오.”</h2>
           <p>첫 마수의 성채가 무너진 뒤 나타난 정체불명의 행상인입니다. 업적과 일일 지원으로 모은 왕실 보석을 희귀한 영구 허가와 교환합니다.</p>
         </div>
       </section>
       <section className="merchant-shelf" aria-label="상인 판매 목록">
         <article className={`merchant-item ${battleSpeedUnlocked ? 'owned' : ''}`}>
-          <div className="merchant-item-mark"><span>×1.5</span><small>PERMANENT</small></div>
+          <div className="merchant-item-mark"><span>×1.5</span><small>영구 해금</small></div>
           <div className="merchant-item-copy">
             <small>왕실 인장 · 희귀품</small>
             <h3>{BATTLE_SPEED_LICENSE.label}</h3>
@@ -570,7 +570,7 @@ function MysteryMerchant({ onBack }: { onBack: () => void }) {
           </div>
         </article>
         <article className={`merchant-item formation-license ${!nextFormationLicense ? 'owned' : ''} ${nextFormationLicense && !formationLicenseRevealed ? 'locked' : ''}`}>
-          <div className="merchant-item-mark"><span>{nextFormationLicense ? `${currentFormationCapacity}→${nextFormationLicense.capacity}` : '4→7'}</span><small>FORMATION</small></div>
+          <div className="merchant-item-mark"><span>{nextFormationLicense ? `${currentFormationCapacity}→${nextFormationLicense.capacity}` : '4→7'}</span><small>편성 확장</small></div>
           <div className="merchant-item-copy">
             <small>왕실 인장 · 희귀품</small>
             <h3>{nextFormationLicense?.label ?? '편성 확장 허가 완료'}</h3>
@@ -737,7 +737,7 @@ export function StageSelect({ initialStageId, onBack, onSelect, onNavigate }: { 
         <MapCommandCenter onNavigate={onNavigate} />
         <div className="map-content-column">
           <section className="map-heading">
-            <div><span className="eyebrow">CAMPAIGN MAP</span><h2>대륙 탈환의 길</h2></div>
+            <div><span className="eyebrow">대륙 원정 지도</span><h2>대륙 탈환의 길</h2></div>
             <p><strong>해금 {Math.min(unlocked, stages.length)}/{stages.length} · 해방 {liberatedRegionCount}/{campaignMapRegions.length} · 마수 영역 {visibleChallenges.length}/{challengeStages.length} · {t('보급 거점 {current}/{total}', { current: visibleFarmingMissions.length, total: farmingStages.length })}</strong><br />{visibleRegionCount > 1 ? `${campaignMapRegions[visibleRegionCount - 1].name}까지 원정로가 개방되었습니다.` : '마왕군에게 빼앗긴 대륙을 서부 변경부터 되찾으세요.'}</p>
           </section>
           <nav className="map-region-nav" aria-label="지역 바로가기">
@@ -862,17 +862,17 @@ export function StageSelect({ initialStageId, onBack, onSelect, onNavigate }: { 
           </div>
           <p>{locked ? '안개 너머의 지역입니다. 이전 전장을 먼저 정복해야 합니다.' : selected.subtitle}</p>
           <div className="stage-context"><span>적 세력 <b>{enemyFactionLabels[selected.enemyFaction]}</b></span><span>지형 <b>{selected.terrain.name}</b></span><span>승리 아이템 드롭 <b>{displayedItemDropChance}%</b></span></div>
-          {(isTreasureMission || isFarmingMission) && selected.gimmick && <div className="treasure-gimmick-preview"><small>TACTICAL GIMMICK</small><strong>{selected.gimmick.name}</strong><span>{selected.gimmick.description}</span></div>}
-          {isChallenge && <div className="challenge-terrain-preview"><small>TERRAIN AMPLIFICATION</small><strong>적 HP ×{selected.terrain.enemyHpMultiplier} · 공격 ×{selected.terrain.enemyAttackMultiplier}</strong><span>{selected.terrain.description}</span></div>}
-          <div className="mission-objective"><small>MISSION · 전선 거리 {selected.fortressDistance}</small><strong>{isChallenge ? `${selected.bossName ?? selected.name} 단독 격파` : isTreasureMission ? '기믹 방어선을 돌파하고 보물 수비 성채 파괴' : isFarmingMission ? '반복 방어선을 돌파하고 보급 거점 성채 파괴' : selected.boss ? '성채 수비대와 마수를 돌파하고 적 성채 파괴' : '적 성채 파괴'}</strong></div>
-          {selected.enemyFortressAttack && <div className="elite-guard-preview"><small>FORTRESS FIRE</small><strong>적 성채 수비 사격</strong><span>사거리 {selected.enemyFortressAttack.range} · 공격 {selected.enemyFortressAttack.damage} · {(selected.enemyFortressAttack.intervalMs / 1000).toFixed(1)}초 간격</span></div>}
-          {selected.eliteGuards && selected.eliteGuards.length > 0 && <div className="elite-guard-preview"><small>ELITE DEFENDERS · {selected.eliteGuards.length}</small><strong>{selected.eliteGuards.map((elite) => elite.name).join(' · ')}</strong><span>전선 거점에 배치된 중간 우두머리 · 상세 강화 수치는 비공개</span></div>}
+          {(isTreasureMission || isFarmingMission) && selected.gimmick && <div className="treasure-gimmick-preview"><small>전술 기믹</small><strong>{selected.gimmick.name}</strong><span>{selected.gimmick.description}</span></div>}
+          {isChallenge && <div className="challenge-terrain-preview"><small>지형 증폭</small><strong>적 HP ×{selected.terrain.enemyHpMultiplier} · 공격 ×{selected.terrain.enemyAttackMultiplier}</strong><span>{selected.terrain.description}</span></div>}
+          <div className="mission-objective"><small>{t('임무 · 전선 거리 {distance}', { distance: selected.fortressDistance })}</small><strong>{isChallenge ? `${selected.bossName ?? selected.name} 단독 격파` : isTreasureMission ? '기믹 방어선을 돌파하고 보물 수비 성채 파괴' : isFarmingMission ? '반복 방어선을 돌파하고 보급 거점 성채 파괴' : selected.boss ? '성채 수비대와 마수를 돌파하고 적 성채 파괴' : '적 성채 파괴'}</strong></div>
+          {selected.enemyFortressAttack && <div className="elite-guard-preview"><small>성채 화력</small><strong>적 성채 수비 사격</strong><span>사거리 {selected.enemyFortressAttack.range} · 공격 {selected.enemyFortressAttack.damage} · {(selected.enemyFortressAttack.intervalMs / 1000).toFixed(1)}초 간격</span></div>}
+          {selected.eliteGuards && selected.eliteGuards.length > 0 && <div className="elite-guard-preview"><small>{t('정예 수비대 · {count}', { count: selected.eliteGuards.length })}</small><strong>{selected.eliteGuards.map((elite) => elite.name).join(' · ')}</strong><span>전선 거점에 배치된 중간 우두머리 · 상세 강화 수치는 비공개</span></div>}
           {isFarmingMission ? <div className="first-clear-reward farming-contract">
             <span>{selected.firstClearReward.icon}</span>
-            <div><small>REPEATABLE CONTRACT</small><strong>{selected.firstClearReward.label}</strong><p>{selected.firstClearReward.description}</p>{selected.masteryRewardMultiplier && <em>{t('전투 숙련 XP ×{multiplier}', { multiplier: selected.masteryRewardMultiplier })}</em>}</div>
+            <div><small>반복 의뢰</small><strong>{selected.firstClearReward.label}</strong><p>{selected.firstClearReward.description}</p>{selected.masteryRewardMultiplier && <em>{t('전투 숙련 XP ×{multiplier}', { multiplier: selected.masteryRewardMultiplier })}</em>}</div>
           </div> : <div className={`first-clear-reward ${cleared ? 'claimed' : ''}`}>
             <span>{selected.firstClearReward.icon}</span>
-            <div><small>{cleared ? 'FIRST CLEAR · 획득 완료' : 'FIRST CLEAR REWARD'}</small><strong>{selected.firstClearReward.label}</strong><p>{selected.firstClearReward.description}</p>{displayedFirstClearGold !== undefined && <em>{isTreasureMission ? '보물 골드' : '연구 적용 골드'} ● {displayedFirstClearGold}</em>}</div>
+            <div><small>{cleared ? '최초 클리어 · 획득 완료' : '최초 클리어 보상'}</small><strong>{selected.firstClearReward.label}</strong><p>{selected.firstClearReward.description}</p>{displayedFirstClearGold !== undefined && <em>{isTreasureMission ? '보물 골드' : '연구 적용 골드'} ● {displayedFirstClearGold}</em>}</div>
           </div>}
           <div className="mission-footer"><span>{isChallenge || isTreasureMission || isFarmingMission ? '반복 보상' : '기본 보상'} <strong>● {displayedBattleReward}</strong>{progressionStats.battleGoldMultiplier > 1 && <small>전리품 회계 +{Math.round((progressionStats.battleGoldMultiplier - 1) * 100)}%</small>}{selected.masteryRewardMultiplier && <small>{t('전투 숙련 XP ×{multiplier}', { multiplier: selected.masteryRewardMultiplier })}</small>}</span><button disabled={locked} onClick={() => onSelect(selected.id)}>{locked ? '경로 잠김' : isChallenge ? cleared ? '다시 도전' : '마수에 도전' : isTreasureMission ? cleared ? '다시 수복전' : '보물 수복전' : isFarmingMission ? '파밍 출정' : cleared ? '다시 출정' : '출정하기'}</button></div>
             </aside>
@@ -928,7 +928,7 @@ function HeroHall({ onBack }: { onBack: () => void }) {
     <main className="panel-screen hero-hall-screen">
       <ShellHeader title="영웅의 전당" onBack={onBack} />
       <section className="armory-intro">
-        <div><span className="eyebrow">HERO HALL</span><h2>원정대 지휘관</h2></div>
+        <div><span className="eyebrow">영웅의 전당</span><h2>원정대 지휘관</h2></div>
         <p>영웅은 무료로 출전하고 경험치로 숙련이 성장합니다. 영입·장비 강화와 9장 이후의 숙련까지 한곳에서 관리합니다.</p>
       </section>
       <div className="hero-roster">
@@ -957,14 +957,14 @@ function HeroHall({ onBack }: { onBack: () => void }) {
                 <span className="eyebrow">{hero.title}</span>
                 <h3>{hero.name}</h3>
                 <p className="hero-description">{hero.description}</p>
-                {unlocked && <><div className="mastery-line"><b>숙련 경험치</b><span>{mastery.requiredXp ? `${mastery.currentXp}/${mastery.requiredXp} XP` : 'MAX'}</span></div><div className="mastery-track"><i style={{ width: mastery.requiredXp ? `${mastery.currentXp / mastery.requiredXp * 100}%` : '100%' }} /></div><div className="awakening-track"><div>{HERO_AWAKENING_LEVELS.map((level, index) => <i className={mastery.level >= level ? 'active' : ''} key={level}>{index + 1}</i>)}</div><span>{nextAwakeningLevel ? `다음 각성 LV.${nextAwakeningLevel}` : '최종 각성 완료'}</span></div><div className="mastery-benefit hero-mastery-benefit"><b>레벨당 HP +{masteryGrowth.hp} · 공격 +{masteryGrowth.attack}</b><span>{heroSkillPowerSummary(id, mastery.level)}</span><span>재사용 {(skillCooldownMs / 1000).toFixed(1)}초 · 부활 -{(respawnReduction / 1000).toFixed(1)}초</span></div></>}
+                {unlocked && <><div className="mastery-line"><b>숙련 경험치</b><span>{mastery.requiredXp ? `${mastery.currentXp}/${mastery.requiredXp} XP` : '최대'}</span></div><div className="mastery-track"><i style={{ width: mastery.requiredXp ? `${mastery.currentXp / mastery.requiredXp * 100}%` : '100%' }} /></div><div className="awakening-track"><div>{HERO_AWAKENING_LEVELS.map((level, index) => <i className={mastery.level >= level ? 'active' : ''} key={level}>{index + 1}</i>)}</div><span>{nextAwakeningLevel ? `다음 각성 LV.${nextAwakeningLevel}` : '최종 각성 완료'}</span></div><div className="mastery-benefit hero-mastery-benefit"><b>레벨당 HP +{masteryGrowth.hp} · 공격 +{masteryGrowth.attack}</b><span>{heroSkillPowerSummary(id, mastery.level)}</span><span>재사용 {(skillCooldownMs / 1000).toFixed(1)}초 · 부활 -{(respawnReduction / 1000).toFixed(1)}초</span></div></>}
                 <div className="hero-traits">
-                  <div><span>PASSIVE</span><strong>{hero.passiveName}</strong><p>{hero.passiveDescription}</p></div>
-                  {guardProtectionLabel(hero) && <div><span>GUARD</span><strong>전열 수호</strong><p>{guardProtectionLabel(hero)}</p></div>}
-                  {spacingTraitLabel(hero) && <div><span>POSITIONING</span><strong>{spacingTraitLabel(hero)}</strong><p>{hero.rangedTargeting === 'backline' ? '유효 사거리 안의 후방 원거리·지원병을 전열 너머로 우선 공격합니다.' : '적이 사각에 들어오면 거리를 확보한 뒤 다시 공격합니다.'}</p></div>}
-                  <div className={awakeningRank > 0 ? 'awakening-aura-active' : ''}><span>AWAKENING SELF</span><strong>{awakeningSelf.name}</strong><p>{heroSelfAwakeningSummary(id, awakeningRank)}</p></div>
-                  <div className={awakeningRank > 0 ? 'awakening-aura-active' : ''}><span>AWAKENING AURA</span><strong>{awakeningAura.name}</strong><p>{awakeningRank > 0 ? `각성 ${awakeningRank}단계 · ${awakeningAura.description.replace(/\+\d+/g, (value) => `+${Number(value.slice(1)) * awakeningRank}`)} · 범위 ${awakeningAura.radius}` : `숙련 10에 해금 · ${awakeningAura.description} · 범위 ${awakeningAura.radius}`}</p></div>
-                  <div><span>ACTIVE</span><strong>{hero.skillName}</strong><p>{hero.skillDescription}</p></div>
+                  <div><span>고유 특성</span><strong>{hero.passiveName}</strong><p>{hero.passiveDescription}</p></div>
+                  {guardProtectionLabel(hero) && <div><span>수호 특성</span><strong>전열 수호</strong><p>{guardProtectionLabel(hero)}</p></div>}
+                  {spacingTraitLabel(hero) && <div><span>위치 전술</span><strong>{spacingTraitLabel(hero)}</strong><p>{hero.rangedTargeting === 'backline' ? '유효 사거리 안의 후방 원거리·지원병을 전열 너머로 우선 공격합니다.' : '적이 사각에 들어오면 거리를 확보한 뒤 다시 공격합니다.'}</p></div>}
+                  <div className={awakeningRank > 0 ? 'awakening-aura-active' : ''}><span>각성 강화</span><strong>{awakeningSelf.name}</strong><p>{heroSelfAwakeningSummary(id, awakeningRank)}</p></div>
+                  <div className={awakeningRank > 0 ? 'awakening-aura-active' : ''}><span>각성 오라</span><strong>{awakeningAura.name}</strong><p>{awakeningRank > 0 ? `각성 ${awakeningRank}단계 · ${awakeningAura.description.replace(/\+\d+/g, (value) => `+${Number(value.slice(1)) * awakeningRank}`)} · 범위 ${awakeningAura.radius}` : `숙련 10에 해금 · ${awakeningAura.description} · 범위 ${awakeningAura.radius}`}</p></div>
+                  <div><span>액티브 스킬</span><strong>{hero.skillName}</strong><p>{hero.skillDescription}</p></div>
                 </div>
                 <dl className="hero-stats">
                   <div><dt>생명력</dt><dd><GrowthStat current={stats.maxHp} base={hero.maxHp} /></dd></div>
@@ -978,7 +978,7 @@ function HeroHall({ onBack }: { onBack: () => void }) {
                     const level = equipment[slot.id];
                     const cost = equipmentCost(hero, level);
                     return <button key={slot.id} disabled={level >= 5 || gold < cost} onClick={() => upgradeEquipment(id, slot.id)}>
-                      <i>{slot.icon}</i><span><b>{slot.name} +{level}</b><small>{equipmentEffect(hero, slot.id)}</small></span><em>{level >= 5 ? 'MAX' : `● ${cost}`}</em>
+                      <i>{slot.icon}</i><span><b>{slot.name} +{level}</b><small>{equipmentEffect(hero, slot.id)}</small></span><em>{level >= 5 ? '최대' : `● ${cost}`}</em>
                     </button>;
                   })}
                 </div>}
@@ -992,7 +992,7 @@ function HeroHall({ onBack }: { onBack: () => void }) {
                   )}
                 </div>
                 {unlocked && <section className={`hero-training-panel ${trainingUnlocked ? '' : 'locked'}`}>
-                  <header><span>ROYAL TRAINING</span><strong>{gameFeatures['hero-training'].name}</strong><small>{trainingUnlocked ? '금화를 영웅 숙련 XP로 전환' : `${gameFeatures['hero-training'].unlockStage}장 클리어 시 해금`}</small></header>
+                  <header><span>왕실 훈련</span><strong>{gameFeatures['hero-training'].name}</strong><small>{trainingUnlocked ? '금화를 영웅 숙련 XP로 전환' : `${gameFeatures['hero-training'].unlockStage}장 클리어 시 해금`}</small></header>
                   {trainingUnlocked ? <div className="training-packages">
                     {heroTrainingPackages.map((trainingPackage) => (
                       <button key={trainingPackage.id} disabled={mastery.level >= HERO_MASTERY_MAX_LEVEL || gold < trainingPackage.goldCost} onClick={() => trainMastery(id, trainingPackage.id)}>
@@ -1033,7 +1033,7 @@ function TriumphMonument({ onBack }: { onBack: () => void }) {
       <section className="monument-panel">
         <div className="monument-visual" aria-hidden="true"><span>♜</span><i /></div>
         <div className="monument-copy">
-          <span className="eyebrow">CONTINENTAL VICTORY MEMORIAL</span>
+          <span className="eyebrow">대륙 승전 기념비</span>
           <h2>끝나지 않는 원정을 위한 유산</h2>
           <p>30장 탈환 이후 남는 금화를 왕국 전체의 전투 기반에 투자합니다. 효과는 아군에게만 적용되며 최대 20단계에서 멈춥니다.</p>
           <div className="monument-ranks" aria-label={`기념비 단계 ${level}/${TRIUMPH_MONUMENT.maxLevel}`}>
@@ -1202,12 +1202,12 @@ export function FortressWorkshop({ onBack }: { onBack: () => void }) {
     <main className="panel-screen fortress-screen">
       <ShellHeader title="성채 기술" onBack={onBack} />
       <section className="armory-intro">
-        <div><span className="eyebrow">FORTRESS</span><h2>최후의 방벽</h2></div>
+        <div><span className="eyebrow">성채 기술</span><h2>최후의 방벽</h2></div>
         <p>연구를 누적해 성채 티어를 승급하고, 상위 기술과 새로운 용병 영입 허가를 개방하세요.</p>
       </section>
       <section className={`fortress-tier-banner tier-${fortressTier}`}>
         <div className="tier-crest"><span>♜</span><b>TIER {fortressTier}</b></div>
-        <div className="tier-copy"><span className="eyebrow">FORTRESS RANK</span><h3>{fortressTierDefinitions[fortressTier].name}</h3><p>{fortressTierDefinitions[fortressTier].description}</p><strong>{fortressTierDefinitions[fortressTier].unlocks}</strong></div>
+        <div className="tier-copy"><span className="eyebrow">성채 등급</span><h3>{fortressTierDefinitions[fortressTier].name}</h3><p>{fortressTierDefinitions[fortressTier].description}</p><strong>{fortressTierDefinitions[fortressTier].unlocks}</strong></div>
         <div className="tier-progress">
           {nextTier ? <>
             <div><span>누적 연구</span><b>{Math.min(researchTotal, nextTier.requiredResearch)} / {nextTier.requiredResearch}</b></div>
@@ -1299,7 +1299,7 @@ function Achievements({ onBack }: { onBack: () => void }) {
     <main className="panel-screen achievements-screen">
       <ShellHeader title="업적 기록" onBack={onBack} />
       <section className="armory-intro">
-        <div><span className="eyebrow">ACHIEVEMENTS</span><h2>왕국 연대기</h2></div>
+        <div><span className="eyebrow">업적 기록</span><h2>왕국 연대기</h2></div>
         <p>승리와 패배, 희생과 지휘의 모든 기록이 남습니다. 달성한 업적에서 금화와 왕실 보석을 받으세요.</p>
       </section>
       <section className="career-stats">
@@ -1338,12 +1338,12 @@ function WarCodex({ onBack }: { onBack: () => void }) {
     <main className="panel-screen codex-screen">
       <ShellHeader title="전쟁 사전" onBack={onBack} />
       <section className="codex-heading">
-        <div><span className="eyebrow">WAR CODEX</span><h2>발견된 존재의 기록</h2><p>영입하거나 전장에서 직접 조우한 존재만 연대기에 기록됩니다.</p></div>
-        <div className="codex-completion"><span>{percent}%</span><div><i style={{ width: `${percent}%` }} /></div><small>{completion} / {CODEX_TOTAL} ENTRIES</small></div>
+        <div><span className="eyebrow">전쟁 사전</span><h2>발견된 존재의 기록</h2><p>영입하거나 전장에서 직접 조우한 존재만 연대기에 기록됩니다.</p></div>
+        <div className="codex-completion"><span>{percent}%</span><div><i style={{ width: `${percent}%` }} /></div><small>{t('{current} / {total} 기록', { current: completion, total: CODEX_TOTAL })}</small></div>
       </section>
 
       <section className="codex-section">
-        <header><span>♟</span><div><small>SHARED TROOPS</small><h3>확보·조우 병종</h3></div><b>{visibleTroops.length}/{allTroopOrder.length}</b></header>
+        <header><span>♟</span><div><small>공용 병종</small><h3>확보·조우 병종</h3></div><b>{visibleTroops.length}/{allTroopOrder.length}</b></header>
         <div className="codex-grid">
           {visibleTroops.map((id) => {
             const entry = troopCodex[id];
@@ -1351,27 +1351,27 @@ function WarCodex({ onBack }: { onBack: () => void }) {
             const acquired = unlockedUnits.includes(id);
             const encountered = discoveredEnemies.includes(id);
             const rhythmKnown = acquired && masteryLevelFromXp(unitMasteryXp[id] ?? 0).level >= ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL;
-            return <article className="codex-card allied-entry" key={id}><span className="codex-icon"><CharacterSprite id={id} className="codex-character-art" /></span><div><small>{entry.role}</small><h4>{entry.title}</h4><div className="codex-tags"><b className={`grade-tag grade-${unit.grade}`} title={`${unit.grade}성 ${unitGradeLabels[unit.grade]}`}>{unitGradeStars(unit.grade)} · {unitGradeLabels[unit.grade]}</b>{acquired && <b>아군 확보</b>}{encountered && <b className="enemy-tag">적군 조우</b>}</div><p>{entry.description}</p><blockquote>{entry.lore}</blockquote><dl><div><dt>HP</dt><dd>{unit.maxHp}</dd></div><div><dt>ATK</dt><dd>{unit.attackDamage}</dd></div><div><dt>RANGE</dt><dd>{attackRangeLabel(unit)}</dd></div><div><dt>PATTERN</dt><dd>{attackPatternLabel(unit)}</dd></div>{spacingTraitLabel(unit) && <div><dt>POSITION</dt><dd>{spacingTraitLabel(unit)}</dd></div>}{guardProtectionLabel(unit) && <div><dt>GUARD</dt><dd>{guardProtectionLabel(unit)}</dd></div>}<div><dt>RHYTHM</dt><dd>{rhythmKnown ? attackTimingLabel(unit) : `숙련 ${ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL}에 분석`}</dd></div></dl></div></article>;
+            return <article className="codex-card allied-entry" key={id}><span className="codex-icon"><CharacterSprite id={id} className="codex-character-art" /></span><div><small>{entry.role}</small><h4>{entry.title}</h4><div className="codex-tags"><b className={`grade-tag grade-${unit.grade}`} title={`${unit.grade}성 ${unitGradeLabels[unit.grade]}`}>{unitGradeStars(unit.grade)} · {unitGradeLabels[unit.grade]}</b>{acquired && <b>아군 확보</b>}{encountered && <b className="enemy-tag">적군 조우</b>}</div><p>{entry.description}</p><blockquote>{entry.lore}</blockquote><dl><div><dt>체력</dt><dd>{unit.maxHp}</dd></div><div><dt>공격</dt><dd>{unit.attackDamage}</dd></div><div><dt>사거리</dt><dd>{attackRangeLabel(unit)}</dd></div><div><dt>공격 방식</dt><dd>{attackPatternLabel(unit)}</dd></div>{spacingTraitLabel(unit) && <div><dt>위치</dt><dd>{spacingTraitLabel(unit)}</dd></div>}{guardProtectionLabel(unit) && <div><dt>수호</dt><dd>{guardProtectionLabel(unit)}</dd></div>}<div><dt>공격 리듬</dt><dd>{rhythmKnown ? attackTimingLabel(unit) : `숙련 ${ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL}에 분석`}</dd></div></dl></div></article>;
           })}
         </div>
       </section>
 
       <section className="codex-section">
-        <header><span>♛</span><div><small>HEROES</small><h3>원정대 영웅</h3></div><b>{unlockedHeroes.length}/{heroOrder.length}</b></header>
+        <header><span>♛</span><div><small>영웅</small><h3>원정대 영웅</h3></div><b>{unlockedHeroes.length}/{heroOrder.length}</b></header>
         <div className="codex-grid">
           {unlockedHeroes.map((id) => {
             const entry = heroCodex[id];
             const hero = heroDefinitions[id];
             const rhythmKnown = heroMasteryLevelFromXp(heroMasteryXp[id] ?? 0).level >= ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL;
-            return <article className="codex-card hero-entry" key={id}><span className="codex-icon"><CharacterSprite id={id} className="codex-character-art" /></span><div><small>{entry.role}</small><h4>{entry.title}</h4><p>{entry.description}</p><blockquote>{entry.lore}</blockquote><dl><div><dt>HP</dt><dd>{hero.maxHp}</dd></div><div><dt>ATK</dt><dd>{hero.attackDamage}</dd></div><div><dt>RANGE</dt><dd>{attackRangeLabel(hero)}</dd></div><div><dt>PATTERN</dt><dd>{attackPatternLabel(hero)}</dd></div>{spacingTraitLabel(hero) && <div><dt>POSITION</dt><dd>{spacingTraitLabel(hero)}</dd></div>}{guardProtectionLabel(hero) && <div><dt>GUARD</dt><dd>{guardProtectionLabel(hero)}</dd></div>}<div><dt>RHYTHM</dt><dd>{rhythmKnown ? attackTimingLabel(hero) : `숙련 ${ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL}에 분석`}</dd></div><div><dt>REVIVE</dt><dd>{hero.respawnMs / 1000}s</dd></div></dl></div></article>;
+            return <article className="codex-card hero-entry" key={id}><span className="codex-icon"><CharacterSprite id={id} className="codex-character-art" /></span><div><small>{entry.role}</small><h4>{entry.title}</h4><p>{entry.description}</p><blockquote>{entry.lore}</blockquote><dl><div><dt>체력</dt><dd>{hero.maxHp}</dd></div><div><dt>공격</dt><dd>{hero.attackDamage}</dd></div><div><dt>사거리</dt><dd>{attackRangeLabel(hero)}</dd></div><div><dt>공격 방식</dt><dd>{attackPatternLabel(hero)}</dd></div>{spacingTraitLabel(hero) && <div><dt>위치</dt><dd>{spacingTraitLabel(hero)}</dd></div>}{guardProtectionLabel(hero) && <div><dt>수호</dt><dd>{guardProtectionLabel(hero)}</dd></div>}<div><dt>공격 리듬</dt><dd>{rhythmKnown ? attackTimingLabel(hero) : `숙련 ${ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL}에 분석`}</dd></div><div><dt>부활</dt><dd>{hero.respawnMs / 1000}s</dd></div></dl></div></article>;
           })}
         </div>
       </section>
 
       {discoveredEnemies.includes('boss') && <section className="codex-section enemy-codex-section">
-        <header><span>☠</span><div><small>BOSS</small><h3>조우한 거대 개체</h3></div><b>1/1</b></header>
+        <header><span>☠</span><div><small>마수</small><h3>조우한 거대 개체</h3></div><b>1/1</b></header>
         <div className="codex-grid">
-          <article className="codex-card enemy-entry boss-entry"><span className="codex-icon">{bossDefinition.icon}</span><div><small>{bossCodex.boss.role}</small><h4>{bossCodex.boss.title}</h4><p>{bossCodex.boss.description}</p><blockquote>{bossCodex.boss.lore}</blockquote><dl><div><dt>HP</dt><dd>{bossDefinition.maxHp}</dd></div><div><dt>ATK</dt><dd>{bossDefinition.attackDamage}</dd></div><div><dt>RANGE</dt><dd>{bossDefinition.attackRange}</dd></div></dl></div></article>
+          <article className="codex-card enemy-entry boss-entry"><span className="codex-icon">{bossDefinition.icon}</span><div><small>{bossCodex.boss.role}</small><h4>{bossCodex.boss.title}</h4><p>{bossCodex.boss.description}</p><blockquote>{bossCodex.boss.lore}</blockquote><dl><div><dt>체력</dt><dd>{bossDefinition.maxHp}</dd></div><div><dt>공격</dt><dd>{bossDefinition.attackDamage}</dd></div><div><dt>사거리</dt><dd>{bossDefinition.attackRange}</dd></div></dl></div></article>
         </div>
       </section>}
       {completion < CODEX_TOTAL && <p className="codex-missing">아직 기록되지 않은 항목 {CODEX_TOTAL - completion}개 · 지도 탐험과 영웅 영입을 계속하세요.</p>}
@@ -1385,7 +1385,7 @@ function ResultScreen({ result, onMenu, onRetry }: { result: BattleResult; onMen
       <div className="result-rays" />
       <section className="result-card">
         <span className="result-emblem">{result.victory ? '♜' : '♞'}</span>
-        <span className="eyebrow">BATTLE REPORT</span>
+        <span className="eyebrow">전투 보고</span>
         <h1>{result.victory ? '승리' : '퇴각'}</h1>
         <p>{result.victory ? '전선이 다시 왕국의 깃발 아래 놓였습니다.' : '성채는 무너졌지만, 병사들은 다시 일어설 것입니다.'}</p>
         <div className="result-stats">
@@ -1396,7 +1396,7 @@ function ResultScreen({ result, onMenu, onRetry }: { result: BattleResult; onMen
         </div>
         {result.masteryGains && result.masteryGains.length > 0 && (
           <div className="result-progression">
-            <span className="eyebrow">MASTERY XP</span>
+            <span className="eyebrow">숙련 경험치</span>
             <div>{result.masteryGains.map((gain) => {
               const name = gain.kind === 'unit' ? troopDefinitions[gain.id as UnitId].name : heroDefinitions[gain.id as HeroId].name;
               return <span key={`${gain.kind}-${gain.id}`}>{name} <strong>+{gain.amount} XP</strong>{gain.participationAmount !== undefined && <small>{t('참전 {participation} · 기여 {contribution}', { participation: gain.participationAmount, contribution: gain.contributionAmount ?? 0 })}</small>}</span>;
@@ -1404,19 +1404,19 @@ function ResultScreen({ result, onMenu, onRetry }: { result: BattleResult; onMen
           </div>
         )}
         {result.itemDrops && result.itemDrops.length > 0 && <div className="result-loot">
-          <span className="eyebrow">ITEM DROP</span>
+          <span className="eyebrow">아이템 전리품</span>
           {result.itemDrops.map((drop) => <strong key={drop.id}>{itemDefinitions[drop.id].icon} {itemDefinitions[drop.id].name} ×{drop.count}</strong>)}
         </div>}
         {result.newAchievements && result.newAchievements.length > 0 && (
           <div className="result-achievements">
-            <span className="eyebrow">ACHIEVEMENT UNLOCKED</span>
+            <span className="eyebrow">업적 해금</span>
             {result.newAchievements.map((id) => <strong key={id}>{achievementById[id].icon} {achievementById[id].name}</strong>)}
           </div>
         )}
         {result.firstClearReward && (
           <div className="result-first-clear">
             <span>{result.firstClearReward.icon}</span>
-            <div><small>FIRST CLEAR REWARD</small><strong>{result.firstClearReward.label}</strong><p>{result.firstClearReward.description}</p>{result.firstClearReward.gold !== undefined && <em>실제 획득 ● {result.firstClearReward.gold}</em>}</div>
+            <div><small>최초 클리어 보상</small><strong>{result.firstClearReward.label}</strong><p>{result.firstClearReward.description}</p>{result.firstClearReward.gold !== undefined && <em>실제 획득 ● {result.firstClearReward.gold}</em>}</div>
           </div>
         )}
         <div className="result-actions">

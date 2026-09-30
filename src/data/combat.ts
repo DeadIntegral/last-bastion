@@ -10,6 +10,11 @@ export const battleDeploymentTuning = {
   maximumCommandCost: 200,
 } as const;
 
+export const fortressCombatGeometry = {
+  playerHalfWidth: 58,
+  enemyHalfWidth: 65,
+} as const;
+
 export const knockbackResistanceTuning = {
   ordinaryMultiplier: 1,
   largeEliteMultiplier: 0.6,

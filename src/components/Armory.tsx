@@ -4,6 +4,7 @@ import { soldierMasteryGrowth } from '../data/mastery';
 import { allTroopOrder, rosterFactionById, rosterFactionLabels, troopDefinitions, unitFamilyById, unitFamilyLabels, unitGradeLabels, unitGradeStars, type RosterFaction } from '../data/units';
 import { STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS, attackPatternLabel, attackRangeLabel, equipmentCost, guardProtectionLabel, hasEquipmentCapstone, masteryLevelFromXp, spacingTraitLabel, upgradedStats, usesStatEquipmentCapstone } from '../game/rules';
 import { Localized } from '../shared/i18n/Localized';
+import { t } from '../shared/i18n/i18n';
 import { formatGameNumber } from '../shared/number';
 import { useGameStore } from '../store/useGameStore';
 import type { EquipmentSlot, UnitGrade, UnitId } from '../types/game';
@@ -145,13 +146,13 @@ export function Armory({ header }: { header: ReactNode }) {
       <article className={`unit-card accent-${id} ${selectedUnitId === id ? 'selected' : ''} ${unlocked ? '' : 'unit-card-locked'} ${canRecruit && !unlocked && !tierLocked ? 'unit-card-recruitable' : ''}`} key={id}>
         <GameButton type="button" className="unit-card-portrait" draggable={unlocked} onDragStart={(event) => startUnitDrag(event, id)} onClick={() => setSelectedUnitId(id)} aria-pressed={selectedUnitId === id} aria-label={`${known ? unit.name : '미확인 병종'} 선택`}>{known ? <CharacterSprite id={id} className="character-sprite-card" /> : <span>?</span>}<small>{status}</small></GameButton>
         <div className="unit-card-copy">
-          <span className="eyebrow">{known ? `${unitFamilyLabels[unitFamilyById[id]]} · ${unit.tags.includes('flying') ? 'AIRBORNE' : unit.tags.includes('mounted') ? 'CAVALRY' : unit.tags.includes('ranged') ? 'RANGED' : unit.tags.includes('armored') ? 'VANGUARD' : 'INFANTRY'}` : 'UNKNOWN'}</span>
+          <span className="eyebrow">{known ? `${t(unitFamilyLabels[unitFamilyById[id]])} · ${t(unit.tags.includes('flying') ? '공중' : unit.tags.includes('mounted') ? '기병' : unit.tags.includes('ranged') ? '원거리' : unit.tags.includes('armored') ? '선봉' : '보병')}` : t('미확인')}</span>
           <div className="unit-card-title-row">
             <h3>{known ? unit.name : '미확인 병종'}</h3>
             {known && <div className={`unit-grade grade-${unit.grade}`} aria-label={`${unit.grade}성 ${unitGradeLabels[unit.grade]} 병종`}><b>{unitGradeStars(unit.grade)}</b><span>{unit.grade}성 · {unitGradeLabels[unit.grade]}</span></div>}
           </div>
           {unlocked ? <>
-            <div className="mastery-line"><b>숙련 LV.{mastery.level}</b><span>{mastery.requiredXp ? `${mastery.currentXp}/${mastery.requiredXp} XP` : 'MAX'}</span></div>
+            <div className="mastery-line"><b>숙련 LV.{mastery.level}</b><span>{mastery.requiredXp ? `${mastery.currentXp}/${mastery.requiredXp} XP` : '최대'}</span></div>
             <div className="mastery-track"><i style={{ width: mastery.requiredXp ? `${mastery.currentXp / mastery.requiredXp * 100}%` : '100%' }} /></div>
             <div className="mastery-benefit"><b>레벨당 고정 성장</b><span>HP +{soldierMasteryGrowth[id].hp} · 공격 +{soldierMasteryGrowth[id].attack}</span></div>
             <div className="unit-deployment-traits"><span>1회 배치 <b>{stats.squadSize}명{equipmentCapstone && !statEquipmentCapstone ? ' (+1)' : ''}</b></span><span>공격 방식 <b>{attackPatternLabel(unit)}</b></span><span>유효 사거리 <b>{attackRangeLabel(unit)}</b></span>{spacingTraitLabel(unit) && <span>기동 특성 <b>{spacingTraitLabel(unit)}</b></span>}{guardProtectionLabel(unit) && <span>수호 특성 <b>{guardProtectionLabel(unit)}</b></span>}{stats.healingPower && <span>치유 <b>{stats.healingPower} · 사거리 {stats.healingRange}</b></span>}{unit.maxActivePerSide && <span>전장 제한 <b>진영당 {unit.maxActivePerSide}명</b></span>}{unit.grade === 5 && <span>지휘 분류 <b>5성 초월 병종</b></span>}</div>
@@ -160,7 +161,7 @@ export function Armory({ header }: { header: ReactNode }) {
               <div><dt>공격 / 방어</dt><dd className="growth-pair"><GrowthStat current={stats.attackDamage} base={unit.attackDamage} /><i>/</i><GrowthStat current={stats.defense ?? 0} base={unit.defense ?? 0} /></dd></div>
               <div><dt>이동속도</dt><dd><GrowthStat current={stats.moveSpeed} base={unit.moveSpeed} /></dd></div>
             </dl>
-            <GameButton variant={equipped ? 'primary' : 'secondary'} className={`formation-button ${equipped ? 'equipped' : ''}`} onClick={() => toggleFormation(id)}>{equipped ? '편성 제외' : '전투 편성'} <span>{equipped ? 'ACTIVE' : `${equippedUnits.length}/${formationCapacity}`}</span></GameButton>
+            <GameButton variant={equipped ? 'primary' : 'secondary'} className={`formation-button ${equipped ? 'equipped' : ''}`} onClick={() => toggleFormation(id)}>{equipped ? '편성 제외' : '전투 편성'} <span>{equipped ? '편성 중' : `${equippedUnits.length}/${formationCapacity}`}</span></GameButton>
             <div className={`equipment-capstone ${equipmentCapstone ? 'unlocked' : ''}`}>
               <span>{equipmentCapstone ? '✦' : '◇'}</span>
               <div><b>{statEquipmentCapstone ? '최상위 개체 완성 보너스' : '장비 완성 보너스'}</b><small>{equipmentCapstone
@@ -176,7 +177,7 @@ export function Armory({ header }: { header: ReactNode }) {
               const level = equipment[slot.id];
               const cost = equipmentCost(unit, level);
               return <GameButton variant="secondary" size="small" key={slot.id} disabled={!unlocked || level >= 5 || gold < cost} onClick={() => buy(id, slot.id)}>
-                <i>{slot.icon}</i><span><b>{slot.name} +{level}</b><small>{equipmentEffect(unit, slot.id)}</small></span><em>{level >= 5 ? 'MAX' : `● ${cost}`}</em>
+                <i>{slot.icon}</i><span><b>{slot.name} +{level}</b><small>{equipmentEffect(unit, slot.id)}</small></span><em>{level >= 5 ? '최대' : `● ${cost}`}</em>
               </GameButton>;
             })}
             </div>
@@ -207,11 +208,11 @@ export function Armory({ header }: { header: ReactNode }) {
         </div>
       </div>
       <section className="armory-intro">
-        <div><span className="eyebrow">ARMORY</span><h2>병사 장비고</h2></div>
+        <div><span className="eyebrow">왕국 병영</span><h2>병사 장비고</h2></div>
         <p>조우한 적 병종은 성채 티어에 맞는 영입 허가가 필요합니다. 보유 병종 중 최대 {formationCapacity}종을 편성하고 성장시키세요.</p>
       </section>
       <section className="formation-strip">
-        <div><span className="eyebrow">BATTLE FORMATION</span><strong>현재 편성 {equippedUnits.length}/{formationCapacity}</strong><small>보유 유닛을 슬롯으로 드래그하거나, 유닛 선택 후 슬롯을 누르세요.</small></div>
+        <div><span className="eyebrow">출전 부대</span><strong>현재 편성 {equippedUnits.length}/{formationCapacity}</strong><small>보유 유닛을 슬롯으로 드래그하거나, 유닛 선택 후 슬롯을 누르세요.</small></div>
         <div className="formation-dnd-slots">{formationSlots.map((id, index) => (
           <div className={`formation-dnd-slot ${dragOverSlot === index ? 'drag-over' : ''} ${id ? 'occupied' : 'empty'}`} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; setDragOverSlot(index); }} onDragLeave={() => setDragOverSlot((current) => current === index ? null : current)} onDrop={(event) => dropUnit(event, index)} key={index}>
             <GameButton variant="ghost" size="small" draggable={Boolean(id)} onDragStart={(event) => id && startUnitDrag(event, id)} onDragEnd={() => setDragOverSlot(null)} onClick={() => assignFormation(selectedUnitId, index)} aria-label={`${index + 1}번 슬롯${id ? `, ${troopDefinitions[id].name}` : ', 빈 슬롯'}, 선택 병종 배치`}>

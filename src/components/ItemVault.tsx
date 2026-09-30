@@ -56,13 +56,13 @@ export function ItemVault({ header }: { header: ReactNode }) {
   return <Localized><main className="panel-screen item-vault-screen">
     {header}
     <section className="armory-intro">
-      <div><span className="eyebrow">EXPEDITION RELICS</span><h2>원정 장비고</h2></div>
+      <div><span className="eyebrow">원정 유물</span><h2>원정 장비고</h2></div>
       <p>편성 아이템은 번호 슬롯에 남아 그 자리에 배치되는 병종을 강화합니다. 성채 아이템은 두 칸만 선택해 모든 전투에 적용합니다.</p>
     </section>
 
     <section className="item-loadout-grid">
       <div className="item-socket-panel">
-        <header><span className="eyebrow">FORMATION SLOTS</span><h3>편성 슬롯 아이템</h3><p>아이템을 드래그하거나 선택한 뒤 슬롯을 누르세요.</p></header>
+        <header><span className="eyebrow">편성 장착</span><h3>편성 슬롯 아이템</h3><p>아이템을 드래그하거나 선택한 뒤 슬롯을 누르세요.</p></header>
         <div className="item-formation-sockets">
           {formationSlots.map((unitId, index) => {
             const itemId = formationItemSlots[index];
@@ -82,7 +82,7 @@ export function ItemVault({ header }: { header: ReactNode }) {
       </div>
 
       <div className="item-socket-panel fortress-item-panel">
-        <header><span className="eyebrow">FORTRESS SLOTS</span><h3>성채 아이템</h3><p>{FORTRESS_ITEM_SLOT_COUNT}개만 활성화할 수 있습니다.</p></header>
+        <header><span className="eyebrow">성채 장착</span><h3>성채 아이템</h3><p>{FORTRESS_ITEM_SLOT_COUNT}개만 활성화할 수 있습니다.</p></header>
         <div className="fortress-item-sockets">
           {fortressItemSlots.map((itemId, index) => <div
             className={`item-socket fortress-socket ${itemId ? 'equipped' : ''}`}
@@ -100,7 +100,7 @@ export function ItemVault({ header }: { header: ReactNode }) {
     </section>
 
     <section className="item-inventory-section">
-      <header><span className="eyebrow">INVENTORY</span><h3>{t('보유 아이템 {current}/{total}', { current: itemOrder.filter((id) => (itemInventory[id] ?? 0) > 0).length, total: itemOrder.length })}</h3></header>
+      <header><span className="eyebrow">보유 목록</span><h3>{t('보유 아이템 {current}/{total}', { current: itemOrder.filter((id) => (itemInventory[id] ?? 0) > 0).length, total: itemOrder.length })}</h3></header>
       <div className="item-inventory-grid">
         {itemOrder.map((id) => {
           const item = itemDefinitions[id];
@@ -125,7 +125,7 @@ export function ItemVault({ header }: { header: ReactNode }) {
       </div>
     </section>
     <section className="item-crafting-section">
-      <header><span className="eyebrow">COMBINATION</span><h3>아이템 조합</h3><p>장착하지 않은 재료 두 개를 소비해 더 강한 복합 아이템을 만듭니다.</p></header>
+      <header><span className="eyebrow">연금 공방</span><h3>아이템 조합</h3><p>장착하지 않은 재료 두 개를 소비해 더 강한 복합 아이템을 만듭니다.</p></header>
       <div className="item-recipe-grid">{itemRecipes.map((recipe) => {
         const unlocked = clearedStages.includes(recipe.requiredStage);
         const ingredients = recipe.ingredients.map((ingredient) => `${t(itemDefinitions[ingredient.id].name)} ×${ingredient.count}`).join(' + ');

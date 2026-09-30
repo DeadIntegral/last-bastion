@@ -72,6 +72,7 @@ export interface UnitDefinition {
   icon: string;
   squadSize: number;
   attackPattern: AttackPattern;
+  fortressCollateralMultiplier?: number;
   equipmentCostBase: number;
   equipmentGrowth: EquipmentGrowth;
   recruitCost?: number;
