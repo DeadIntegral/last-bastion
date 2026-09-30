@@ -29,7 +29,7 @@ Status: **Implemented**.
 Status: **Planned**.
 
 - The intended bundle grants a data-driven amount of Royal Gems plus the existing permanent `battleSpeedUnlocked` entitlement and exactly one increment of `formationSlotPurchases`. It must reuse those fields rather than creating paid-only speed or formation mechanics.
-- A verified purchase may bypass the normal stage-6/stage-12 gates for battle speed and the first expansion. Entitlement application is idempotent, so buying the bundle after earning either benefit cannot duplicate 1.5× speed or grant more than the first expansion; slots six and seven continue to require their normal sequential licenses.
+- A verified purchase may grant battle speed (already available from the start) and bypass the stage-12 gate for the first expansion. Entitlement application is idempotent, so buying the bundle after earning either benefit cannot duplicate 1.5× speed or grant more than the first expansion; slots six and seven continue to require their normal sequential licenses.
 - The final Gem quantity, regional price, refund behavior, platform integration, and handling for players who already own an entitlement remain undecided.
 - Payment confirmation must come from a trusted server or platform receipt. Client-side flags, imported saves, inferred purchase state, and local-storage edits must never be treated as proof of payment.
 - Accounts, payment UI, recharge, advertising, and server persistence remain unimplemented. Do not advertise the bundle inside the current game until the complete purchase and restoration flow exists.
@@ -94,17 +94,17 @@ Status: **Implemented**. Authoritative behavior and exact values now live in `do
 
 ## 5C. Five-star full-set transcendence engraving
 
-Status: **Planned**. Current 5-star behavior still grants its existing non-stacking stat capstone when any one equipment branch reaches rank 5; completing all three branches currently adds no separate full-set reward.
+Status: **Planned**. Current 5-star behavior still grants its existing non-stacking stat capstone when any one equipment branch reaches rank 5; completing all three branches at the current player cap adds no separate full-set reward. Chapter 2's ordinary +6–10 ranks are implemented separately and are not this engraving purchase.
 
-- Completing Weapon, Armor, and Boots at rank 5 on a canonical 5-star troop reveals one additional Gold purchase named `초월 각인`.
+- Completing Weapon, Armor, and Boots at the current Chapter 2 cap (+10) on a canonical 5-star troop may reveal one additional Gold purchase named `초월 각인`; this proposal must be re-audited after the new equipment sink.
 - The proposed first version has one purchased engraving rank per 5-star troop, never adds a body, and grants exactly three more fixed ranks of that troop's four authored equipment effects. It therefore preserves Ifrit damage/range identity, Dragon aerial artillery identity, and Alliance Guardian durability instead of applying one shared percentage.
-- Final cost must be audited as a post-finale Gold sink against the 20,000-Gold Alliance Guardian, Victory Monument curve, and three completed 6,000-Gold equipment branches. A placeholder price must not ship without this comparison.
+- Final cost must be audited against the 20,000-Gold Alliance Guardian, current monuments and the 114,000-Gold cost of three complete +10 branches for a 5-star troop. A placeholder price must not ship without this comparison.
 - Persistence uses a bounded set/record keyed by canonical UnitId, defaults false for old saves, rejects non-5-star IDs on import, and never grants the engraving merely because an old malformed save has high equipment ranks.
 - Acceptance requires Armory reveal/purchase feedback, current-versus-base deltas, battle integration, save/import normalization, KO/EN/JA copy, 5-star regression coverage, unit-efficiency audit, and synchronized GAME_SPEC/BALANCE documentation.
 
 ## 5D. Monuments and chapter progression
 
-The Chapter 2 narrative opening is **Implemented**: three original illustrated scenes on the first deliberate frontier entry, a shared cinematic module, skip/automatic completion, and schema-12 per-slot completion with legacy-progress migration. Broader regional narrative and additional Chapter 2 content remain **Planned**. It does not disclose future unlock requirements or unseen enemy identities.
+The Chapter 2 narrative opening is **Implemented**: three original illustrated scenes automatically after the final monument construction (also on revisiting a completed unseen collection), with first frontier entry as a fallback, a shared cinematic module, skip/automatic completion, and schema-12 per-slot completion with legacy-progress migration. Broader regional narrative and additional Chapter 2 content remain **Planned**. It does not disclose future unlock requirements or unseen enemy identities.
 
 The implemented construction economy was revised on 2026-09-30 to a 46,000 base / 36,800 fully discounted total, replacing the long repeat-battle grind with a short post-finale funding target. Effects and progression rules are unchanged; GAME_SPEC/BALANCE own the current prices.
 
@@ -119,6 +119,10 @@ The unified continent and Chapter 2 extension are **Implemented**: one painting,
 ## 5E. Fortress tactical actives — Implemented
 
 Emergency Supply and Central Trap ship as two five-rank tier-2 research nodes. Canonical tuning, pure activation/cooldown/lifetime rules, physical Z/X input, accessible HUD state, one reusable trap marker, pooled ground damage feedback, research migration defaults, and tests are implemented. Pause, speed scaling, ground-only targeting, expiry, duplicate activation, full-resource refusal, and battle shutdown are part of the contract. These player commands do not add generic enemy progression or new persisted battle state. Further fortress skills remain unimplemented; adding one requires the same complete data/rules/UI/lifecycle/verification chain. Current exact values live in GAME_SPEC/BALANCE.
+
+## 5F. Chapter 2 equipment expansion — Implemented
+
+Player troop/hero equipment can advance from +5 to +10 after the canonical Chapter 2 gate. Each extra rank continues authored flat gains at twice the normal rank-price formula. Store/UI/imports share the cap, existing saves keep their actual ranks, enemy equipment remains +5, and the rank-five body/stat capstone never repeats. Advanced-equipment tours introduce the newly available controls. Numeric values and reward-budget/strength audits live in BALANCE. This ordinary equipment expansion does not implement the separate five-star engraving proposal.
 
 ## 6. Engineering and player-experience review backlog
 

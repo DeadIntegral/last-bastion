@@ -1,8 +1,15 @@
 import type { TourStep, TutorialScreen } from '../types/tutorial';
+import { isChapterTwoUnlocked } from './chapterTwo';
 
 interface TutorialDefinition { screen: TutorialScreen; steps: readonly TourStep[] }
 
 export const tutorials = {
+  'advanced-equipment': { screen: 'armory', steps: [
+    { target: '[data-tour="equipment"]', title: '새로운 단련', body: '장비를 더 강화할 수 있습니다. 필요한 부위부터 골라 보세요.' },
+  ] },
+  'advanced-hero-equipment': { screen: 'heroes', steps: [
+    { target: '[data-tour="hero-equipment"]', title: '새로운 단련', body: '장비를 더 강화할 수 있습니다. 필요한 부위부터 골라 보세요.' },
+  ] },
   'achievements': { screen: 'achievements', steps: [
     { target: '[data-tour="achievements"]', title: '남겨진 전공', body: '달성한 기록의 보상을 직접 받아 가세요.' },
   ] },
@@ -26,8 +33,11 @@ export const tutorials = {
     { target: '[data-tour="fortress-research"]', title: '성채 연구', body: '필요한 기술부터 연구하세요. 연결된 기술에는 선행 연구가 필요합니다.' },
     { target: '[data-tour="fortress-tier"]', title: '성채 승급', body: '연구가 쌓이면 성채를 승급해 더 많은 선택지를 열 수 있습니다.' },
   ] },
-  'first-item': { screen: 'result', steps: [
-    { target: '[data-tour="item-drop"]', title: '새로운 전리품', body: '획득한 아이템은 원정 장비고에서 장착할 수 있습니다.' },
+  'first-item': { screen: 'stages', steps: [
+    { target: '[data-tour="items-entry"]', title: '새로운 전리품', body: '획득한 아이템은 원정 장비고에서 장착할 수 있습니다.' },
+  ] },
+  'monuments-unlocked': { screen: 'stages', steps: [
+    { target: '[data-tour="monument-entry"]', title: '승리를 기리는 곳', body: '되찾은 땅에 기념비를 세울 수 있습니다.' },
   ] },
   'item-loadout': { screen: 'items', steps: [
     { target: '[data-tour="item-inventory"] .item-inventory-card:not(.locked)', title: '원정 장비', body: '사용할 아이템을 선택하세요.' },
@@ -69,6 +79,7 @@ export const tutorialIds = Object.keys(tutorials) as TutorialId[];
 export const TUTORIAL_REPLAY_EVENT = 'last-bastion:tutorial-replay';
 
 export interface TutorialProgress {
+  builtMonumentIds?: readonly string[];
   clearedStages: readonly number[];
   clearedChapterTwoStages: readonly number[];
   unlockedStage: number;
@@ -79,13 +90,14 @@ export interface TutorialProgress {
 }
 
 export function tutorialEligible(id: TutorialId, progress: TutorialProgress, manual = false): boolean {
+  if (id === 'advanced-equipment' || id === 'advanced-hero-equipment') return isChapterTwoUnlocked(progress.builtMonumentIds ?? []);
   if (id === 'achievements') return manual || progress.stats.battles > 0;
   if (id === 'item-loadout' || id === 'first-item') return manual || Object.values(progress.itemInventory).some((count) => (count ?? 0) > 0);
   if (id === 'item-crafting') return progress.clearedStages.includes(12);
   if (id === 'hero-training') return progress.clearedStages.includes(9);
-  if (id === 'merchant') return progress.clearedStages.includes(6);
+  if (id === 'merchant') return true;
   if (id === 'expanded-formation') return progress.formationSlotPurchases > 0;
-  if (id === 'monuments') return progress.clearedStages.includes(30);
+  if (id === 'monuments' || id === 'monuments-unlocked') return progress.clearedStages.includes(30);
   if (id === 'new-front') return true;
   if (id === 'supply-skill') return (progress.castleTechLevels.emergency_supply ?? 0) > 0;
   if (id === 'trap-skill') return (progress.castleTechLevels.central_trap ?? 0) > 0;
@@ -95,5 +107,5 @@ export function tutorialEligible(id: TutorialId, progress: TutorialProgress, man
 export function normalizeSeenTutorials(value: unknown, progress: TutorialProgress, hasSave: boolean): TutorialId[] {
   if (Array.isArray(value)) return tutorialIds.filter((id) => value.includes(id));
   const established = hasSave && (progress.stats.battles > 0 || progress.unlockedStage > 1 || progress.clearedStages.length > 0);
-  return established ? tutorialIds.filter((id) => id === 'new-front' ? progress.clearedChapterTwoStages.length > 0 : tutorialEligible(id, progress)) : [];
+  return established ? tutorialIds.filter((id) => !id.startsWith('advanced-') && (id === 'new-front' ? progress.clearedChapterTwoStages.length > 0 : tutorialEligible(id, progress))) : [];
 }

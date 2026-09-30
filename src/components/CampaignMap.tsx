@@ -5,7 +5,6 @@ import { mapTreasures } from '../data/mapTreasures';
 import { challengeStages, enemyFactionLabels, farmingStages, getStage, stages } from '../data/stages';
 import { canEnterChapterTwoStage, chapterTwoStages, isChapterTwoUnlocked } from '../data/chapterTwo';
 import { castleBattleStats } from '../data/castle';
-import { itemDropRuleForStage } from '../data/items';
 import { analyzeCampaignDifficulty, stageDifficultyPresentation } from '../game/difficulty';
 import { scaledProgressionReward } from '../game/rules';
 import { useGameStore } from '../store/useGameStore';
@@ -58,8 +57,6 @@ export function CampaignMap({ initialStageId, initialMonumentId, header, operati
   const liberatedRegionCount = campaignMapRegions.filter((region) => clearedStages.includes(region.stageEnd)).length;
   const difficulty = stageDifficultyPresentation(selected, campaignDifficultyReport);
   const progressionStats = castleBattleStats(castleTechLevels);
-  const itemDropRule = itemDropRuleForStage(selected);
-  const displayedItemDropChance = Math.round(Math.min(1, itemDropRule.chance + progressionStats.itemDropChanceBonus) * 100);
   const displayedBattleReward = scaledProgressionReward(selected.reward, progressionStats.battleGoldMultiplier);
   const displayedFirstClearGold = selected.firstClearReward.gold === undefined
     ? undefined
@@ -308,7 +305,7 @@ export function CampaignMap({ initialStageId, initialMonumentId, header, operati
             <small>전투 데이터 분석</small>
           </div>
           <p>{locked ? '안개 너머의 지역입니다. 이전 전장을 먼저 정복해야 합니다.' : selected.subtitle}</p>
-          <div className="stage-context"><span>적 세력 <b>{enemyFactionLabels[selected.enemyFaction]}</b></span><span>지형 <b>{selected.terrain.name}</b></span><span>승리 아이템 드롭 <b>{displayedItemDropChance}%</b></span></div>
+          <div className="stage-context"><span>적 세력 <b>{enemyFactionLabels[selected.enemyFaction]}</b></span><span>지형 <b>{selected.terrain.name}</b></span></div>
           {(isTreasureMission || isFarmingMission) && selected.gimmick && <div className="treasure-gimmick-preview"><small>전술 기믹</small><strong>{selected.gimmick.name}</strong><span>{selected.gimmick.description}</span></div>}
           {isChallenge && <div className="challenge-terrain-preview"><small>지형 증폭</small><strong>적 HP ×{selected.terrain.enemyHpMultiplier} · 공격 ×{selected.terrain.enemyAttackMultiplier}</strong><span>{selected.terrain.description}</span></div>}
           <div className="mission-objective" data-tour="map-mission"><small>{t('임무 · 전선 거리 {distance}', { distance: selected.fortressDistance })}</small><strong>{isChallenge ? `${selected.bossName ?? selected.name} 단독 격파` : isTreasureMission ? '기믹 방어선을 돌파하고 보물 수비 성채 파괴' : isFarmingMission ? '반복 방어선을 돌파하고 보급 거점 성채 파괴' : selected.boss ? '성채 수비대와 마수를 돌파하고 적 성채 파괴' : '적 성채 파괴'}</strong></div>

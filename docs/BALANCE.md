@@ -14,7 +14,7 @@ This is the canonical reference for implemented economy, progression, combat, an
 - Royal Gems are currently non-purchasable with real money. There is no recharge, payment, or currency-exchange path.
 - Daily attendance grants 10 Royal Gems once per browser-local calendar date.
 - The claimed date persists as `YYYY-MM-DD`. Changing the device clock is not prevented because progression is local-only.
-- The `수수께끼 상인` shop is revealed after the stage-6 campaign boss clear. It sells `전투 가속 허가` for 200 Royal Gems once; the map operations button only enters the shop. The license permanently unlocks a persisted 1×/1.5× battle toggle. The purchase is idempotent and the speed applies to simulation time, timer events, and combat tweens; BGM tempo is not changed.
+- The `수수께끼 상인` shop is available from New Game. It sells `전투 가속 허가` for 200 Royal Gems once; the map operations button only enters the shop. The license permanently unlocks a persisted 1×/1.5× battle toggle. The purchase is idempotent and the speed applies to simulation time, timer events, and combat tweens; BGM tempo is not changed.
 - Formation licenses are sequential: stage 12 reveals slot 5 for 150 Royal Gems, stage 18 reveals slot 6 for 250, and stage 24 reveals slot 7 for 350. They persist as a clamped `formationSlotPurchases` count and expose matching battle cards and numeric hotkeys. The full formation expansion costs 750 Gems, or 75 daily claims before achievement income; buying it together with battle speed costs 950 Gems. Legacy `formationSlotUnlocked: true` saves migrate to one purchase.
 - Each six-stage region reveals one optional treasure guardian after its first ordinary stage is cleared. These guardians are independent of the campaign boss. First guardian victory opens a separate chest behind the guardian; clicking the chest grants the one-time treasure Gold, which persists independently and is not multiplied by `전리품 회계`. Each guardian mission also grants ordinary repeatable battle Gold, which does receive the normal battle-Gold multiplier.
 
@@ -164,6 +164,24 @@ Only 5-star troops count as transcendent for `초월의 군기`. In particular, 
 - Priest is the symmetric healer for both factions: 105 Command, 145 HP, 1 defense, 20 attack, 175 attack range, 34 healing at 190 range, and a 1.25-second shared action interval. It heals the in-range non-boss ally with the greatest missing HP before attacking and cannot overheal; bosses are deliberately excluded so a producing garrison cannot sustain an unbounded boss-healing loop. Weapon equipment and mastery attack growth add the same flat amount to healing power. The unit-threat estimator values its healing per second at a 1.35 support coefficient.
 - Gargoyle attacks every 1.00 second rather than 1.05 seconds so its effective 160-Command field deployment remains above the roster's minimum value floor after the wartime surcharge.
 
+### Chapter 2 player equipment
+
+Status: **Implemented**. After the canonical Chapter 2 gate, all owned troops and heroes can buy Weapon/Armor/Boots ranks +6 through +10. `data/equipment.ts` owns the player limits and the ×2 advanced cost multiplier. Each extra rank grants the existing authored absolute equipment gain; no new stat multiplier, mastery level, star grade or second capstone is added. Enemy equipment stays capped at +5 in all encounters. Import normalization clamps player ranks to the actually eligible limit and keeps legacy numeric equipment at +5.
+
+| Equipment base | Cost +6 / +7 / +8 / +9 / +10 | Added cost per branch | Added cost for all three |
+|---:|---|---:|---:|
+| 50 | 600 / 700 / 800 / 900 / 1,000 | 4,000 | 12,000 |
+| 75 | 900 / 1,050 / 1,200 / 1,350 / 1,500 | 6,000 | 18,000 |
+| 100 | 1,200 / 1,400 / 1,600 / 1,800 / 2,000 | 8,000 | 24,000 |
+| 125 | 1,500 / 1,750 / 2,000 / 2,250 / 2,500 | 10,000 | 30,000 |
+| 150 | 1,800 / 2,100 / 2,400 / 2,700 / 3,000 | 12,000 | 36,000 |
+| 175 | 2,100 / 2,450 / 2,800 / 3,150 / 3,500 | 14,000 | 42,000 |
+| 200 | 2,400 / 2,800 / 3,200 / 3,600 / 4,000 | 16,000 | 48,000 |
+| 300 | 3,600 / 4,200 / 4,800 / 5,400 / 6,000 | 24,000 | 72,000 |
+| 400 | 4,800 / 5,600 / 6,400 / 7,200 / 8,000 | 32,000 | 96,000 |
+
+Chapter 2's six first victories provide 79,500 base Gold including first-clear bonuses, or 99,375 with full Spoils Accounting. That can fund one 5-star unit's complete advanced set (96,000), or spread upgrades across the formation. This is an optional sink, not a new encounter gate. The advanced-equipment audit verifies growth at equal mastery, unchanged deployment/body caps, and an estimated individual threat increase below ×1.65 from +5 to +10 for the full troop/hero roster. Normal campaign, item, reinforcement and Chapter 2 pressure audits remain intact.
+
 ### Attack commitment, guard protection, and area geometry
 
 The 2026-09-30 Abyss Mage adjustment removes its near-universal advantage over the same-grade Archmage: Command 185 → 200, base HP 750 → 650, attack cycle 1,450 → 1,700 ms, windup/ground warning 620 → 780 ms, and summon cooldown 3,500 → 5,500 ms. Its 95 damage, 75–210 range band, radius 88, four-ground-target limit and ×0.65 secondary hits remain intact. Derived armor growth is now +65 HP/rank and recruitment is 1,000 Gold; weapon/defense/boots growth remains +10/+1.5/+1 per rank. Archmage stays at 700 HP, 110 damage/1.6 s, 100–245 range and all-domain directional attacks. Base direct DPS is 55.9 vs 68.8; the Abyss Mage trades durability, range and direct pressure for guarded-ground-cluster bypass, rather than also arriving faster and cheaper. This is the shared definition for both sides. Equal-equipment/mastery role tests and all campaign/item/free-expedition audits pass; current campaign R² is 0.989, maximum deviation 5.3, treasure 205/finale pressure ×0.99, and farm 303/finale ×1.594. Authored stage equipment, waves, caps and fortress values are unchanged.
@@ -245,7 +263,7 @@ The armory displays `진영당 N명`, and battle cards display the current livin
 
 ## 3. Equipment and mastery
 
-Each troop and hero has three independent equipment slots with five levels each.
+Each troop and hero has three independent equipment slots: player limits are +5 in Chapter 1 and +10 once Chapter 2 is available. Enemy equipment remains capped at +5. The tables below give the same per-rank absolute gains at every eligible rank.
 
 | Slot | Effect per level | Price rule |
 |---|---|---|
@@ -285,7 +303,7 @@ Expansion troops created through `makeTroop` derive readable fixed growth once a
 | 리아 | +5 | +28 | +1.2 | +1.8 |
 | 공성 마수 | +6 | +70 | +2.0 | +0.8 |
 
-- Equipment cost: `equipmentCostBase × (currentLevel + 1)` for all three slots.
+- Equipment cost: `equipmentCostBase × (currentLevel + 1)` for +1–5 in all three slots; +6–10 cost twice that amount and are player-only Chapter 2 progression.
 - Militia and Raider use base 50: 50 / 100 / 150 / 200 / 250 gold.
 - Other 1-star troops use base 75: 75 / 150 / 225 / 300 / 375 gold.
 - Every 2-star troop uses base 100: 100 / 200 / 300 / 400 / 500 gold.

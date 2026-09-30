@@ -1,6 +1,16 @@
 // English translations use the original Korean copy as stable source keys.
 // Missing entries deliberately fall back to Korean so new content never renders as an empty label.
 export const messages: Record<string, string> = {
+  '왕실 보석으로 1.5배속 전투를 영구 해금합니다.': 'Permanently unlock 1.5× battle speed with Royal Gems.',
+  '최후의 성채를 찾아온 정체불명의 행상인입니다. 업적과 일일 지원으로 모은 왕실 보석을 영구 허가와 교환합니다.': 'A mysterious trader has arrived at the Last Bastion. Exchange Royal Gems earned from achievements and daily support for permanent permits.',
+  '승리를 기리는 곳': 'A Place of Remembrance',
+  '되찾은 땅에 기념비를 세울 수 있습니다.': 'You can now raise monuments across the reclaimed lands.',
+  '새로운 단련': 'Further Training',
+  '장비를 더 강화할 수 있습니다. 필요한 부위부터 골라 보세요.': 'You can now upgrade equipment further. Choose the piece your forces need most.',
+  '음악 켜짐': 'Music on',
+  '음악 꺼짐': 'Music off',
+  '승리 보상 {gold} 금화': 'Victory reward: {gold} Gold',
+  '전투에서 아이템을 발견할 가능성이 높아집니다.': 'Improves the chance of finding items in battle.',
   '오프닝 {current}/{total}': 'Opening {current}/{total}',
   '장막 너머 · 서막': 'BEYOND THE VEIL · PROLOGUE',
   '장막 너머 · 징조': 'BEYOND THE VEIL · OMEN',

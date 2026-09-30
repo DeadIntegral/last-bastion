@@ -140,6 +140,8 @@ function ShellHeader({ title, onBack }: { title: string; onBack: () => void }) {
 }
 
 function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
+  const muted = useGameStore((state) => state.muted);
+  const toggleMuted = useGameStore((state) => state.toggleMuted);
   const resetProgress = useGameStore((state) => state.resetProgress);
   const importSave = useGameStore((state) => state.importSave);
   const [, refreshSlots] = useState(0);
@@ -284,7 +286,7 @@ function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
       <div className="menu-castle" aria-hidden="true">
         <span className="tower left" /><span className="keep" /><span className="tower right" />
       </div>
-      <nav className="menu-top"><span className="version">{GAME_VERSION_LABEL}</span><LanguageSelect /></nav>
+      <nav className="menu-top"><span className="version">{GAME_VERSION_LABEL}</span><GameButton variant="ghost" size="small" className="title-sound-toggle" aria-pressed={!muted} aria-label={t(muted ? '게임 사운드 켜기' : '게임 사운드 끄기')} onClick={() => { musicEngine.setMuted(!muted); toggleMuted(); if (muted) void musicEngine.unlock(); }}><span aria-hidden="true">{muted ? '♩̸' : '♪'}</span>{muted ? '음악 꺼짐' : '음악 켜짐'}</GameButton><LanguageSelect /></nav>
       <section className="title-lockup">
         <span className="title-crest">♜</span>
         <p>THE LAST LINE STANDS</p>
@@ -366,6 +368,7 @@ function Credits({ onBack }: { onBack: () => void }) {
 
 
 function MapCommandCenter({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
+  const itemsUnlocked = useGameStore((state) => Object.values(state.itemInventory).some((count) => (count ?? 0) > 0));
   const selectedHero = useGameStore((state) => state.selectedHero);
   const unlockedAchievements = useGameStore((state) => state.unlockedAchievementIds);
   const claimedAchievements = useGameStore((state) => state.claimedAchievementIds);
@@ -382,7 +385,6 @@ function MapCommandCenter({ onNavigate }: { onNavigate: (screen: Screen) => void
   const claimable = unlockedAchievements.filter((id) => !claimedAchievements.includes(id)).length;
   const dailyAvailable = lastDailyClaimDate !== localDateKey();
   const monumentUnlocked = clearedStages.includes(TRIUMPH_MONUMENT.unlockStage);
-  const speedLicenseRevealed = clearedStages.includes(BATTLE_SPEED_LICENSE.unlockStage);
   const formationCapacity = battleFormationCapacity(formationSlotPurchases);
   const merchantStatus = battleSpeedUnlocked && formationSlotPurchases >= MAX_FORMATION_SLOT_PURCHASES
     ? '모든 영구 허가 보유'
@@ -405,14 +407,14 @@ function MapCommandCenter({ onNavigate }: { onNavigate: (screen: Screen) => void
     <section className="map-command-center" data-tour="operations" aria-label="원정대 관리">
       <header><span>원정 본부</span><strong>왕국 운영</strong></header>
       <button onClick={() => onNavigate('armory')}><i>♢</i><span>병영과 강화<small>{t('병종 {count}', { count: allTroopOrder.length })}</small></span></button>
-      <button onClick={() => onNavigate('items')}><i>▣</i><span>원정 장비고<small>아이템 편성</small></span></button>
+      {itemsUnlocked && <button data-tour="items-entry" onClick={() => onNavigate('items')}><i>▣</i><span>원정 장비고<small>아이템 편성</small></span></button>}
       <button onClick={() => onNavigate('heroes')}><i>{heroDefinitions[selectedHero].icon}</i><span>영웅의 전당<small>{heroDefinitions[selectedHero].name}</small></span></button>
       <button onClick={() => onNavigate('fortress')}><i>♜</i><span>성채 기술<small>5개 계열</small></span></button>
-      <button className={monumentUnlocked ? 'monument-ready' : 'feature-locked'} disabled={!monumentUnlocked} onClick={() => onNavigate('monument')}><i>♜</i><span>{TRIUMPH_MONUMENT.name}<small>{monumentUnlocked ? t('건설 {level} / {max}', { level: triumphMonumentLevel, max: TRIUMPH_MONUMENT.maxLevel }) : `${TRIUMPH_MONUMENT.unlockStage}장 클리어 시 건립`}</small></span></button>
+      {monumentUnlocked && <button className="monument-ready" data-tour="monument-entry" onClick={() => onNavigate('monument')}><i>♜</i><span>{TRIUMPH_MONUMENT.name}<small>{t('건설 {level} / {max}', { level: triumphMonumentLevel, max: TRIUMPH_MONUMENT.maxLevel })}</small></span></button>}
       <button onClick={() => onNavigate('achievements')}><i>✦</i><span>업적 기록<small>{claimable ? `${claimable} 보상 대기` : `${unlockedAchievements.length}/${achievements.length}`}</small></span></button>
       <button onClick={() => onNavigate('codex')}><i>▤</i><span>전쟁 사전<small>{codexEntries}/{CODEX_TOTAL}</small></span></button>
       <button className={dailyAvailable ? 'daily-ready' : ''} disabled={!dailyAvailable} onClick={receiveDaily}><i>◆</i><span>{DAILY_REWARD.label}<small>{dailyAvailable ? `보석 ${DAILY_REWARD.gems}개 받기` : '오늘 수령 완료'}</small></span></button>
-      <button className={speedLicenseRevealed ? 'merchant-ready' : 'feature-locked'} disabled={!speedLicenseRevealed} onClick={() => onNavigate('merchant')}><i>?</i><span>수수께끼 상인<small>{!speedLicenseRevealed ? `${BATTLE_SPEED_LICENSE.unlockStage}장 보스 격파 시 출현` : merchantStatus}</small></span></button>
+      <button className="merchant-ready" onClick={() => onNavigate('merchant')}><i>?</i><span>수수께끼 상인<small>{merchantStatus}</small></span></button>
       <button onClick={toggleMusic}><i>{muted ? '♩̸' : '♪'}</i><span>게임 사운드<small>{muted ? '꺼짐' : '켜짐'}</small></span></button>
     </section>
     {notice && <div className="toast" role="status">{notice}</div>}
@@ -454,7 +456,7 @@ function MysteryMerchant({ onBack }: { onBack: () => void }) {
         <div>
           <span className="eyebrow">장막의 대상단</span>
           <h2>“값을 치를 준비가 됐다면, 물건의 내력은 묻지 마시오.”</h2>
-          <p>첫 마수의 성채가 무너진 뒤 나타난 정체불명의 행상인입니다. 업적과 일일 지원으로 모은 왕실 보석을 희귀한 영구 허가와 교환합니다.</p>
+          <p>최후의 성채를 찾아온 정체불명의 행상인입니다. 업적과 일일 지원으로 모은 왕실 보석을 영구 허가와 교환합니다.</p>
         </div>
       </section>
       <section className="merchant-shelf" aria-label="상인 판매 목록">
@@ -473,7 +475,7 @@ function MysteryMerchant({ onBack }: { onBack: () => void }) {
             </button>
           </div>
         </article>
-        <article className={`merchant-item formation-license ${!nextFormationLicense ? 'owned' : ''} ${nextFormationLicense && !formationLicenseRevealed ? 'locked' : ''}`}>
+        {(formationLicenseRevealed || !nextFormationLicense) && <article className={`merchant-item formation-license ${!nextFormationLicense ? 'owned' : ''}`}>
           <div className="merchant-item-mark"><span>{nextFormationLicense ? `${currentFormationCapacity}→${nextFormationLicense.capacity}` : '4→7'}</span><small>편성 확장</small></div>
           <div className="merchant-item-copy">
             <small>왕실 인장 · 희귀품</small>
@@ -491,7 +493,7 @@ function MysteryMerchant({ onBack }: { onBack: () => void }) {
                   : canAffordFormation ? `◆ ${nextFormationLicense.cost} · 구매` : `◆ ${nextFormationLicense.cost} · 보석 부족`}
             </button>
           </div>
-        </article>
+        </article>}
       </section>
       {notice && <div className="toast" role="status">{notice}</div>}
     </main>

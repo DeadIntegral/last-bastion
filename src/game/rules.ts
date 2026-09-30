@@ -1,3 +1,4 @@
+import { ADVANCED_EQUIPMENT_COST_MULTIPLIER, BASE_EQUIPMENT_MAX_RANK } from '../data/equipment';
 import { battleMobilizationTuning, fortressDeploymentTuning, mobilizationCommandCost } from '../data/castle';
 import { deadZoneRetreatTuning, knockbackResistanceTuning } from '../data/combat';
 import { triumphMonumentBonuses, type MonumentBuildingId } from '../data/endgame';
@@ -206,7 +207,8 @@ export function heroMasteryLevelFromXp(totalXp: number): { level: number; curren
 export const emptyEquipment = (): EquipmentLevels => ({ weapon: 0, armor: 0, boots: 0 });
 
 export function equipmentCost(definition: UnitDefinition, currentLevel: number): number {
-  return upgradeCost(currentLevel, definition.equipmentCostBase);
+  return upgradeCost(currentLevel, definition.equipmentCostBase)
+    * (currentLevel >= BASE_EQUIPMENT_MAX_RANK ? ADVANCED_EQUIPMENT_COST_MULTIPLIER : 1);
 }
 
 export function cooldownFillRatio(remainingMs: number, durationMs: number): number {

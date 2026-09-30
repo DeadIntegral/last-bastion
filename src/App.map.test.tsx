@@ -53,6 +53,7 @@ describe('campaign map pointer controls', () => {
 
     expect(map).toBeDefined();
     expect(host.querySelector('.map-mission h2')?.textContent).toBe('국경의 불씨');
+    expect(host.querySelector('.stage-context')?.textContent).not.toContain('드롭');
     expect(host.querySelector('.difficulty')?.textContent).toContain('전투 평가 낮음');
     expect(host.querySelector('.difficulty')?.textContent).not.toContain('1/30');
     expect(host.querySelectorAll('.map-region-zone.liberated')).toHaveLength(1);
@@ -143,6 +144,7 @@ describe('campaign map pointer controls', () => {
     expect(host.querySelector<HTMLButtonElement>('.veil-mission-detail button')?.disabled).toBe(true);
     act(() => nodes[0].click());
     expect(host.querySelector('.veil-mission-detail h2')?.textContent).toBe('장막의 문턱');
+    expect(host.querySelector('.veil-mission-detail')?.textContent).not.toContain('드랍');
     expect(host.querySelector<HTMLButtonElement>('.veil-mission-detail button')?.disabled).toBe(false);
     act(() => host.querySelector<HTMLButtonElement>('[aria-label^="1장"]')!.click());
     expect(host.querySelector('.map-mission h2')?.textContent).toBe('국경의 불씨');

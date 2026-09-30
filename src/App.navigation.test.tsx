@@ -60,8 +60,8 @@ describe('title and kingdom-map navigation', () => {
 
     expect(host.querySelector('.shell-header h1')?.textContent).toBe('왕국 지도');
     const hubButtons = [...host.querySelectorAll<HTMLButtonElement>('.map-command-center button')];
-    expect(hubButtons).toHaveLength(10);
-    expect(hubButtons.some((button) => button.textContent?.includes('원정 장비고'))).toBe(true);
+    expect(hubButtons).toHaveLength(8);
+    expect(hubButtons.some((button) => button.textContent?.includes('원정 장비고'))).toBe(false);
     expect(hubButtons.some((button) => button.textContent?.includes('마수 도전'))).toBe(false);
     expect(hubButtons.some((button) => button.textContent?.includes('영웅 훈련소'))).toBe(false);
     const heroHallButton = hubButtons.find((button) => button.textContent?.includes('영웅의 전당'))!;
@@ -72,14 +72,12 @@ describe('title and kingdom-map navigation', () => {
     expect(host.querySelector('.hero-training-panel.locked')?.textContent).toContain('9장 클리어 시 해금');
     act(() => host.querySelector<HTMLButtonElement>('.back-button')!.click());
     const refreshedHubButtons = [...host.querySelectorAll<HTMLButtonElement>('.map-command-center button')];
-    const monumentButton = refreshedHubButtons.find((button) => button.textContent?.includes('승전 기념비'))!;
-    expect(monumentButton.disabled).toBe(true);
-    expect(monumentButton.textContent).toContain('30장 클리어 시 건립');
+    expect(refreshedHubButtons.find((button) => button.textContent?.includes('승전 기념비'))).toBeUndefined();
     const merchantButton = refreshedHubButtons.find((button) => button.textContent?.includes('수수께끼 상인'))!;
-    expect(merchantButton.disabled).toBe(true);
-    expect(merchantButton.textContent).toContain('6장 보스 격파 시 출현');
+    expect(merchantButton.disabled).toBe(false);
+    expect(merchantButton.textContent).not.toContain('격파 시 출현');
 
-    act(() => useGameStore.setState({ clearedStages: [6], gems: 200 }));
+    act(() => useGameStore.setState({ gems: 200 }));
     expect(merchantButton.disabled).toBe(false);
     act(() => merchantButton.click());
     expect(host.querySelector('.shell-header h1')?.textContent).toBe('수수께끼 상인');
@@ -90,13 +88,13 @@ describe('title and kingdom-map navigation', () => {
     expect(useGameStore.getState().battleSpeed).toBe(1.5);
     expect(licenseButton.textContent).toContain('거래 완료');
 
-    const formationButton = [...host.querySelectorAll<HTMLButtonElement>('.merchant-item-action button')][1];
-    expect(formationButton.textContent).toContain('12장 클리어 필요');
+    expect(host.querySelector('.formation-license')).toBeNull();
     act(() => useGameStore.setState({ clearedStages: [6, 12], gems: 150 }));
+    const formationButton = [...host.querySelectorAll<HTMLButtonElement>('.merchant-item-action button')][1];
     expect(formationButton.disabled).toBe(false);
     act(() => formationButton.click());
     expect(useGameStore.getState().formationSlotPurchases).toBe(1);
-    expect(formationButton.textContent).toContain('18장 클리어 필요');
+    expect(host.querySelector('.formation-license')).toBeNull();
 
     act(() => host.querySelector<HTMLButtonElement>('.back-button')!.click());
     const challengeNode = host.querySelector<HTMLButtonElement>('[aria-label="마수 도전 오우거 대족장"]')!;
@@ -117,6 +115,29 @@ describe('title and kingdom-map navigation', () => {
     act(() => fieldDrill.click());
     expect(useGameStore.getState().gold).toBe(750);
     expect(useGameStore.getState().heroMasteryXp.warden).toBe(100);
+  });
+
+  it('toggles sound from the title and preserves mute when starting a campaign', () => {
+    act(() => useGameStore.setState({ muted: false }));
+    const button = host.querySelector<HTMLButtonElement>('.title-sound-toggle')!;
+    expect(button.getAttribute('aria-pressed')).toBe('true');
+    act(() => button.click());
+    expect(button.textContent).toContain('음악 꺼짐');
+    expect(useGameStore.getState().muted).toBe(true);
+    act(() => host.querySelector<HTMLButtonElement>('.save-slot-card.empty')!.click());
+    expect(useGameStore.getState().muted).toBe(true);
+  });
+
+  it('reveals the item vault and monuments only when their progression conditions are met', () => {
+    act(() => host.querySelector<HTMLButtonElement>('.save-slot-card.empty')!.click());
+    act(() => host.querySelector<HTMLButtonElement>('.opening-skip')!.click());
+    expect(host.querySelector('[data-tour="items-entry"]')).toBeNull();
+    expect(host.querySelector('[data-tour="monument-entry"]')).toBeNull();
+    act(() => useGameStore.setState({ itemInventory: { 'veteran-standard': 1 } }));
+    expect(host.querySelector('[data-tour="items-entry"]')).not.toBeNull();
+    expect(host.querySelector('[data-tour="monument-entry"]')).toBeNull();
+    act(() => useGameStore.setState({ clearedStages: [30], unlockedStage: 30 }));
+    expect(host.querySelector('[data-tour="monument-entry"]')).not.toBeNull();
   });
 
   it('shows Continue, Export, and Delete on an occupied slot', () => {
@@ -204,6 +225,43 @@ describe('title and kingdom-map navigation', () => {
     act(() => host.querySelector<HTMLButtonElement>('.save-slot-card.empty')!.click());
     expect(host.querySelector('.opening-screen')?.getAttribute('data-opening-chapter')).toBe('1');
     expect(useGameStore.getState().chapterTwoOpeningSeen).toBe(false);
+  });
+
+  it('starts the chapter-two opening immediately after the final successful monument purchase', () => {
+    act(() => host.querySelector<HTMLButtonElement>('.save-slot-card.empty')!.click());
+    act(() => host.querySelector<HTMLButtonElement>('.opening-skip')!.click());
+    act(() => useGameStore.setState({ clearedStages: [30], unlockedStage: 30, gold: 8000, builtMonumentIds: monumentBuildings.slice(2).map((entry) => entry.id) }));
+    const openMonuments = () => act(() => [...host.querySelectorAll<HTMLButtonElement>('.map-command-center button')].find((button) => button.textContent?.includes('승전 기념비'))!.click());
+    openMonuments();
+    // Build the statue fourth; the cheapest monument is deliberately the last one.
+    act(() => host.querySelectorAll<HTMLButtonElement>('.monument-building:not(.built) button')[1].click());
+    expect(useGameStore.getState().builtMonumentIds).toHaveLength(4);
+    expect(host.querySelector('.opening-screen')).toBeNull();
+    act(() => useGameStore.setState({ gold: 2999 }));
+    const last = host.querySelector<HTMLButtonElement>('.monument-building:not(.built) button')!;
+    expect(last.disabled).toBe(true);
+    act(() => last.click());
+    expect(host.querySelector('.opening-screen')).toBeNull();
+    act(() => useGameStore.setState({ gold: 3000 }));
+    act(() => last.click());
+    expect(useGameStore.getState().builtMonumentIds).toHaveLength(5);
+    expect(useGameStore.getState().gold).toBe(0);
+    expect(host.querySelector('.opening-screen')?.getAttribute('data-opening-chapter')).toBe('2');
+    expect(useGameStore.getState().chapterTwoOpeningSeen).toBe(false);
+    act(() => host.querySelector<HTMLButtonElement>('.opening-skip')!.click());
+    expect(useGameStore.getState().chapterTwoOpeningSeen).toBe(true);
+    expect(host.querySelector('.veil-mission-detail h2')?.textContent).toBe('장막의 문턱');
+    openMonuments();
+    expect(host.querySelector('.monument-screen')).not.toBeNull();
+    expect(host.querySelector('.opening-screen')).toBeNull();
+  });
+
+  it('automatically opens an unseen prologue when revisiting an already completed monument collection', () => {
+    act(() => host.querySelector<HTMLButtonElement>('.save-slot-card.empty')!.click());
+    act(() => host.querySelector<HTMLButtonElement>('.opening-skip')!.click());
+    act(() => useGameStore.setState({ clearedStages: [30], unlockedStage: 30, builtMonumentIds: monumentBuildings.map((entry) => entry.id), chapterTwoOpeningSeen: false }));
+    act(() => [...host.querySelectorAll<HTMLButtonElement>('.map-command-center button')].find((button) => button.textContent?.includes('승전 기념비'))!.click());
+    expect(host.querySelector('.opening-screen')?.getAttribute('data-opening-chapter')).toBe('2');
   });
 
   it('removes an equipped troop from the persistent formation strip across faction filters', () => {

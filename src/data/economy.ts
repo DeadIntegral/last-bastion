@@ -6,10 +6,9 @@ export const DAILY_REWARD = {
 
 export const BATTLE_SPEED_LICENSE = {
   cost: 200,
-  unlockStage: 6,
   speed: 1.5,
   label: '전투 가속 허가',
-  description: '첫 마수 수비 성채를 함락한 뒤 수수께끼 상인에게 왕실 보석 200개를 지불해 1.5배속 전투를 영구 해금합니다.',
+  description: '왕실 보석으로 1.5배속 전투를 영구 해금합니다.',
 } as const;
 
 export const BASE_FORMATION_CAPACITY = 4;

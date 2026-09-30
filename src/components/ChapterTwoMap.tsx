@@ -2,7 +2,6 @@ import type { MouseEvent } from 'react';
 import { canEnterChapterTwoStage, chapterTwoStages } from '../data/chapterTwo';
 import { enemyDefinitions, exclusiveEnemyIds } from '../data/enemies';
 import { castleBattleStats } from '../data/castle';
-import { itemDropRuleForStage } from '../data/items';
 import { attackPatternLabel, scaledProgressionReward } from '../game/rules';
 import { Localized } from '../shared/i18n/Localized';
 import { useTranslation } from '../shared/i18n/i18n';
@@ -22,7 +21,6 @@ export function ChapterTwoMission({ selectedId, onSelect }: { selectedId: number
   const unlocked = canEnterChapterTwoStage(selected.id, built, cleared);
   const modifiers = castleBattleStats(tech);
   const roster = [...new Set([...selected.waves.map((wave) => wave.unitId), ...(selected.reinforcement?.unitIds ?? []), ...(selected.bossUnitId ? [selected.bossUnitId] : [])])];
-  const drop = Math.round(Math.min(1, itemDropRuleForStage(selected).chance + modifiers.itemDropChanceBonus) * 100);
   return <Localized><aside className="map-mission veil-mission-detail" data-tour="new-front">
         <span className="eyebrow">{t('챕터 2 · 전투 {number}', { number: chapterTwoStages.indexOf(selected) + 1 })}</span>
         <h2>{unlocked ? selected.name : '미확인 전장'}</h2>
@@ -36,7 +34,7 @@ export function ChapterTwoMission({ selectedId, onSelect }: { selectedId: number
             return <article key={id}><CharacterSprite id={id} /><div><small>{exclusive ? '장막 군세 · 영입 불가' : '점령군 지원 병력'}</small><strong>{enemy.name}</strong><p>{attackPatternLabel(enemy)}</p></div></article>;
           })}</div>
 
-          <p>{t('승리 보상 {gold} 금화 · 아이템 드랍 {chance}%', { gold: scaledProgressionReward(selected.reward, modifiers.battleGoldMultiplier).toLocaleString(), chance: drop })}</p>
+          <p>{t('승리 보상 {gold} 금화', { gold: scaledProgressionReward(selected.reward, modifiers.battleGoldMultiplier).toLocaleString() })}</p>
           {!cleared.includes(selected.id) && <p>{t('최초 탈환 추가 보상 {gold} 금화', { gold: scaledProgressionReward(selected.firstClearReward.gold ?? 0, modifiers.battleGoldMultiplier).toLocaleString() })}</p>}
         </>}
         <div className="mission-footer"><GameButton variant="primary" disabled={!unlocked} onClick={() => onSelect(selected.id)}>{cleared.includes(selected.id) ? '다시 출정' : '출정'}</GameButton></div>

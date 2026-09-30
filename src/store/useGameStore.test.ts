@@ -37,6 +37,42 @@ describe('shared troop progression', () => {
     expect(useGameStore.getState().stats.codexEntries).toBe(2);
   });
 
+  it('unlocks paid equipment ranks 6–10 only for Chapter 2 players and preserves them on import', () => {
+    useGameStore.setState((state) => ({ gold: 100000, clearedStages: [30], equipmentLevels: { ...state.equipmentLevels, militia: { weapon: 5, armor: 5, boots: 5 } }, heroEquipmentLevels: { ...state.heroEquipmentLevels, warden: { weapon: 5, armor: 5, boots: 5 } } }));
+    expect(useGameStore.getState().upgradeUnitEquipment('militia', 'weapon')).toBe(false);
+    expect(useGameStore.getState().upgradeHeroEquipment('warden', 'armor')).toBe(false);
+    useGameStore.setState({ builtMonumentIds: monumentBuildings.map((entry) => entry.id), gold: 599 });
+    expect(useGameStore.getState().upgradeUnitEquipment('militia', 'weapon')).toBe(false);
+    useGameStore.setState({ gold: 100000 });
+    for (let rank = 6; rank <= 10; rank += 1) {
+      expect(useGameStore.getState().upgradeUnitEquipment('militia', 'weapon')).toBe(true);
+      expect(useGameStore.getState().upgradeHeroEquipment('warden', 'armor')).toBe(true);
+    }
+    expect(useGameStore.getState().gold).toBe(88000);
+    expect(useGameStore.getState().upgradeUnitEquipment('militia', 'weapon')).toBe(false);
+    expect(useGameStore.getState().upgradeHeroEquipment('warden', 'armor')).toBe(false);
+    const saved = useGameStore.getState().exportSave();
+    useGameStore.getState().resetProgress();
+    useGameStore.getState().importSave(saved);
+    expect(useGameStore.getState().equipmentLevels.militia.weapon).toBe(10);
+    expect(useGameStore.getState().heroEquipmentLevels.warden.armor).toBe(10);
+    useGameStore.getState().importSave(JSON.stringify({ gold: 1, equipmentLevels: { militia: { weapon: 10, armor: 10, boots: 10 } }, heroEquipmentLevels: { warden: { weapon: 10, armor: 10, boots: 10 } } }));
+    expect(useGameStore.getState().equipmentLevels.militia.weapon).toBe(5);
+    expect(useGameStore.getState().heroEquipmentLevels.warden.armor).toBe(5);
+  });
+
+  it('keeps the sound preference through campaign resets and imports', () => {
+    useGameStore.setState({ muted: false });
+    useGameStore.getState().toggleMuted();
+    expect(localStorage.getItem('last-bastion-muted')).toBe('true');
+    useGameStore.getState().resetProgress();
+    expect(useGameStore.getState().muted).toBe(true);
+    useGameStore.getState().importSave(JSON.stringify({ gold: 100, muted: false }));
+    expect(useGameStore.getState().muted).toBe(true);
+    useGameStore.getState().toggleMuted();
+    expect(localStorage.getItem('last-bastion-muted')).toBe('false');
+  });
+
   it('persists chapter-two opening completion per profile and migrates established chapter-two saves', () => {
     const builtMonumentIds = monumentBuildings.map((entry) => entry.id);
     useGameStore.getState().markChapterTwoOpeningSeen();
@@ -243,12 +279,12 @@ describe('shared troop progression', () => {
     expect(useGameStore.getState().unlockedHeroes).toContain('windSpirit');
   });
 
-  it('sells the permanent 1.5x battle license for 200 gems after the first boss', () => {
-    useGameStore.setState({ gems: 200 });
+  it('sells the permanent 1.5x battle license for 200 gems from the start', () => {
+    useGameStore.setState({ gems: 199 });
     expect(useGameStore.getState().purchaseBattleSpeed()).toBe(false);
-    expect(useGameStore.getState().gems).toBe(200);
+    expect(useGameStore.getState().gems).toBe(199);
 
-    useGameStore.setState({ clearedStages: [6] });
+    useGameStore.setState({ gems: 200 });
     expect(useGameStore.getState().purchaseBattleSpeed()).toBe(true);
     expect(useGameStore.getState().gems).toBe(0);
     expect(useGameStore.getState().battleSpeedUnlocked).toBe(true);

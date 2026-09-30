@@ -1,10 +1,11 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { monumentBuildings, monumentDeeds, monumentTitles, TRIUMPH_MONUMENT, triumphMonumentBonuses, monumentConstructionCost } from '../data/endgame';
 import { Localized } from '../shared/i18n/Localized';
 import { useTranslation } from '../shared/i18n/i18n';
 import { useGameStore } from '../store/useGameStore';
 import { GameButton } from './GameButton';
 import { combatTerms } from '../shared/combatTerms';
+import { isChapterTwoUnlocked } from '../data/chapterTwo';
 import { MonumentSilhouette } from './MonumentSilhouette';
 
 export function TriumphMonument({ header, onViewMission, onEnterChapterTwo, onViewBuilding }: { header: ReactNode; onViewMission: (stageId: number) => void; onEnterChapterTwo: () => void; onViewBuilding: (id: string) => void }) {
@@ -15,6 +16,14 @@ export function TriumphMonument({ header, onViewMission, onEnterChapterTwo, onVi
   const clearedStages = useGameStore((state) => state.clearedStages);
   const deeds = useGameStore((state) => state.monumentDeedIds);
   const construct = useGameStore((state) => state.constructMonument);
+  const openingSeen = useGameStore((state) => state.chapterTwoOpeningSeen);
+  const openingStarted = useRef(false);
+
+  useEffect(() => {
+    if (openingStarted.current || openingSeen || !isChapterTwoUnlocked(builtIds)) return;
+    openingStarted.current = true;
+    onEnterChapterTwo();
+  }, [builtIds, openingSeen, onEnterChapterTwo]);
 
   const [notice, setNotice] = useState('');
   const maxed = level >= TRIUMPH_MONUMENT.maxLevel;

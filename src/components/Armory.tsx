@@ -1,3 +1,4 @@
+import { playerEquipmentMaxRank } from '../data/equipment';
 import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react';
 import { battleFormationCapacity } from '../data/economy';
 import { soldierMasteryGrowth } from '../data/mastery';
@@ -44,6 +45,7 @@ export function Armory({ header }: { header: ReactNode }) {
   const fortressTier = useGameStore((state) => state.fortressTier);
   const unitMasteryXp = useGameStore((state) => state.unitMasteryXp);
   const gold = useGameStore((state) => state.gold);
+  const equipmentMaxRank = useGameStore((state) => playerEquipmentMaxRank(state.builtMonumentIds));
   const upgradeUnit = useGameStore((state) => state.upgradeUnitEquipment);
   const recruitUnit = useGameStore((state) => state.recruitUnit);
   const toggleEquippedUnit = useGameStore((state) => state.toggleEquippedUnit);
@@ -191,8 +193,8 @@ export function Armory({ header }: { header: ReactNode }) {
             {equipmentSlots.map((slot) => {
               const level = equipment[slot.id];
               const cost = equipmentCost(unit, level);
-              return <GameButton variant="secondary" size="small" key={slot.id} disabled={!unlocked || level >= 5 || gold < cost} onClick={() => buy(id, slot.id)}>
-                <i>{slot.icon}</i><span><b>{slot.name} +{level}</b><small>{equipmentEffect(unit, slot.id)}</small></span><em>{level >= 5 ? '최대' : `● ${cost}`}</em>
+              return <GameButton variant="secondary" size="small" key={slot.id} disabled={!unlocked || level >= equipmentMaxRank || gold < cost} onClick={() => buy(id, slot.id)}>
+                <i>{slot.icon}</i><span><b>{slot.name} +{level}</b><small>{equipmentEffect(unit, slot.id)}</small></span><em>{level >= equipmentMaxRank ? '최대' : `● ${cost}`}</em>
               </GameButton>;
             })}
             </div>

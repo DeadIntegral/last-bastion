@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useGameStore } from '../store/useGameStore';
 import { normalizeSeenTutorials, tutorialEligible } from './tutorials';
+import { monumentBuildings } from './endgame';
 
 describe('tutorial progression', () => {
   beforeEach(() => useGameStore.getState().resetProgress());
@@ -11,6 +12,14 @@ describe('tutorial progression', () => {
     expect(tutorialEligible('item-crafting', profile)).toBe(false);
     expect(tutorialEligible('supply-skill', profile)).toBe(false);
     expect(tutorialEligible('first-item', profile)).toBe(false);
+    expect(tutorialEligible('merchant', profile)).toBe(true);
+    expect(tutorialEligible('monuments-unlocked', profile)).toBe(false);
+    expect(tutorialEligible('advanced-equipment', profile)).toBe(false);
+    const advanced = { ...profile, clearedStages: [30], builtMonumentIds: monumentBuildings.map((entry) => entry.id), itemInventory: { 'veteran-standard': 1 } };
+    expect(tutorialEligible('first-item', advanced)).toBe(true);
+    expect(tutorialEligible('monuments-unlocked', advanced)).toBe(true);
+    expect(tutorialEligible('advanced-equipment', advanced)).toBe(true);
+    expect(normalizeSeenTutorials(undefined, advanced, true)).not.toContain('advanced-equipment');
     useGameStore.getState().markTutorialsSeen(['first-expedition', 'first-expedition', 'unknown' as never]);
     expect(useGameStore.getState().seenTutorialIds).toEqual(['first-expedition']);
     const saved = useGameStore.getState().exportSave();

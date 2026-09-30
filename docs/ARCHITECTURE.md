@@ -45,6 +45,7 @@ Phaser BattleScene       App navigation/shell
 | Tutorial content and migration | `src/data/tutorials.ts` | generic step types, normalized progress | React, DOM access, Phaser |
 | Item inventory/loadout | `src/components/ItemVault.tsx` | item data, store actions | combat stat formulas, routing |
 | Item catalogue/reference | `src/components/ItemCodex.tsx` | canonical item definitions, recipes, localization | inventory actions, combatant discovery/completion |
+| Player equipment limits | `src/data/equipment.ts` | canonical Chapter 2 gate | UI state, enemy equipment scaling |
 | Monument construction and deeds | `src/components/TriumphMonument.tsx` | endgame data, store actions, injected header/map callback | purchase formulas, result settlement, routing |
 | Built monument map markers | `src/components/MapMonuments.tsx`, `MonumentSilhouette.tsx` | canonical endgame IDs/positions, built IDs, parent click handler | redundant persisted marker flags, drag capture |
 | Unified continent map | `CampaignMap.tsx` | map data, store, injected header/operations/navigation | battle progression mutation, separate chapter routing |

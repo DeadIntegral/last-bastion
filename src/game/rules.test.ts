@@ -7,7 +7,7 @@ import { ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL, STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS
 
 describe('combat rules', () => {
   it.each([1, 20, 50])('keeps the ground-burst specialist below Archmage durability and direct DPS at equal mastery %i', (mastery) => {
-    for (const rank of [0, 5]) {
+    for (const rank of [0, 5, 10]) {
       const equipment = { weapon: rank, armor: rank, boots: rank };
       const archmage = upgradedStats(troopDefinitions.archmage, equipment, mastery);
       const abyss = upgradedStats(troopDefinitions.demonMage, equipment, mastery);

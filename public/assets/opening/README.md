@@ -24,7 +24,7 @@ Do not regenerate or overwrite these selected files casually. Add a versioned si
 
 ## Chapter 2 — Beyond the Veil (2026-09-30)
 
-Three new original 1672 × 941 images use the same shared cinematic component. Canonical copy/order is `chapterTwoOpeningScenes` in `src/data/opening.ts`; each shot lasts 6 seconds, with an 18-second total. The first eligible map-node, frontier-shortcut or monument entry launches the sequence. Skip/Escape and automatic completion return to the first mission and persist completion per slot. Neither enemies nor unlock mechanics are explained in the story.
+Three new original 1672 × 941 images use the same shared cinematic component. Canonical copy/order is `chapterTwoOpeningScenes` in `src/data/opening.ts`; each shot lasts 6 seconds, with an 18-second total. Completing monument construction launches the unseen sequence automatically; revisiting a completed unseen collection also launches it. First eligible frontier entry remains a fallback. Skip/Escape and automatic completion return to the first mission and persist completion per slot. Neither enemies nor unlock mechanics are explained in the story.
 
 Runtime WebPs were encoded with `cwebp -q 86 -m 6`. PNG masters are retained in `sources/`, with matching versioned filenames. Generation used the built-in imagegen tool, `stylized-concept`, full-bleed 16:9 dark-fantasy matte paintings with charcoal navy/slate/antique-gold colors, atmospheric depth and a quiet lower central third for story text. No text, readable inscriptions, UI, borders, watermarks, modern objects, identifiable enemy faces or franchise designs.
 

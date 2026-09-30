@@ -14,6 +14,7 @@ import { canEnterChapterTwoStage, chapterTwoStages, isChapterTwoUnlocked, normal
 import { exclusiveEnemyIds } from '../data/enemies';
 import { allTroopOrder, heroDefinitions, heroOrder, troopDefinitions } from '../data/units';
 import { GAME_VERSION, SAVE_SCHEMA_VERSION } from '../data/version';
+import { BASE_EQUIPMENT_MAX_RANK, playerEquipmentMaxRank } from '../data/equipment';
 import { normalizeSeenTutorials, tutorialIds, type TutorialId } from '../data/tutorials';
 import { emptyEquipment, emptyMasteryContribution, equipmentCost, heroBattleMasteryXp, heroMasteryLevelFromXp, scaledProgressionReward, totalMasteryXpForLevel, unitBattleMasteryXp } from '../game/rules';
 import { canClaimDailyReward, localDateKey } from '../game/daily';
@@ -114,7 +115,7 @@ const emptyUnitXp = (): UnitXp => Object.fromEntries(allTroopOrder.map((id) => [
 const emptyHeroXp = (): HeroXp => Object.fromEntries(heroOrder.map((id) => [id, 0])) as HeroXp;
 const emptyUnitEquipment = (): UnitEquipment => Object.fromEntries(allTroopOrder.map((id) => [id, emptyEquipment()])) as UnitEquipment;
 const emptyHeroEquipment = (): HeroEquipment => Object.fromEntries(heroOrder.map((id) => [id, emptyEquipment()])) as HeroEquipment;
-const normalizeUnitEquipment = (saved?: Partial<UnitEquipment> | LegacyUnitLevels): UnitEquipment => {
+const normalizeUnitEquipment = (saved?: Partial<UnitEquipment> | LegacyUnitLevels, maxRank = BASE_EQUIPMENT_MAX_RANK): UnitEquipment => {
   const normalized = emptyUnitEquipment();
   for (const id of Object.keys(normalized) as UnitId[]) {
     const value = saved?.[id];
@@ -123,15 +124,15 @@ const normalizeUnitEquipment = (saved?: Partial<UnitEquipment> | LegacyUnitLevel
       normalized[id] = { weapon: level, armor: level, boots: 0 };
     } else if (value && typeof value === 'object') {
       normalized[id] = {
-        weapon: Math.max(0, Math.min(5, Math.floor(Number(value.weapon) || 0))),
-        armor: Math.max(0, Math.min(5, Math.floor(Number(value.armor) || 0))),
-        boots: Math.max(0, Math.min(5, Math.floor(Number(value.boots) || 0))),
+        weapon: Math.max(0, Math.min(maxRank, Math.floor(Number(value.weapon) || 0))),
+        armor: Math.max(0, Math.min(maxRank, Math.floor(Number(value.armor) || 0))),
+        boots: Math.max(0, Math.min(maxRank, Math.floor(Number(value.boots) || 0))),
       };
     }
   }
   return normalized;
 };
-const normalizeHeroEquipment = (saved?: Partial<HeroEquipment> | LegacyHeroLevels): HeroEquipment => {
+const normalizeHeroEquipment = (saved?: Partial<HeroEquipment> | LegacyHeroLevels, maxRank = BASE_EQUIPMENT_MAX_RANK): HeroEquipment => {
   const normalized = emptyHeroEquipment();
   for (const id of Object.keys(normalized) as HeroId[]) {
     const value = saved?.[id];
@@ -140,9 +141,9 @@ const normalizeHeroEquipment = (saved?: Partial<HeroEquipment> | LegacyHeroLevel
       normalized[id] = { weapon: level, armor: level, boots: 0 };
     } else if (value && typeof value === 'object') {
       normalized[id] = {
-        weapon: Math.max(0, Math.min(5, Math.floor(Number(value.weapon) || 0))),
-        armor: Math.max(0, Math.min(5, Math.floor(Number(value.armor) || 0))),
-        boots: Math.max(0, Math.min(5, Math.floor(Number(value.boots) || 0))),
+        weapon: Math.max(0, Math.min(maxRank, Math.floor(Number(value.weapon) || 0))),
+        armor: Math.max(0, Math.min(maxRank, Math.floor(Number(value.armor) || 0))),
+        boots: Math.max(0, Math.min(maxRank, Math.floor(Number(value.boots) || 0))),
       };
     }
   }
@@ -153,6 +154,14 @@ const emptyStats = (): PlayerStats => ({
   summons: 0, heroSkillUses: 0, castleSkillUses: 0, bossWins: 0,
   currentWinStreak: 0, maxWinStreak: 0, codexEntries: 2,
 });
+
+const SOUND_PREFERENCE_KEY = 'last-bastion-muted';
+const soundPreference = (fallback: boolean): boolean => {
+  try {
+    const value = localStorage.getItem(SOUND_PREFERENCE_KEY);
+    return value === 'true' ? true : value === 'false' ? false : fallback;
+  } catch { return fallback; }
+};
 
 const defaults = {
   seenTutorialIds: [] as TutorialId[],
@@ -184,7 +193,7 @@ const defaults = {
   unlockedAchievementIds: [] as string[],
   claimedAchievementIds: [] as string[],
   discoveredEnemies: [] as CodexEnemyId[],
-  muted: false,
+  muted: soundPreference(false),
   battleSpeedUnlocked: false,
   battleSpeed: 1 as BattleSpeed,
   formationSlotPurchases: 0,
@@ -331,7 +340,7 @@ function hydrateSavedProfile(saved: SavedGameProfile | undefined, current: GameP
     gems: nonNegative(saved?.gems, current.gems),
     lastDailyClaimDate: typeof saved?.lastDailyClaimDate === 'string' || saved?.lastDailyClaimDate === null ? saved.lastDailyClaimDate : current.lastDailyClaimDate,
     unlockedStage,
-    equipmentLevels: normalizeUnitEquipment(saved?.equipmentLevels ?? saved?.upgrades),
+    equipmentLevels: normalizeUnitEquipment(saved?.equipmentLevels ?? saved?.upgrades, playerEquipmentMaxRank(builtMonumentIds)),
     unlockedUnits: inferredUnits.length ? inferredUnits : ['militia'],
     equippedUnits,
     formationSlots,
@@ -346,7 +355,7 @@ function hydrateSavedProfile(saved: SavedGameProfile | undefined, current: GameP
     claimedMapTreasureIds,
     unitMasteryXp: normalizeXp(allTroopOrder, saved?.unitMasteryXp),
     selectedHero: validHero(saved?.selectedHero) && inferredHeroes.includes(saved.selectedHero) ? saved.selectedHero : inferredHeroes[0] ?? 'warden',
-    heroEquipmentLevels: normalizeHeroEquipment(saved?.heroEquipmentLevels ?? saved?.heroLevels),
+    heroEquipmentLevels: normalizeHeroEquipment(saved?.heroEquipmentLevels ?? saved?.heroLevels, playerEquipmentMaxRank(builtMonumentIds)),
     heroMasteryXp: normalizeXp(Object.keys(heroDefinitions) as HeroId[], saved?.heroMasteryXp),
     unlockedHeroes: inferredHeroes.length ? inferredHeroes : ['warden'],
     fortressTier,
@@ -355,12 +364,12 @@ function hydrateSavedProfile(saved: SavedGameProfile | undefined, current: GameP
     unlockedAchievementIds: [...new Set([...unlockedAchievementIds, ...unlockedAchievements(stats)])],
     claimedAchievementIds,
     discoveredEnemies,
-    muted: typeof saved?.muted === 'boolean' ? saved.muted : current.muted,
+    muted: soundPreference(typeof saved?.muted === 'boolean' ? saved.muted : current.muted),
     battleSpeedUnlocked: saved?.battleSpeedUnlocked === true,
     battleSpeed: saved?.battleSpeedUnlocked === true && saved?.battleSpeed === 1.5 ? 1.5 : 1,
     formationSlotPurchases,
     builtMonumentIds,
-    seenTutorialIds: normalizeSeenTutorials(saved?.seenTutorialIds, { clearedStages, clearedChapterTwoStages, unlockedStage, stats, formationSlotPurchases, itemInventory, castleTechLevels }, Boolean(saved)),
+    seenTutorialIds: normalizeSeenTutorials(saved?.seenTutorialIds, { clearedStages, clearedChapterTwoStages, unlockedStage, stats, formationSlotPurchases, itemInventory, castleTechLevels, builtMonumentIds }, Boolean(saved)),
     monumentDeedIds: normalizeMonumentDeeds(saved?.monumentDeedIds, clearedStages, clearedChallenges),
   };
 }
@@ -547,7 +556,7 @@ export const useGameStore = create<GameProfile>()(
         const state = get();
         if (!state.unlockedUnits.includes(id)) return false;
         const level = state.equipmentLevels[id][slot];
-        if (level >= 5) return false;
+        if (level >= playerEquipmentMaxRank(state.builtMonumentIds)) return false;
         const cost = equipmentCost(troopDefinitions[id], level);
         if (state.gold < cost) return false;
         set({ gold: state.gold - cost, equipmentLevels: {
@@ -576,7 +585,7 @@ export const useGameStore = create<GameProfile>()(
         const state = get();
         if (!state.unlockedHeroes.includes(id)) return false;
         const level = state.heroEquipmentLevels[id][slot];
-        if (level >= 5) return false;
+        if (level >= playerEquipmentMaxRank(state.builtMonumentIds)) return false;
         const cost = equipmentCost(heroDefinitions[id], level);
         if (state.gold < cost) return false;
         set({ gold: state.gold - cost, heroEquipmentLevels: {
@@ -718,7 +727,7 @@ export const useGameStore = create<GameProfile>()(
       purchaseBattleSpeed: () => {
         const state = get();
         if (state.battleSpeedUnlocked) return true;
-        if (!state.clearedStages.includes(BATTLE_SPEED_LICENSE.unlockStage) || state.gems < BATTLE_SPEED_LICENSE.cost) return false;
+        if (state.gems < BATTLE_SPEED_LICENSE.cost) return false;
         set({
           gems: state.gems - BATTLE_SPEED_LICENSE.cost,
           battleSpeedUnlocked: true,
@@ -758,7 +767,11 @@ export const useGameStore = create<GameProfile>()(
         set({ battleSpeed: state.battleSpeed === 1 ? BATTLE_SPEED_LICENSE.speed : 1 });
         return true;
       },
-      toggleMuted: () => set((state) => ({ muted: !state.muted })),
+      toggleMuted: () => {
+        const muted = !get().muted;
+        try { localStorage.setItem(SOUND_PREFERENCE_KEY, String(muted)); } catch { /* Keep the session setting when storage is unavailable. */ }
+        set({ muted });
+      },
       exportSave: () => JSON.stringify({
         format: SAVE_EXPORT_FORMAT,
         version: SAVE_EXPORT_VERSION,
@@ -783,6 +796,7 @@ export const useGameStore = create<GameProfile>()(
       },
       resetProgress: () => set({
         ...defaults,
+        muted: get().muted,
         equipmentLevels: emptyUnitEquipment(), unitMasteryXp: emptyUnitXp(),
         heroEquipmentLevels: emptyHeroEquipment(), heroMasteryXp: emptyHeroXp(),
         castleTechLevels: emptyCastleTech(), stats: emptyStats(),

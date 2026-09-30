@@ -1,3 +1,4 @@
+import { playerEquipmentMaxRank } from '../data/equipment';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { heroDefinitions, heroOrder } from '../data/units';
 import { gameFeatures, heroTrainingPackages, isGameFeatureUnlocked } from '../data/features';
@@ -70,6 +71,7 @@ export function HeroHall({ header }: { header: ReactNode }) {
     }
   }, [focusedHeroId]);
   const gold = useGameStore((state) => state.gold);
+  const equipmentMaxRank = useGameStore((state) => playerEquipmentMaxRank(state.builtMonumentIds));
   const clearedStages = useGameStore((state) => state.clearedStages);
   const selectedHero = useGameStore((state) => state.selectedHero);
   const unlockedHeroes = useGameStore((state) => state.unlockedHeroes);
@@ -172,12 +174,12 @@ export function HeroHall({ header }: { header: ReactNode }) {
                   <div><dt>부활</dt><dd><GrowthStat current={respawnMs / 1000} base={hero.respawnMs / 1000} /></dd></div>
                   <div><dt>유효 사거리</dt><dd>{attackRangeLabel(stats)}</dd></div>
                 </dl>
-                {unlocked && <div className="equipment-list hero-equipment-list">
+                {unlocked && <div className="equipment-list hero-equipment-list" data-tour="hero-equipment">
                   {equipmentSlots.map((slot) => {
                     const level = equipment[slot.id];
                     const cost = equipmentCost(hero, level);
-                    return <GameButton key={slot.id} disabled={level >= 5 || gold < cost} onClick={() => upgradeEquipment(id, slot.id)}>
-                      <i>{slot.icon}</i><span><b>{slot.name} +{level}</b><small>{equipmentEffect(hero, slot.id)}</small></span><em>{level >= 5 ? '최대' : `● ${cost}`}</em>
+                    return <GameButton key={slot.id} disabled={level >= equipmentMaxRank || gold < cost} onClick={() => upgradeEquipment(id, slot.id)}>
+                      <i>{slot.icon}</i><span><b>{slot.name} +{level}</b><small>{equipmentEffect(hero, slot.id)}</small></span><em>{level >= equipmentMaxRank ? '최대' : `● ${cost}`}</em>
                     </GameButton>;
                   })}
                 </div>}
