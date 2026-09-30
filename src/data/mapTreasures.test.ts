@@ -7,10 +7,11 @@ describe('campaign map treasure placement', () => {
     for (const treasure of mapTreasures) {
       const regionStart = treasure.regionBossStage - 5;
       const storyPositions = Array.from({ length: 6 }, (_, index) => campaignMapStagePosition(regionStart + index));
-      const guardianDistance = Math.min(...storyPositions.map((position) => Math.hypot(treasure.guardianX - position.x, treasure.guardianY - position.y)));
-      const chestDistance = Math.min(...storyPositions.map((position) => Math.hypot(treasure.x - position.x, treasure.y - position.y)));
-      expect(guardianDistance).toBeGreaterThan(220);
-      expect(chestDistance).toBeGreaterThan(220);
+      // Compact placement must separate the 150px objective footprints on at least one axis.
+      for (const position of storyPositions) {
+        expect(Math.max(Math.abs(treasure.guardianX - position.x), Math.abs(treasure.guardianY - position.y))).toBeGreaterThan(150);
+        expect(Math.max(Math.abs(treasure.x - position.x), Math.abs(treasure.y - position.y))).toBeGreaterThan(150);
+      }
       expect(Math.hypot(treasure.x - treasure.guardianX, treasure.y - treasure.guardianY)).toBeLessThan(220);
     }
   });

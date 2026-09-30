@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { battleMobilizationTuning, castleBattleStats, mobilizationCommandCost, rallyCommandTuning } from '../data/castle';
 import { troopDefinitions, unitGradeLabels } from '../data/units';
 import { getStage } from '../data/stages';
+import { chapterTwoStages } from '../data/chapterTwo';
 import { applyFormationItem, applyFortressItems } from '../game/items';
 import { itemDefinitions } from '../data/items';
 import { BattleEvent, battleEvents } from '../game/EventBus';
@@ -15,6 +16,9 @@ import { Localized } from '../shared/i18n/Localized';
 import { t } from '../shared/i18n/i18n';
 import { CharacterSprite } from './CharacterSprite';
 import { GameModal } from './GameModal';
+import { FortressAbilities } from './FortressAbilities';
+import { BattleTutorial } from './BattleTutorial';
+import { GameButton } from './GameButton';
 
 interface BattleViewProps {
   stageId: number;
@@ -23,6 +27,7 @@ interface BattleViewProps {
 }
 
 const initialHud: BattleHudState = {
+  supplyCooldownMs: 0, trapCooldownMs: 0, trapRemainingMs: 0, trapArmingMs: 0,
   command: 70, maxCommand: 200, playerCastleHp: 1800, playerCastleMaxHp: 1800,
   enemyHp: 1, enemyMaxHp: 1, enemyName: '적 성채', heroHp: 520, heroMaxHp: 520,
   heroRespawnMs: 0, heroSkillCooldownMs: 0, spawnCooldowns: {}, elapsedMs: 0,
@@ -57,7 +62,7 @@ export function BattleView({ stageId, onResult, onExit }: BattleViewProps) {
   const heroEquipmentLevel = useGameStore((state) => state.heroEquipmentLevels[state.selectedHero]);
   const heroMasteryXp = useGameStore((state) => state.heroMasteryXp[state.selectedHero]);
   const castleTechLevels = useGameStore((state) => state.castleTechLevels);
-  const triumphMonumentLevel = useGameStore((state) => state.triumphMonumentLevel);
+  const builtMonumentIds = useGameStore((state) => state.builtMonumentIds);
   const muted = useGameStore((state) => state.muted);
   const toggleMuted = useGameStore((state) => state.toggleMuted);
   const battleSpeedUnlocked = useGameStore((state) => state.battleSpeedUnlocked);
@@ -70,6 +75,15 @@ export function BattleView({ stageId, onResult, onExit }: BattleViewProps) {
     if (!nextMuted) void musicEngine.unlock();
   };
   const [hud, setHud] = useState(initialHud);
+  const [battleReady, setBattleReady] = useState(false);
+  const [tourReplayRequest, setTourReplayRequest] = useState(0);
+  const [tourActive, setTourActive] = useState(false);
+  const pauseActionsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!hud.paused || tourActive) return;
+    const frame = requestAnimationFrame(() => pauseActionsRef.current?.querySelector<HTMLButtonElement>('button')?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [hud.paused, tourActive]);
   const [exitConfirmationOpen, setExitConfirmationOpen] = useState(false);
   const stage = getStage(stageId);
   const battleCastleStats = applyFortressItems(castleBattleStats(castleTechLevels), fortressItemSlots);
@@ -79,7 +93,7 @@ export function BattleView({ stageId, onResult, onExit }: BattleViewProps) {
   );
 
   useEffect(() => {
-    const onHud = (next: BattleHudState) => setHud(next);
+    const onHud = (next: BattleHudState) => { setHud(next); setBattleReady(true); };
     battleEvents.on(BattleEvent.HUD, onHud);
     battleEvents.on(BattleEvent.RESULT, onResult);
     return () => {
@@ -111,6 +125,8 @@ export function BattleView({ stageId, onResult, onExit }: BattleViewProps) {
       } else if (action.type === 'heroSkill') battleEvents.emit(BattleEvent.SKILL);
       else if (action.type === 'mobilize') battleEvents.emit(BattleEvent.MOBILIZE);
       else if (action.type === 'rally') battleEvents.emit(BattleEvent.RALLY_MODE);
+      else if (action.type === 'supply') battleEvents.emit(BattleEvent.SUPPLY);
+      else if (action.type === 'trap') battleEvents.emit(BattleEvent.TRAP);
       else battleEvents.emit(BattleEvent.PAUSE);
     };
     window.addEventListener('keydown', onKeyDown);
@@ -140,17 +156,18 @@ export function BattleView({ stageId, onResult, onExit }: BattleViewProps) {
         heroEquipmentLevel={heroEquipmentLevel}
         heroMasteryXp={heroMasteryXp}
         castleTechLevels={castleTechLevels}
-        triumphMonumentLevel={triumphMonumentLevel}
+        builtMonumentIds={builtMonumentIds}
         battleSpeed={battleSpeed}
       />
 
       <section className="battle-topbar" aria-label="전투 현황">
-        <div className="fortress-status player-status">
+        <div className="fortress-status player-status" data-tour="battle-fortress">
           <div className="status-row"><span>아군 성채</span><strong>{hud.playerCastleHp}</strong></div>
           <PercentBar value={hud.playerCastleHp} max={hud.playerCastleMaxHp} tone="blue" />
+          <FortressAbilities hud={hud} stats={battleCastleStats} />
         </div>
         <div className="battle-clock">
-          <span className="eyebrow">{t('전장 {stage}', { stage: stageId })}</span>
+          <span className="eyebrow">{stage.chapter === 2 ? t('챕터 2 · 전투 {number}', { number: chapterTwoStages.findIndex((entry) => entry.id === stageId) + 1 }) : t('전장 {stage}', { stage: stageId })}</span>
           <strong>{formatTime(hud.elapsedMs)}</strong>
           <small>{stage.terrain.name}</small>
           <span className="battle-population"><b>아군 {hud.playerUnitCount}</b><b>적군 {hud.enemyUnitCount}</b><i>{hud.framesPerSecond} FPS</i></span>
@@ -166,6 +183,7 @@ export function BattleView({ stageId, onResult, onExit }: BattleViewProps) {
         <div className="hero-command">
           <button
             className="hero-portrait"
+            data-tour="battle-hero"
             onClick={() => battleEvents.emit(BattleEvent.SKILL)}
             disabled={hud.heroHp <= 0 || hud.heroSkillCooldownMs > 0 || hud.paused}
             aria-label={`${hud.heroName} ${hud.heroSkillName} 스킬, 단축키 Q`}
@@ -185,7 +203,7 @@ export function BattleView({ stageId, onResult, onExit }: BattleViewProps) {
           </div>
         </div>
 
-        <div className="command-panel">
+        <div className="command-panel" data-tour="battle-deploy">
           <div className="command-readout">
             <span className="command-gem">✦</span>
             <strong>{hud.command}</strong><span>/ {hud.maxCommand}</span>
@@ -268,11 +286,12 @@ export function BattleView({ stageId, onResult, onExit }: BattleViewProps) {
         </div>
       </div>
 
-      {hud.paused && (
+      {hud.paused && !tourActive && (
         <div className="pause-overlay">
           <span>전투 일시정지</span>
-          <div className="pause-actions">
+          <div className="pause-actions" ref={pauseActionsRef}>
             <button className="primary-button" onClick={pause}>계속하기</button>
+            <GameButton variant="ghost" onClick={() => setTourReplayRequest((value) => value + 1)}>조작 안내</GameButton>
             <button className="battle-exit-button" onClick={() => setExitConfirmationOpen(true)}>전투 이탈</button>
           </div>
         </div>
@@ -290,6 +309,7 @@ export function BattleView({ stageId, onResult, onExit }: BattleViewProps) {
       <div className="sr-only" aria-live="polite">
         영웅 스킬 재사용 대기 {Math.ceil(hud.heroSkillCooldownMs / 1000)}초
       </div>
+      <BattleTutorial ready={battleReady} paused={hud.paused} replayRequest={tourReplayRequest} enabled={!exitConfirmationOpen} onActiveChange={setTourActive} />
     </main>
   )}</Localized>;
 }

@@ -69,6 +69,6 @@ export const CODEX_TOTAL = Object.keys(troopCodex).length + Object.keys(heroCode
 
 export function codexEntryCount(unlockedUnits: UnitId[], unlockedHeroes: HeroId[], encountered: CodexEnemyId[]): number {
   const visibleTroops = new Set<UnitId>(unlockedUnits);
-  for (const id of encountered) if (id !== 'boss') visibleTroops.add(id);
+  for (const id of encountered) if (id in troopDefinitions) visibleTroops.add(id as UnitId);
   return visibleTroops.size + unlockedHeroes.length + (encountered.includes('boss') ? 1 : 0);
 }

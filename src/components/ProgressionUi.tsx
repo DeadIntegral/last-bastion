@@ -1,5 +1,7 @@
 import type { EquipmentSlot, UnitDefinition } from '../types/game';
 import { formatGameNumber, roundGameNumber } from '../shared/number';
+import { combatTerms } from '../shared/combatTerms';
+import { t } from '../shared/i18n/i18n';
 
 export const equipmentSlots: Array<{ id: EquipmentSlot; name: string; icon: string }> = [
   { id: 'weapon', name: '무기', icon: '⚔' },
@@ -8,7 +10,7 @@ export const equipmentSlots: Array<{ id: EquipmentSlot; name: string; icon: stri
 ];
 
 export function equipmentEffect(unit: UnitDefinition, slot: EquipmentSlot): string {
-  if (slot === 'weapon') return `공격력 +${formatGameNumber(unit.equipmentGrowth.attack)}`;
+  if (slot === 'weapon') return t('{stat} +{amount}', { stat: t(combatTerms.power.label), amount: formatGameNumber(unit.equipmentGrowth.attack) });
   if (slot === 'armor') return `체력 +${formatGameNumber(unit.equipmentGrowth.hp)} · 방어 +${formatGameNumber(unit.equipmentGrowth.defense)}`;
   return `이동 속도 +${formatGameNumber(unit.equipmentGrowth.moveSpeed)}`;
 }

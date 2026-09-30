@@ -5,7 +5,10 @@ import App from './App';
 import { OPENING_SCENE_DURATION_MS } from './data/opening';
 import { achievementGroups, achievements } from './data/achievements';
 import { setActiveSaveSlot } from './game/saveSlots';
+import { monumentBuildings } from './data/endgame';
 import { useGameStore } from './store/useGameStore';
+import { totalMasteryXpForLevel } from './game/rules';
+import { heroAwakeningSelfBonuses, heroAwakeningAuras } from './data/mastery';
 
 describe('title and kingdom-map navigation', () => {
   let host: HTMLDivElement;
@@ -63,6 +66,8 @@ describe('title and kingdom-map navigation', () => {
     const heroHallButton = hubButtons.find((button) => button.textContent?.includes('영웅의 전당'))!;
     act(() => heroHallButton.click());
     expect(host.querySelector('.shell-header h1')?.textContent).toBe('영웅의 전당');
+    expect(host.querySelector('.hero-card')).toBeNull();
+    act(() => host.querySelector<HTMLButtonElement>('[data-hero-id="warden"]')!.click());
     expect(host.querySelector('.hero-training-panel.locked')?.textContent).toContain('9장 클리어 시 해금');
     act(() => host.querySelector<HTMLButtonElement>('.back-button')!.click());
     const refreshedHubButtons = [...host.querySelectorAll<HTMLButtonElement>('.map-command-center button')];
@@ -104,6 +109,7 @@ describe('title and kingdom-map navigation', () => {
     const updatedHeroHallButton = [...host.querySelectorAll<HTMLButtonElement>('.map-command-center button')]
       .find((button) => button.textContent?.includes('영웅의 전당'))!;
     act(() => updatedHeroHallButton.click());
+    act(() => host.querySelector<HTMLButtonElement>('[data-hero-id="warden"]')!.click());
     expect(host.querySelector('.hero-training-panel.locked')).toBeNull();
     const fieldDrill = host.querySelector<HTMLButtonElement>('.hero-training-panel .training-packages button')!;
     expect(fieldDrill.textContent).toContain('야전 훈련');
@@ -127,6 +133,52 @@ describe('title and kingdom-map navigation', () => {
     act(() => occupiedSlot.querySelector<HTMLButtonElement>('button.continue')!.click());
     expect(host.querySelector('.shell-header h1')?.textContent).toBe('왕국 지도');
     expect(useGameStore.getState().unlockedStage).toBe(4);
+  });
+
+  it('browses one hero without changing the deployed hero until explicitly selected', () => {
+    act(() => host.querySelector<HTMLButtonElement>('.save-slot-card.empty')!.click());
+    act(() => host.querySelector<HTMLButtonElement>('.opening-skip')!.click());
+    act(() => useGameStore.setState({ unlockedHeroes: ['warden', 'pyromancer'] }));
+    act(() => [...host.querySelectorAll<HTMLButtonElement>('.map-command-center button')].find((button) => button.textContent?.includes('영웅의 전당'))!.click());
+    expect(host.querySelectorAll('.hero-picker-card')).toHaveLength(7);
+    expect(host.querySelector('.hero-card')).toBeNull();
+    act(() => host.querySelector<HTMLButtonElement>('[data-hero-id="pyromancer"]')!.click());
+    expect(host.querySelectorAll('.hero-card')).toHaveLength(1);
+    expect(host.querySelector('.hero-info h3')?.textContent).toBe('셀레네');
+    expect(useGameStore.getState().selectedHero).toBe('warden');
+    act(() => host.querySelector<HTMLButtonElement>('.select-hero')!.click());
+    expect(useGameStore.getState().selectedHero).toBe('pyromancer');
+    act(() => host.querySelector<HTMLButtonElement>('[data-hero-id="warden"]')!.click());
+    expect(host.querySelector('.hero-info h3')?.textContent).toBe('에드릭');
+    expect(useGameStore.getState().selectedHero).toBe('pyromancer');
+    const setMastery = (level: number) => act(() => useGameStore.setState((state) => ({ heroMasteryXp: { ...state.heroMasteryXp, warden: totalMasteryXpForLevel(level) } })));
+    setMastery(9);
+    expect(host.querySelector('.hero-traits')?.textContent).not.toContain(heroAwakeningSelfBonuses.warden.name);
+    expect(host.querySelector('.hero-traits')?.textContent).not.toContain(heroAwakeningAuras.warden.name);
+    expect(host.querySelector('.awakening-aura-active')).toBeNull();
+    setMastery(10);
+    expect(host.querySelectorAll('.awakening-aura-active')).toHaveLength(2);
+    expect(host.querySelector('.awakening-aura-active')?.textContent).toContain('자신 HP +450');
+    expect(host.querySelector('.awakening-aura-active')?.textContent).not.toContain('자신 HP +900');
+    setMastery(20);
+    expect(host.querySelector('.awakening-aura-active')?.textContent).toContain('자신 HP +900');
+  });
+
+  it('reveals the next route only after all unique monuments and keeps unknown foes concealed', () => {
+    act(() => host.querySelector<HTMLButtonElement>('.save-slot-card.empty')!.click());
+    act(() => host.querySelector<HTMLButtonElement>('.opening-skip')!.click());
+    act(() => useGameStore.setState({ clearedStages: [30], unlockedStage: 30, gold: 1_000_000 }));
+    expect(host.querySelector('.veil-campaign-node')).toBeNull();
+    for (const building of monumentBuildings.slice(0, 4)) act(() => { useGameStore.getState().constructMonument(building.id); });
+    expect(host.querySelector('.veil-campaign-node')).toBeNull();
+    expect(host.querySelectorAll('.map-monument')).toHaveLength(4);
+    act(() => { useGameStore.getState().constructMonument(monumentBuildings[4].id); });
+    act(() => [...host.querySelectorAll<HTMLButtonElement>('.map-region-nav button')].at(-1)!.click());
+    expect(host.querySelectorAll('.campaign-map')).toHaveLength(1);
+    expect(host.querySelector('.veil-mission-detail')).not.toBeNull();
+    expect(host.querySelector('.veil-enemies')?.textContent).not.toContain('공허 방벽');
+    act(() => host.querySelectorAll<HTMLButtonElement>('.veil-campaign-node')[1].click());
+    expect(host.querySelector<HTMLButtonElement>('.veil-mission-detail button')?.disabled).toBe(true);
   });
 
   it('removes an equipped troop from the persistent formation strip across faction filters', () => {

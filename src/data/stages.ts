@@ -1,3 +1,4 @@
+import { chapterTwoStages } from './chapterTwo';
 import type { EnemyFaction, StageDefinition, TerrainEffect, UnitId } from '../types/game';
 import { troopDefinitions } from './units';
 
@@ -611,4 +612,5 @@ export const getStage = (id: number) => stages.find((stage) => stage.id === id)
   ?? challengeStages.find((stage) => stage.id === id)
   ?? treasureStages.find((stage) => stage.id === id)
   ?? farmingStages.find((stage) => stage.id === id)
+  ?? chapterTwoStages.find((stage) => stage.id === id)
   ?? stages[0];

@@ -1,4 +1,5 @@
-import { bossCombatTuning, bossDefinition, troopDefinitions } from '../data/units';
+import { bossCombatTuning, bossDefinition } from '../data/units';
+import { enemyDefinitions } from '../data/enemies';
 import { MIN_FORTRESS_DISTANCE } from '../data/stages';
 import type { EquipmentLevels, StageDefinition, UnitDefinition } from '../types/game';
 import { applyEnemyTerrain, upgradedStats } from './rules';
@@ -61,8 +62,8 @@ export function estimateUnitThreat(unit: UnitDefinition): number {
     * rangeMultiplier * patternMultiplier(unit) * traitMultiplier * commitmentMultiplier * deadZoneMultiplier;
 }
 
-function enemyDeploymentThreat(id: keyof typeof troopDefinitions, equipment: EquipmentLevels, stage: StageDefinition): number {
-  const unit = upgradedStats(troopDefinitions[id], equipment);
+function enemyDeploymentThreat(id: keyof typeof enemyDefinitions, equipment: EquipmentLevels, stage: StageDefinition): number {
+  const unit = upgradedStats(enemyDefinitions[id], equipment);
   return estimateUnitThreat(applyEnemyTerrain(unit, stage.terrain)) * unit.squadSize;
 }
 
@@ -90,7 +91,7 @@ export function analyzeStageDifficulty(stage: StageDefinition): DifficultyBreakd
     ? stage.reinforcement.unitIds.reduce(
       // maxAlive is a body cap rather than a deployment cap, so squad size must
       // not be multiplied here a second time.
-      (total, id) => total + estimateUnitThreat(applyEnemyTerrain(upgradedStats(troopDefinitions[id], equipment), stage.terrain)),
+      (total, id) => total + estimateUnitThreat(applyEnemyTerrain(upgradedStats(enemyDefinitions[id], equipment), stage.terrain)),
       0,
     ) / stage.reinforcement.unitIds.length
       * stage.reinforcement.maxAlive
@@ -100,7 +101,7 @@ export function analyzeStageDifficulty(stage: StageDefinition): DifficultyBreakd
 
   let elite = 0;
   for (const eliteGuard of stage.eliteGuards ?? []) {
-    const definition = applyEnemyTerrain(upgradedStats(troopDefinitions[eliteGuard.unitId], equipment), stage.terrain);
+    const definition = applyEnemyTerrain(upgradedStats(enemyDefinitions[eliteGuard.unitId], equipment), stage.terrain);
     const eliteUnit: UnitDefinition = {
       ...definition,
       maxHp: definition.maxHp * eliteGuard.hpMultiplier,
@@ -116,7 +117,7 @@ export function analyzeStageDifficulty(stage: StageDefinition): DifficultyBreakd
 
   let boss = 0;
   if (stage.boss) {
-    const baseBoss = stage.bossUnitId ? troopDefinitions[stage.bossUnitId] : bossDefinition;
+    const baseBoss = stage.bossUnitId ? enemyDefinitions[stage.bossUnitId] : bossDefinition;
     const definition = applyEnemyTerrain(upgradedStats(baseBoss, equipment), stage.terrain);
     const modifiers = stage.bossModifiers ?? { hpMultiplier: 1, attackMultiplier: 1, stompCadenceMultiplier: 1 };
     const bossUnit: UnitDefinition = {

@@ -23,6 +23,10 @@ describe('item effects', () => {
     expect(resolved.maxHp).toBe(Math.round(base.maxHp * 1.2));
     expect(resolved.startingCommand).toBe(base.startingCommand + 50);
     expect(resolved.maxCommand).toBe(base.maxCommand + 100);
+    expect(applyFortressItems(base, ['guardian-keystone', 'guardian-keystone']).maxHp).toBe(Math.round(base.maxHp * 1.2 * 1.2));
+    const doubledSeal = applyFortressItems(base, ['quartermaster-seal', 'quartermaster-seal']);
+    expect(doubledSeal.startingCommand).toBe(base.startingCommand + 100);
+    expect(doubledSeal.maxCommand).toBe(base.maxCommand + 200);
     expect(applyFortressItems(base, ['starfire-lens']).bombardDamage).toBe(Math.round(base.bombardDamage * 1.25));
     expect(applyFortressItems(base, ['starfire-lens']).bombardRange).toBe(base.bombardRange + 150);
     expect(applyFortressItems(base, ['bastion-heart']).maxHp).toBe(Math.round(base.maxHp * 1.3));

@@ -3,6 +3,14 @@ import type { UnitDefinition } from '../types/game';
 export type AttackMotionStyle = 'slash' | 'thrust' | 'shoot' | 'cast' | 'breath' | 'crush' | 'lunge';
 export type ProjectileVisualStyle = 'arrow' | 'magicOrb' | 'magicSpear' | 'poisonBreath' | 'bomb' | 'siege';
 
+// The spear's local origin is its leading tip; the wake ends this far behind it.
+export const MAGIC_SPEAR_REAR_EXTENT = 103;
+
+export function magicSpearRevealScale(progress: number, flightDistance: number): number {
+  const phase = Math.max(0, Math.min(1, progress));
+  return Math.min(1 + Math.sin(phase * Math.PI) * 0.1, Math.max(0, flightDistance) * phase / MAGIC_SPEAR_REAR_EXTENT);
+}
+
 export interface AttackMotionPose {
   shoulderAngle: number;
   elbowAngle: number;

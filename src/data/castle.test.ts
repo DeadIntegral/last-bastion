@@ -112,8 +112,8 @@ describe('castle technology tree', () => {
     expect(fortressTierDefinitions[3].promotionCost).toBe(2_500);
   });
 
-  it('provides twenty-six five-rank nodes gated by fortress tier', () => {
-    expect(castleTechOrder).toHaveLength(26);
+  it('provides twenty-eight five-rank nodes gated by fortress tier', () => {
+    expect(castleTechOrder).toHaveLength(28);
     expect(castleTechOrder.every((id) => castleTechDefinitions[id].maxLevel === 5)).toBe(true);
     const levels = emptyCastleTech();
     levels.command_vault = 2;

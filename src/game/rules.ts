@@ -1,6 +1,6 @@
 import { battleMobilizationTuning, fortressDeploymentTuning, mobilizationCommandCost } from '../data/castle';
 import { deadZoneRetreatTuning, knockbackResistanceTuning } from '../data/combat';
-import { triumphMonumentBonuses } from '../data/endgame';
+import { triumphMonumentBonuses, type MonumentBuildingId } from '../data/endgame';
 import { HERO_AWAKENING_COOLDOWN_REDUCTION_MS, HERO_AWAKENING_LEVELS, HERO_MASTERY_MAX_LEVEL, SOLDIER_MASTERY_MAX_LEVEL, battleMasteryTuning, heroAwakeningAuras, heroAwakeningSelfBonuses, heroMasteryGrowth, soldierMasteryGrowth, type MasteryStatGrowth } from '../data/mastery';
 import type { BattleSpeed, EquipmentLevels, HeroDefinition, HeroId, MasteryContribution, Side, StageDefinition, TerrainEffect, UnitDefinition, UnitId } from '../types/game';
 
@@ -274,7 +274,7 @@ export function canReceiveRallyOrder(
 
 export function masteryStatGrowth(definition: UnitDefinition): MasteryStatGrowth {
   if (definition.tags.includes('hero')) return heroMasteryGrowth[definition.id as HeroId];
-  if (definition.tags.includes('boss')) return { hp: 0, attack: 0 };
+  if (definition.enemyOnly || definition.tags.includes('boss')) return { hp: 0, attack: 0 };
   return soldierMasteryGrowth[definition.id as UnitId];
 }
 
@@ -339,7 +339,7 @@ export function upgradedStats(definition: UnitDefinition, equipment: number | Eq
     : equipment;
   const growth = definition.equipmentGrowth;
   const isHero = definition.tags.includes('hero');
-  const isSoldier = !definition.tags.includes('hero') && !definition.tags.includes('boss');
+  const isSoldier = !definition.enemyOnly && !definition.tags.includes('hero') && !definition.tags.includes('boss');
   const masteryCap = isHero ? HERO_MASTERY_MAX_LEVEL : SOLDIER_MASTERY_MAX_LEVEL;
   const masteryRanks = Math.max(0, Math.min(masteryCap, masteryLevel) - 1);
   const masteryGrowth = masteryStatGrowth(definition);
@@ -362,8 +362,8 @@ export function upgradedStats(definition: UnitDefinition, equipment: number | Eq
   };
 }
 
-export function applyTriumphMonumentStats(definition: UnitDefinition, level: number): UnitDefinition {
-  const bonuses = triumphMonumentBonuses(level);
+export function applyTriumphMonumentStats(definition: UnitDefinition, builtIds: readonly MonumentBuildingId[]): UnitDefinition {
+  const bonuses = triumphMonumentBonuses(builtIds);
   return {
     ...definition,
     maxHp: Math.round(definition.maxHp * bonuses.combatantHpMultiplier),

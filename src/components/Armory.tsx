@@ -1,4 +1,4 @@
-import { useState, type DragEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react';
 import { battleFormationCapacity } from '../data/economy';
 import { soldierMasteryGrowth } from '../data/mastery';
 import { allTroopOrder, rosterFactionById, rosterFactionLabels, troopDefinitions, unitFamilyById, unitFamilyLabels, unitGradeLabels, unitGradeStars, type RosterFaction } from '../data/units';
@@ -19,6 +19,21 @@ const factionMarks: Record<RosterFaction | 'all', string> = {
 const unitGrades: UnitGrade[] = [1, 2, 3, 4, 5];
 
 export function Armory({ header }: { header: ReactNode }) {
+  const screenRef = useRef<HTMLElement>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const formationRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (typeof ResizeObserver === 'undefined') return;
+    const update = () => {
+      screenRef.current?.style.setProperty('--armory-toolbar-height', `${toolbarRef.current?.getBoundingClientRect().height ?? 97}px`);
+      screenRef.current?.style.setProperty('--armory-formation-height', `${formationRef.current?.getBoundingClientRect().height ?? 118}px`);
+    };
+    const observer = new ResizeObserver(update);
+    if (toolbarRef.current) observer.observe(toolbarRef.current);
+    if (formationRef.current) observer.observe(formationRef.current);
+    update();
+    return () => observer.disconnect();
+  }, []);
   const equipmentLevels = useGameStore((state) => state.equipmentLevels);
   const unlockedUnits = useGameStore((state) => state.unlockedUnits);
   const equippedUnits = useGameStore((state) => state.equippedUnits);
@@ -154,7 +169,7 @@ export function Armory({ header }: { header: ReactNode }) {
           {unlocked ? <>
             <div className="mastery-line"><b>숙련 LV.{mastery.level}</b><span>{mastery.requiredXp ? `${mastery.currentXp}/${mastery.requiredXp} XP` : '최대'}</span></div>
             <div className="mastery-track"><i style={{ width: mastery.requiredXp ? `${mastery.currentXp / mastery.requiredXp * 100}%` : '100%' }} /></div>
-            <div className="mastery-benefit"><b>레벨당 고정 성장</b><span>HP +{soldierMasteryGrowth[id].hp} · 공격 +{soldierMasteryGrowth[id].attack}</span></div>
+            <div className="mastery-benefit"><b>레벨당 고정 성장</b><span>{t('HP +{hp} · 위력 +{power}', { hp: soldierMasteryGrowth[id].hp, power: soldierMasteryGrowth[id].attack })}</span></div>
             <div className="unit-deployment-traits"><span>1회 배치 <b>{stats.squadSize}명{equipmentCapstone && !statEquipmentCapstone ? ' (+1)' : ''}</b></span><span>공격 방식 <b>{attackPatternLabel(unit)}</b></span><span>유효 사거리 <b>{attackRangeLabel(unit)}</b></span>{spacingTraitLabel(unit) && <span>기동 특성 <b>{spacingTraitLabel(unit)}</b></span>}{guardProtectionLabel(unit) && <span>수호 특성 <b>{guardProtectionLabel(unit)}</b></span>}{stats.healingPower && <span>치유 <b>{stats.healingPower} · 사거리 {stats.healingRange}</b></span>}{unit.maxActivePerSide && <span>전장 제한 <b>진영당 {unit.maxActivePerSide}명</b></span>}{unit.grade === 5 && <span>지휘 분류 <b>5성 초월 병종</b></span>}</div>
             <dl>
               <div><dt>생명력</dt><dd><GrowthStat current={stats.maxHp} base={unit.maxHp} /></dd></div>
@@ -172,7 +187,7 @@ export function Armory({ header }: { header: ReactNode }) {
                   ? `장비 하나를 5단계까지 강화 · 완성 시 1명 유지 · ${closestCapstoneLevel}/5`
                   : `장비 하나를 5단계까지 강화 · ${closestCapstoneLevel}/5`}</small></div>
             </div>
-            <div className="equipment-list">
+            <div className="equipment-list" data-tour="equipment">
             {equipmentSlots.map((slot) => {
               const level = equipment[slot.id];
               const cost = equipmentCost(unit, level);
@@ -188,9 +203,9 @@ export function Armory({ header }: { header: ReactNode }) {
   };
 
   return <Localized>{(
-    <main className="panel-screen armory-screen">
+    <main className="panel-screen armory-screen" ref={screenRef}>
       {header}
-      <div className="armory-browser-toolbar">
+      <div className="armory-browser-toolbar" ref={toolbarRef}>
         <div className="armory-view-switch" role="group" aria-label="병영 보기 방식">
           <GameButton variant="filter" size="small" active={armoryView === 'focus'} onClick={() => setArmoryView('focus')}>집중 보기 <small>선택한 병종 상세</small></GameButton>
           <GameButton variant="filter" size="small" active={armoryView === 'cards'} onClick={() => setArmoryView('cards')}>전체 카드 <small>한 번에 비교</small></GameButton>
@@ -211,7 +226,7 @@ export function Armory({ header }: { header: ReactNode }) {
         <div><span className="eyebrow">왕국 병영</span><h2>병사 장비고</h2></div>
         <p>조우한 적 병종은 성채 티어에 맞는 영입 허가가 필요합니다. 보유 병종 중 최대 {formationCapacity}종을 편성하고 성장시키세요.</p>
       </section>
-      <section className="formation-strip">
+      <section className="formation-strip" data-tour="formation" ref={formationRef}>
         <div><span className="eyebrow">출전 부대</span><strong>현재 편성 {equippedUnits.length}/{formationCapacity}</strong><small>보유 유닛을 슬롯으로 드래그하거나, 유닛 선택 후 슬롯을 누르세요.</small></div>
         <div className="formation-dnd-slots">{formationSlots.map((id, index) => (
           <div className={`formation-dnd-slot ${dragOverSlot === index ? 'drag-over' : ''} ${id ? 'occupied' : 'empty'}`} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; setDragOverSlot(index); }} onDragLeave={() => setDragOverSlot((current) => current === index ? null : current)} onDrop={(event) => dropUnit(event, index)} key={index}>
@@ -223,7 +238,7 @@ export function Armory({ header }: { header: ReactNode }) {
         ))}</div>
       </section>
       {armoryView === 'focus' ? <div className="armory-focus-layout">
-        <div className="unit-compact-grid" aria-label="병종 목록">
+        <div className="unit-compact-grid" aria-label="병종 목록" data-tour="roster">
           {visibleRoster.map((id) => {
             const { unit, unlocked, known, canRecruit, tierLocked, status } = unitPresentation(id);
             return <GameButton
@@ -244,13 +259,13 @@ export function Armory({ header }: { header: ReactNode }) {
           })}
         </div>
         {detailUnitId ? <aside className="armory-detail-sticky" aria-label="선택한 병종 상세">{renderUnitCard(detailUnitId)}</aside> : <aside className="armory-detail-empty">선택한 조건에 해당하는 확인 병종이 없습니다.</aside>}
-      </div> : <div className="unit-grid card-view">
+      </div> : <div className="unit-grid card-view" data-tour="roster">
         {visibleRoster.map(renderUnitCard)}
         {visibleRoster.length === 0 && <p className="armory-empty-filter">선택한 조건에 해당하는 확인 병종이 없습니다.</p>}
       </div>}
       <GameButton variant="danger" size="small" className="reset-button" onClick={() => setConfirmReset(true)}>진행 데이터 초기화</GameButton>
       {notice && <div className="toast" role="status">{notice}</div>}
-      {confirmReset && <GameModal eyebrow="RESET PROFILE" title="모든 진행도를 초기화할까요?" tone="danger" onClose={() => setConfirmReset(false)} actions={<><GameButton variant="ghost" className="modal-button secondary" data-autofocus onClick={() => setConfirmReset(false)}>취소</GameButton><GameButton variant="danger" className="modal-button danger" onClick={() => { resetProgress(); setConfirmReset(false); }}>모든 기록 초기화</GameButton></>}>
+      {confirmReset && <GameModal eyebrow="원정 기록 초기화" title="모든 진행도를 초기화할까요?" tone="danger" onClose={() => setConfirmReset(false)} actions={<><GameButton variant="ghost" className="modal-button secondary" data-autofocus onClick={() => setConfirmReset(false)}>취소</GameButton><GameButton variant="danger" className="modal-button danger" onClick={() => { resetProgress(); setConfirmReset(false); }}>모든 기록 초기화</GameButton></>}>
         <p>금화, 보석, 장비, 숙련도, 영웅, 성채 기술과 스테이지 진행이 모두 처음 상태로 돌아갑니다. 이 작업은 되돌릴 수 없습니다.</p>
       </GameModal>}
     </main>

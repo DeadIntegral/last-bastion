@@ -47,7 +47,52 @@ Fortress growth research has two independent tier-2 roots in one branch: each `�
 | 전술 교습 | 1,000 | 500 | 2.00 |
 | 왕실 전수 | 2,500 | 1,500 | 1.67 |
 
-The `승전 기념비` is revealed only after campaign stage 30 is cleared. It has 20 persistent levels and costs `5,000 + current level × 2,500` Gold, producing the sequence 5,000 / 7,500 / … / 52,500 and a total completion cost of 575,000 Gold. Each level applies only to the player side: all soldiers and heroes gain +1% maximum HP, attack, and healing power, while the player fortress gains +150 maximum HP. The maximum effect is +20% combatant HP/attack/healing and +3,000 fortress HP. It does not strengthen active hero-skill formulas, enemy forces, or the offline campaign difficulty estimate.
+Monument construction unlocks after Chapter 1 battle 30. Each of the five buildings has an individual fixed price and additive effects, independent of construction order. Player-facing shared vocabulary is Allied HP (soldiers and heroes), Allied Power (basic attack and ordinary healing), and Fortress HP. Power does not alter hero active skill formulas or fortress abilities.
+
+| Monument | Base Gold | Allied HP | Allied Power | Fortress HP |
+|---|---:|---:|---:|---:|
+| Beacon of Liberation | 3,000 | +6% | +4% | +600 |
+| Kingdom Hero Statue | 5,000 | +4% | +7% | +600 |
+| Alliance Oathstone | 8,000 | +5% | +4% | +1,200 |
+| Spirit Sanctuary | 12,000 | +8% | +4% | +700 |
+| Continental Victory Arch | 18,000 | +4% | +8% | +900 |
+| All five | 46,000 | +27% | +27% | +4,000 |
+
+The four existing deeds each grant a 5% discount on each building's own price, capped at 20%. Fully discounted prices are 2,400 / 4,000 / 6,400 / 9,600 / 14,400, totaling 36,800. The base total is reduced from 575,000 to 46,000 (92%) to remove the excessive repeat-battle requirement. The first building costs one stage-30 base victory reward. From zero savings, all five cost ten stage-303 victories at 5,000 base Gold, or eight with maximum Spoils Accounting (6,250 each); with all deeds and maximum research, six wins cover the budget. These are funding comparisons, not assumed player savings or guaranteed clear counts. Individual effects, the +27% HP/Power and +4,000 Fortress HP total, and deed rules remain unchanged. Built IDs remain authoritative; existing purchases receive no retrospective refund, and legacy migration is unchanged. The new route remains an earned discovery, never an advance UI promise.
+
+### Fortress tactical abilities
+
+Both abilities are unlocked by five-rank tier-2 research and start ready in each battle. They consume no Gold or Command on activation, do not grant mastery merely for pressing a button, and do not increment the artillery-only career statistic. Cooldowns and trap lifetime use scaled battle time and stop when paused; only research ranks persist.
+
+| Research | Prerequisite | Rank costs | Rank 1-5 effect | Cooldown |
+|---|---|---|---|---|
+| Emergency Supply | Logistics 2 | 350 / 700 / 1,050 / 1,400 / 1,750 | Immediately restore 100 / 120 / 140 / 160 / 180 Command | 45 s |
+| Central Trap | Wide Blast 2 | 450 / 900 / 1,350 / 1,800 / 2,250 | 300 / 400 / 500 / 600 / 700 ground damage | 30 s |
+
+Supply clips at current maximum Command, including mobilization changes; a full meter or locked ability neither activates nor consumes cooldown. The trap is fixed halfway between fortress coordinates for the current encounter. It arms for 1 s and exists for 25 s total including arming. The first living ground enemy within 110 units triggers a single blast against every living ground enemy in that radius. Damage subtracts defense with a minimum of one, ignores intervening directional guards, and cannot hit allies, flying units, or fortresses. An unused trap expires without damage and cannot be stacked. The fixed visual and existing ground-impact pool create no per-activation Phaser effects. These are player command tools rather than enemy-fortress modifiers, so the enemy-pressure estimator remains unchanged.
+
+### Chapter 2 frontier balance
+
+Six independent campaign encounters (401-406) retain a 1,390-unit route and equipment +5/+5/+5, with no enemy mastery. Fortress HP is 150,000 / 165,000 / 185,000 / 205,000 / 225,000 / 230,000. Fortress fire has range 340, interval 2.5 s, and damage 155 / 165 / 175 / 185 / 195 / 205. Repeat Gold is 3,500 / 4,000 / 4,500 / 5,000 / 5,500 / 6,000; first-clear bonus Gold is 6,000 / 7,000 / 8,000 / 9,000 / 10,000 / 11,000. Normal growth research applies. Item pools remain the final-region pool, with normal/boss chances of 30%/60% before research. Chapter 1 farms retain their authored rewards and remain available.
+
+| Encounter | Reinforcement start / interval | Living regular cap | Pressure / Chapter 1 finale |
+|---|---|---:|---:|
+| 401 | 36 s / 5.2 s | 8 | 1.32 |
+| 402 | 36 s / 5.3 s | 9 | 1.50 |
+| 403 | 36 s / 5.6 s | 9 | 1.73 |
+| 404 | 36 s / 5.8 s | 10 | 1.95 |
+| 405 | 36 s / 6.0 s | 11 | 2.12 |
+| 406 | 8 s / 7.5 s garrison | 5 | 2.94 |
+
+| Exclusive enemy | Base HP / ATK / DEF | Range / dead zone | Cycle / windup | Role |
+|---|---|---|---|---|
+| Void Sentinel | 6,500 / 260 / 18 | 55 / 0 | 2.4 s / 0.85 s | ground guard, stops pierce, rear multiplier 0.15, cleave 0.70 |
+| Rift Arbalest | 3,600 / 420 / 4 | 285 / 95 | 2.8 s / 1.1 s | two-target magic pierce, follow-through 165, multiplier 0.80 |
+| Null Cantor | 4,800 / 190 / 7 | 220 / 75 | 2.4 s / 0.85 s | heal 260/range 250; ground burst radius 82/max 4, multiplier 0.70, warning 1.2 s |
+| Dusk Executioner | 11,000 / 650 / 12 | 70 / 0 | 2.8 s / 1.2 s | large ground cleave, multiplier 0.75 |
+| Veil Regent | 45,000 / 500 / 18 | 90 / 0 | 3.0 s / 1.3 s | large boss cleave 0.85, shared phase/stomp behavior |
+
+Every exclusive enemy has one body and no star grade or recruit path. Each equipment rank adds 300 HP, 20 ATK/healing, 1 defense and 1 movement speed; +5 therefore adds 1,500 HP / 100 ATK / 5 DEF / 5 movement, with no soldier equipment capstone. Base movement is 18 / 26 / 26 / 22 / 19 respectively. The final Regent has neutral stage modifiers and must be killed alongside its fortress; the fortress stops its garrison on destruction. `scripts/chapter-two.test.ts` protects monotonic pressure, an entrance above 1.3 times the Chapter 1 finale, adjacent increases below 1.4, and enemy-only progression isolation. These are offline pressure checks, not a guarantee for every player formation.
 
 ## 2. Shared troop base stats
 
@@ -264,9 +309,9 @@ Expansion troops created through `makeTroop` derive readable fixed growth once a
 
 Victory drop chances before research are normal campaign 30%, campaign boss 60%, treasure guardian 45%, ordinary farm 50%, beast challenge 65%, and post-finale farm 80%. The eligible pool is region 1 material through stage 12, regions 1–2 from stage 13, and all three regions from stage 25; a successful roll selects uniformly within that cumulative pool. One victory grants at most one item and defeat grants none. Inventory counts clamp to 99 per ID.
 
-Formation items apply after equipment, mastery, and Victory Monument troop resolution and affect every body created by that one deployment without multiplying Command cost or squad size. Items remain on numbered slots when troops move. Fortress effects resolve after technology stats; only two different fortress items may be active. An item ID can occupy only one slot, so duplicate drops are crafting stock rather than a way to repeat the same multiplier across the whole formation. Crafting consumes only unequipped ingredients. Every crafted result uses one slot, retains both ingredient roles, and strictly exceeds each ingredient's corresponding values; the slot compression is intentionally valuable but bounded by recipe milestones and repeated drop acquisition. Full-set engraving remains a separate Planned system.
+Formation items apply after equipment, mastery, and Victory Monument troop resolution and affect every body created by that one deployment without multiplying Command cost or squad size. Items remain on numbered slots when troops move. Fortress effects resolve after technology stats; two fortress copies may be active, including the same ID twice when two copies are owned. Each formation slot can independently use an owned copy of the same item. The existing per-slot formulas also apply to duplicates: fortress percentage multipliers multiply and flat bonuses add (two Guardian Keystones give HP ×1.44; two Bastion Hearts give HP ×1.69; two Quartermaster Seals give +100 starting/+200 maximum Command). Crafting consumes only unequipped ingredients. Every crafted result uses one slot, retains both ingredient roles, and strictly exceeds each ingredient's corresponding values; the slot compression is intentionally valuable but bounded by recipe milestones and repeated drop acquisition. Full-set engraving remains a separate Planned system.
 
-The item-aware pressure audit treats a single-slot item as a bounded fraction of the whole formation and checks representative drop/craft power at the next progression step. Current pressure steps are approximately 4→5 ×1.15, 8→9 ×1.18, 12→13 ×1.074, 18→19 ×1.123, 24→25 ×1.09, and 30→303 ×1.612. Each exceeds its representative power floor plus a 1% safety margin. Stage 13 receives 1,500 additional enemy-fortress HP over its prior curve and stage 14 receives 500 to prevent the stage-12 War Hero Standard recipe from flattening the new-region opening; stage 25 retains its additional 1,400 HP for the Command-seal transition.
+The item-aware pressure audit checks representative single-copy drop/craft power at the next progression step; it is not a difficulty guarantee for repeated farming that equips duplicate copies across the formation or both fortress slots. Duplicate-copy loadouts are intentionally allowed; item values and encounter stats remain unchanged. Current pressure steps are approximately 4→5 ×1.15, 8→9 ×1.18, 12→13 ×1.074, 18→19 ×1.123, 24→25 ×1.09, and 30→303 ×1.612. Each exceeds its representative power floor plus a 1% safety margin. Stage 13 receives 1,500 additional enemy-fortress HP over its prior curve and stage 14 receives 500 to prevent the stage-12 War Hero Standard recipe from flattening the new-region opening; stage 25 retains its additional 1,400 HP for the Command-seal transition.
 - Soldier mastery maximum: level 50. Hero mastery maximum: level 30.
 - XP for next mastery level: `round(45 × level^1.32)`.
 - Mastery uses character-specific flat gains. At level `L`, add `(L - 1) × listed gain` to canonical HP and ATK before adding equipment.
@@ -363,12 +408,12 @@ Each awakening rank also enables one level of a nearby-allied aura: Edric gives 
 - The rule is faction-symmetric. When the enemy fortress reaches zero HP, its remaining rear defenders immediately become valid targets. Challenge bosses receive no enemy-fortress shield because challenges contain no enemy fortress. Campaign bosses and named elite guards retain their forward authored spawn points.
 - This increases the tactical value of fortress durability and provides a recovery window after an army is pushed back. It changes engagement geometry but no unit stat, reward, cost, or authored campaign-pressure input.
 
-Fortress research has five ranks per node. Rank cost is `baseCost × (currentRank + 1)`, so every node has a readable five-step arithmetic sequence. Twenty-six nodes across five implemented branches—Command, Growth, Defense, Artillery, and Expedition—provide 130 total purchasable research ranks.
+Fortress research has five ranks per node. Rank cost is `baseCost × (currentRank + 1)`, so every node has a readable five-step arithmetic sequence. Twenty-eight nodes across five implemented branches—Command, Growth, Defense, Artillery, and Expedition—provide 140 total purchasable research ranks.
 
 | Fortress tier | Promotion requirement | Promotion cost | New permits |
 |---:|---:|---:|---|
 | 1 · 변경 요새 | starting | 0 | ten foundation nodes; kingdom regular troops |
-| 2 · 왕립 성채 | 8 total research ranks | 1,000 | ten tier-2 nodes; Raider, Bulwark, and Royal Cavalry recruitment |
+| 2 · 왕립 성채 | 8 total research ranks | 1,000 | twelve tier-2 nodes; Raider, Bulwark, and Royal Cavalry recruitment |
 | 3 · 최후의 보루 | 24 total research ranks | 2,500 | six tier-3 nodes; Crossbow and Griffin Rider recruitment |
 
 - Promotion requirements count ranks purchased across all branches.
@@ -380,6 +425,7 @@ Fortress research has five ranks per node. Rank cost is `baseCost × (currentRan
 |---|---:|---|---:|---|---|
 | Command | 1 | 전쟁 금고 | 100 | starting Command +25 | — |
 | Command | 1 | 보급로 | 150 | regeneration +2.5/s | 전쟁 금고 1 |
+| Command | 2 | 긴급 보급 | 350 | Z: 100 Command at rank 1, +20 per further rank; 45 s cooldown | 보급로 2 |
 | Command | 1 | 지휘 저장고 | 200 | maximum Command +40 | 보급로 1 |
 | Command | 2 | 상비군 훈련소 | 250 | summon cooldown -5% | 지휘 저장고 2 |
 | Command | 2 | 군수 표준화 | 300 | soldier Command cost -3% | 지휘 저장고 3 |
@@ -397,6 +443,7 @@ Fortress research has five ranks per node. Rank cost is `baseCost × (currentRan
 | Artillery | 1 | 흑색 화약 | 100 | bombardment damage +45 | — |
 | Artillery | 1 | 신속 장전 | 150 | cooldown -3 s | 흑색 화약 1 |
 | Artillery | 1 | 광역 탄두 | 200 | radius +20 | 흑색 화약 2 |
+| Artillery | 2 | 중앙 함정 | 450 | X: 300 ground damage at rank 1, +100 per further rank; 30 s cooldown | 광역 탄두 2 |
 | Artillery | 2 | 마수 관통탄 | 300 | bombardment boss damage +70 | 광역 탄두 2 |
 | Artillery | 3 | 공성 계산학 | 450 | direct enemy-fortress bombardment damage +60; bombardment range +80 | 마수 관통탄 3 |
 | Expedition | 1 | 집결 신호 | 150 | ordinary-soldier rally control; redeploy cooldown -2 s | — |
@@ -408,7 +455,7 @@ Fortress research has five ranks per node. Rank cost is `baseCost × (currentRan
 - Summon cooldown reduction is capped at 25% through the five available ranks.
 - `승전 공납제` raises the base 3 Command per normal kill to 3.5/4.0/4.5/5.0/5.5 across ranks 1–5. A three-body low-tier deployment therefore refunds 9 Command at base or 16.5 at maximum research rather than the former 18/33, preventing kill chains from largely financing the next deployment. Fractional gains remain in simulation state and the HUD floors only the displayed stored Command.
 - `재생 석재` restores 10/20/30/40/50 fortress HP per second across ranks 1–5, clamped to the current maximum HP. The effect is continuous, elapsed-time based, and shown in the fortress summary.
-- `심층 기초 보강` grants 1,500/3,000/4,500/6,000/7,500 HP for 400/800/1,200/1,600/2,000 Gold. `불락의 성벽핵` grants 3,000/6,000/9,000/12,000/15,000 HP plus 12/24/36/48/60 flat reduction for 800/1,600/2,400/3,200/4,000 Gold. With `강화 성벽` and `석재 장갑` maxed, defense research resolves to 25,550 base HP and 75 flat reduction; `재생 석재` sustains 50 HP/s. Stage 30 reaches 27,580 HP before the Victory Monument and 30,580 at monument rank 20.
+- `심층 기초 보강` grants 1,500/3,000/4,500/6,000/7,500 HP for 400/800/1,200/1,600/2,000 Gold. `불락의 성벽핵` grants 3,000/6,000/9,000/12,000/15,000 HP plus 12/24/36/48/60 flat reduction for 800/1,600/2,400/3,200/4,000 Gold. With `강화 성벽` and `석재 장갑` maxed, defense research resolves to 25,550 base HP and 75 flat reduction; `재생 석재` sustains 50 HP/s. Stage 30 reaches 27,580 HP before the Victory Monument and 31,580 with all five monuments.
 - Soldier Command-cost reduction is capped at 15% through the five `군수 표준화` ranks. Effective cost is `min(per-unit cap, max(10, ceil(authored Command × 1.10 × (1 - 0.03 × rank))))`; the battle card, affordability check, actual deduction, and efficiency audit all use this same value. The default cap is 200, while Continental Alliance Guardian explicitly uses 300 and falls to 281 at rank 5.
 - Watchtower interval is floored at 900 ms, and bombardment cooldown is floored at 16 seconds.
 - Bombardment has a 1,000-unit base targeting range measured from the player fortress. `공성 계산학` adds 80 per rank, reaching 1,400 at rank 5; out-of-range ground enemies and fortresses cannot be selected, and an invalid activation spends neither cooldown nor use count.

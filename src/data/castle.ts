@@ -1,5 +1,6 @@
 import type { CastleBattleStats, CastleTechDefinition, CastleTechId, FortressTier, FortressTierDefinition } from '../types/game';
 import { battleDeploymentTuning } from './combat';
+import { fortressSkillTuning } from './fortressSkills';
 
 export const battleMobilizationTuning = {
   name: '전시 동원령',
@@ -48,6 +49,7 @@ export const fortressResearchTuning = {
 } as const;
 
 export const castleTechOrder: CastleTechId[] = [
+  'emergency_supply', 'central_trap',
   'war_coffers', 'logistics', 'command_vault', 'drill_yard', 'supply_standardization', 'spoils_accounting', 'field_manuals', 'loot_recovery', 'war_tithe',
   'fortified_walls', 'stone_plating', 'reinforced_foundations', 'citadel_core', 'watchtower', 'battlements', 'mending_stone',
   'black_powder', 'rapid_reload', 'wide_blast', 'giantbreaker_shells', 'siege_calculus',
@@ -55,6 +57,8 @@ export const castleTechOrder: CastleTechId[] = [
 ];
 
 export const castleTechDefinitions: Record<CastleTechId, CastleTechDefinition> = {
+  emergency_supply: { id: 'emergency_supply', branch: 'command', name: '긴급 보급', description: '지휘력을 즉시 회복하는 보급 신호 · 회복량 증가', icon: '✦', maxLevel: 5, baseCost: 350, requiredTier: 2, prerequisite: { id: 'logistics', level: 2 } },
+  central_trap: { id: 'central_trap', branch: 'artillery', name: '중앙 함정', description: '전장 중앙에 지상 적을 노리는 폭발 함정 설치 · 피해 증가', icon: '⌖', maxLevel: 5, baseCost: 450, requiredTier: 2, prerequisite: { id: 'wide_blast', level: 2 } },
   war_coffers: { id: 'war_coffers', branch: 'command', name: '전쟁 금고', description: '전투 시작 지휘력 +25', icon: '✦', maxLevel: 5, baseCost: 100, requiredTier: 1 },
   logistics: { id: 'logistics', branch: 'command', name: '보급로', description: '초당 지휘력 회복 +2.5', icon: '↟', maxLevel: 5, baseCost: 150, requiredTier: 1, prerequisite: { id: 'war_coffers', level: 1 } },
   command_vault: { id: 'command_vault', branch: 'command', name: '지휘 저장고', description: '최대 지휘력 +40', icon: '◇', maxLevel: 5, baseCost: 200, requiredTier: 1, prerequisite: { id: 'logistics', level: 1 } },
@@ -143,6 +147,8 @@ export function castleTechPrerequisiteStatus(id: CastleTechId, levels: Record<Ca
 
 export function castleBattleStats(levels: Record<CastleTechId, number>): CastleBattleStats {
   return {
+    emergencySupplyAmount: (levels.emergency_supply ?? 0) > 0 ? fortressSkillTuning.supply.baseAmount + levels.emergency_supply * fortressSkillTuning.supply.amountPerRank : 0,
+    centralTrapDamage: (levels.central_trap ?? 0) > 0 ? fortressSkillTuning.trap.baseDamage + levels.central_trap * fortressSkillTuning.trap.damagePerRank : 0,
     startingCommand: 70 + levels.war_coffers * 25,
     commandRegen: 10 + levels.logistics * 2.5,
     maxCommand: 200 + levels.command_vault * 40,

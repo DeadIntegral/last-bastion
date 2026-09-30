@@ -8,7 +8,8 @@ export const UNIT_IDS = [
   'allianceGuardian',
 ] as const;
 export type UnitId = typeof UNIT_IDS[number];
-export type EnemyId = UnitId;
+export type ExclusiveEnemyId = 'voidSentinel' | 'riftArbalest' | 'nullCantor' | 'duskExecutioner' | 'veilRegent';
+export type EnemyId = UnitId | ExclusiveEnemyId;
 export type CodexEnemyId = EnemyId | 'boss';
 export type EnemyFaction = 'betrayers' | 'goblins' | 'orcs' | 'monsters' | 'demons' | 'spirits' | 'mixed';
 export type UnitFamily = 'kingdom' | 'betrayer' | 'goblin' | 'orc' | 'ogre' | 'beast' | 'spirit' | 'demon';
@@ -16,6 +17,7 @@ export type UnitGrade = 1 | 2 | 3 | 4 | 5;
 export type HeroId = 'warden' | 'pyromancer' | 'huntress' | 'saint' | 'marshal' | 'orcChampion' | 'windSpirit';
 export type FortressTier = 1 | 2 | 3;
 export type CastleTechId =
+  | 'emergency_supply' | 'central_trap'
   | 'war_coffers' | 'logistics' | 'command_vault' | 'drill_yard' | 'supply_standardization' | 'spoils_accounting' | 'field_manuals' | 'loot_recovery' | 'war_tithe'
   | 'fortified_walls' | 'stone_plating' | 'reinforced_foundations' | 'citadel_core' | 'watchtower' | 'battlements' | 'mending_stone'
   | 'black_powder' | 'rapid_reload' | 'wide_blast' | 'giantbreaker_shells' | 'siege_calculus'
@@ -52,6 +54,7 @@ export type ItemTarget = 'formation' | 'fortress';
 export type MapTreasureId = 'western-reliquary' | 'capital-vault' | 'highland-cache' | 'tundra-sanctum' | 'rift-treasury';
 
 export interface UnitDefinition {
+  enemyOnly?: boolean;
   id: UnitId | EnemyId | HeroId | 'boss';
   name: string;
   cost: number;
@@ -115,6 +118,7 @@ export interface WaveEntry {
 }
 
 export interface StageDefinition {
+  chapter?: 1 | 2;
   id: number;
   name: string;
   subtitle: string;
@@ -130,7 +134,7 @@ export interface StageDefinition {
   terrain: TerrainEffect;
   boss?: boolean;
   bossName?: string;
-  bossUnitId?: UnitId;
+  bossUnitId?: EnemyId;
   challenge?: boolean;
   sideMission?: boolean;
   farmingKind?: 'gold' | 'mastery';
@@ -194,6 +198,10 @@ export interface FirstClearReward {
 }
 
 export interface BattleHudState {
+  supplyCooldownMs: number;
+  trapCooldownMs: number;
+  trapRemainingMs: number;
+  trapArmingMs: number;
   command: number;
   maxCommand: number;
   playerCastleHp: number;
@@ -256,6 +264,7 @@ export interface BattleResult {
     hero: MasteryContribution;
   };
   newAchievements?: string[];
+  newMonumentDeeds?: string[];
   masteryGains?: Array<{ id: UnitId | HeroId; amount: number; kind: 'unit' | 'hero'; participationAmount?: number; contributionAmount?: number }>;
   firstClearReward?: FirstClearReward;
 }
@@ -332,6 +341,8 @@ export interface FortressTierDefinition {
 }
 
 export interface CastleBattleStats {
+  emergencySupplyAmount: number;
+  centralTrapDamage: number;
   startingCommand: number;
   commandRegen: number;
   maxCommand: number;

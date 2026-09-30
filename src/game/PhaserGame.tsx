@@ -1,3 +1,4 @@
+import type { MonumentBuildingId } from '../data/endgame';
 import { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
 import { getStage } from '../data/stages';
@@ -15,11 +16,11 @@ interface PhaserGameProps {
   heroEquipmentLevel: EquipmentLevels;
   heroMasteryXp: number;
   castleTechLevels: Record<CastleTechId, number>;
-  triumphMonumentLevel: number;
+  builtMonumentIds: readonly MonumentBuildingId[];
   battleSpeed: BattleSpeed;
 }
 
-export function PhaserGame({ stageId, equipmentLevels, equippedUnits, unitItems, fortressItems, unitMasteryXp, heroId, heroEquipmentLevel, heroMasteryXp, castleTechLevels, triumphMonumentLevel, battleSpeed }: PhaserGameProps) {
+export function PhaserGame({ stageId, equipmentLevels, equippedUnits, unitItems, fortressItems, unitMasteryXp, heroId, heroEquipmentLevel, heroMasteryXp, castleTechLevels, builtMonumentIds, battleSpeed }: PhaserGameProps) {
   const gameRef = useRef<Phaser.Game | null>(null);
   const parentRef = useRef<HTMLDivElement>(null);
   const initialBattleSpeedRef = useRef(battleSpeed);
@@ -35,7 +36,7 @@ export function PhaserGame({ stageId, equipmentLevels, equippedUnits, unitItems,
       backgroundColor: '#111928',
       scene: [new BattleScene(
         getStage(stageId), equipmentLevels, equippedUnits, unitItems, fortressItems, unitMasteryXp, heroId,
-        heroEquipmentLevel, heroMasteryXp, castleTechLevels, triumphMonumentLevel, initialBattleSpeedRef.current,
+        heroEquipmentLevel, heroMasteryXp, castleTechLevels, builtMonumentIds, initialBattleSpeedRef.current,
       )],
       render: { antialias: true, pixelArt: false, roundPixels: false },
       scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
@@ -47,7 +48,7 @@ export function PhaserGame({ stageId, equipmentLevels, equippedUnits, unitItems,
       gameRef.current?.destroy(true);
       gameRef.current = null;
     };
-  }, [stageId, equipmentLevels, equippedUnits, unitItems, fortressItems, unitMasteryXp, heroId, heroEquipmentLevel, heroMasteryXp, castleTechLevels, triumphMonumentLevel]);
+  }, [stageId, equipmentLevels, equippedUnits, unitItems, fortressItems, unitMasteryXp, heroId, heroEquipmentLevel, heroMasteryXp, castleTechLevels, builtMonumentIds]);
 
   return <div className="phaser-host" ref={parentRef} aria-label="전투 화면" />;
 }

@@ -1,7 +1,13 @@
+import type { MonumentBuildingId } from '../data/endgame';
 import Phaser from 'phaser';
+import { BattleText } from './battleText';
+import { FortressTrapVisual } from './FortressTrapVisual';
+import { advanceFortressTactics, armCentralTrap, centralTrapCanTrigger, centralTrapHits, createFortressTacticsState, emergencySupplyCommand } from './fortressTactics';
+import { fortressSkillTuning } from '../data/fortressSkills';
+import { enemyDefinitions } from '../data/enemies';
 import { musicEngine } from '../audio/music';
 import { battleBackgroundDefinitions, battleBackgroundForTerrain } from '../data/backgroundArt';
-import { CHARACTER_ART_FRAME_HEIGHT, CHARACTER_ART_FRAME_WIDTH, characterArtFrameIndex, characterArtFrames, characterArtSheet, characterArtSheets, characterBattleOffsetY, TRANSCENDENT_BATTLE_ART_SCALE, type CharacterArtId } from '../data/characterArt';
+import { CHARACTER_ART_FRAME_HEIGHT, CHARACTER_ART_FRAME_WIDTH, characterArtFrameIndex, characterArtFrames, characterArtSheet, characterArtSheets, characterStandaloneArt, characterBattleOffsetY, TRANSCENDENT_BATTLE_ART_SCALE, type CharacterArtId } from '../data/characterArt';
 import { battleMobilizationTuning, castleBattleStats, mobilizationCommandCost, rallyCommandTuning, soldierCommandCost } from '../data/castle';
 import { deadZoneRetreatTuning, fortressCombatGeometry } from '../data/combat';
 import { triumphMonumentBonuses } from '../data/endgame';
@@ -11,7 +17,7 @@ import { allTroopOrder, bossCombatTuning, bossDefinition, heroDefinitions, troop
 import { t } from '../shared/i18n/i18n';
 import type { BattleHudState, BattleSpeed, CastleBattleStats, CastleTechId, CodexEnemyId, EnemyId, EquipmentLevels, HeroDefinition, HeroId, ItemId, MasteryContribution, Side, StageDefinition, UnitDefinition, UnitId } from '../types/game';
 import { BattleEvent, battleEvents } from './EventBus';
-import { attackMotionDurationMs, attackMotionStyle, createAttackMotionPose, projectileVisualStyle, sampleAttackMotion, type AttackMotionPose, type AttackMotionStyle, type ProjectileVisualStyle } from './combatMotion';
+import { attackMotionDurationMs, attackMotionStyle, createAttackMotionPose, magicSpearRevealScale, projectileVisualStyle, sampleAttackMotion, type AttackMotionPose, type AttackMotionStyle, type ProjectileVisualStyle } from './combatMotion';
 import { applyFormationItem, applyFortressItems } from './items';
 import { resolveDirectionalTargets, resolveGroundBurstTargets, resolvePierceTargets, type LaneTargetAccess } from './combatTargeting';
 import {
@@ -214,14 +220,14 @@ export class BattleScene extends Phaser.Scene {
   private heroId: HeroId;
   private heroMasteryLevel: number;
   private heroAura: HeroAuraValues;
-  private triumphMonumentLevel: number;
+  private builtMonumentIds: readonly MonumentBuildingId[];
   private castleStats: CastleBattleStats;
   private fortressItemHpMultiplier = 1;
   private hudUnitCosts: Partial<Record<UnitId, number>>;
   private units: CombatUnit[] = [];
   private unitsById = new Map<number, CombatUnit>();
   private livingSoldierCounts: Record<Side, number> = { player: 0, enemy: 0 };
-  private livingUnitCounts: Record<Side, Partial<Record<UnitId, number>>> = { player: {}, enemy: {} };
+  private livingUnitCounts: Record<Side, Partial<Record<EnemyId, number>>> = { player: {}, enemy: {} };
   private pendingUnitRemovalIds = new Set<number>();
   private attackTargetBuffer: CombatUnit[] = [];
   private strikeEffects: PooledStrikeEffect[] = [];
@@ -294,6 +300,10 @@ export class BattleScene extends Phaser.Scene {
   private playerCastleBar!: Phaser.GameObjects.Rectangle;
   private enemyBar!: Phaser.GameObjects.Rectangle;
   private mist!: Phaser.GameObjects.TileSprite;
+  private readableText!: BattleText;
+  private readonly fortressTactics = createFortressTacticsState();
+  private trapVisual?: FortressTrapVisual;
+  private trapX = 0;
 
   constructor(
     stage: StageDefinition,
@@ -306,19 +316,20 @@ export class BattleScene extends Phaser.Scene {
     heroEquipmentLevel: EquipmentLevels,
     heroMasteryXp: number,
     castleTechLevels: Record<CastleTechId, number>,
-    triumphMonumentLevel: number,
+    builtMonumentIds: readonly MonumentBuildingId[],
     battleSpeed: BattleSpeed,
   ) {
     super({ key: 'BattleScene' });
     this.stageDefinition = stage;
     this.enemyCastleX = PLAYER_CASTLE_X + stage.fortressDistance;
+    this.trapX = PLAYER_CASTLE_X + stage.fortressDistance * fortressSkillTuning.trap.positionRatio;
     this.equipmentLevels = equipmentLevels;
     this.equippedUnits = equippedUnits;
     this.unitItems = unitItems;
     this.unitMasteryXp = unitMasteryXp;
     this.battleSpeed = battleSpeed;
     this.heroId = heroId;
-    this.triumphMonumentLevel = triumphMonumentLevel;
+    this.builtMonumentIds = builtMonumentIds;
     const baseCastleStats = castleBattleStats(castleTechLevels);
     this.castleStats = applyFortressItems(baseCastleStats, fortressItems);
     this.fortressItemHpMultiplier = this.castleStats.maxHp / baseCastleStats.maxHp;
@@ -332,7 +343,7 @@ export class BattleScene extends Phaser.Scene {
     }
     const trainedHero = applyTriumphMonumentStats(
       upgradedStats(baseHero, heroEquipmentLevel, this.heroMasteryLevel),
-      triumphMonumentLevel,
+      builtMonumentIds,
     );
     this.heroDefinition = {
       ...baseHero,
@@ -347,6 +358,9 @@ export class BattleScene extends Phaser.Scene {
   }
 
   preload(): void {
+    for (const art of Object.values(characterStandaloneArt)) {
+      if (!this.textures.exists(art.textureKey)) this.load.svg(art.textureKey, art.url);
+    }
     for (const art of Object.values(battleBackgroundDefinitions)) {
       if (!this.textures.exists(art.textureKey)) this.load.image(art.textureKey, art.url);
     }
@@ -370,12 +384,14 @@ export class BattleScene extends Phaser.Scene {
     this.playerCastleMaxHp = Math.round((
       this.castleStats.maxHp / this.fortressItemHpMultiplier
       + Math.max(0, campaignProgressStage - 1) * 70
-      + triumphMonumentBonuses(this.triumphMonumentLevel).fortressHpBonus
+      + triumphMonumentBonuses(this.builtMonumentIds).fortressHpBonus
     ) * this.fortressItemHpMultiplier);
     this.playerCastleHp = this.playerCastleMaxHp;
+    this.readableText = new BattleText(this);
     this.drawWorld();
     this.ensureCombatTextures();
     this.createEffectPools();
+    if (this.castleStats.centralTrapDamage > 0) this.trapVisual = new FortressTrapVisual(this, this.readableText, this.trapX, GROUND_Y + 18);
     this.createRallyFlag();
     this.time.timeScale = this.battleSpeed;
     this.tweens.timeScale = this.battleSpeed;
@@ -383,7 +399,7 @@ export class BattleScene extends Phaser.Scene {
     if (!this.stageDefinition.challenge) this.drawCastle(this.enemyCastleX, false);
     if (this.stageDefinition.boss) {
       this.encounteredEnemies.add(this.stageDefinition.bossUnitId ?? 'boss');
-      const baseBoss = this.stageDefinition.bossUnitId ? troopDefinitions[this.stageDefinition.bossUnitId] : bossDefinition;
+      const baseBoss = this.stageDefinition.bossUnitId ? enemyDefinitions[this.stageDefinition.bossUnitId] : bossDefinition;
       const trainedBoss = applyEnemyTerrain(upgradedStats(
         baseBoss,
         this.stageDefinition.enemyUpgrades.equipment,
@@ -414,6 +430,8 @@ export class BattleScene extends Phaser.Scene {
     battleEvents.off(BattleEvent.SPAWN);
     battleEvents.off(BattleEvent.SKILL);
     battleEvents.off(BattleEvent.CASTLE_SKILL);
+    battleEvents.off(BattleEvent.SUPPLY);
+    battleEvents.off(BattleEvent.TRAP);
     battleEvents.off(BattleEvent.MOBILIZE);
     battleEvents.off(BattleEvent.RALLY_MODE);
     battleEvents.off(BattleEvent.RALLY_CLEAR);
@@ -422,6 +440,8 @@ export class BattleScene extends Phaser.Scene {
     battleEvents.on(BattleEvent.SPAWN, this.handleSpawn, this);
     battleEvents.on(BattleEvent.SKILL, this.activateHeroSkill, this);
     battleEvents.on(BattleEvent.CASTLE_SKILL, this.activateCastleSkill, this);
+    battleEvents.on(BattleEvent.SUPPLY, this.activateEmergencySupply, this);
+    battleEvents.on(BattleEvent.TRAP, this.activateCentralTrap, this);
     battleEvents.on(BattleEvent.MOBILIZE, this.activateMobilization, this);
     battleEvents.on(BattleEvent.RALLY_MODE, this.toggleRallyTargeting, this);
     battleEvents.on(BattleEvent.RALLY_CLEAR, this.clearRallyOrder, this);
@@ -445,6 +465,7 @@ export class BattleScene extends Phaser.Scene {
     this.flushUnitRemovals();
     const safeDelta = scaledBattleDelta(delta, this.battleSpeed);
     this.elapsed += safeDelta;
+    advanceFortressTactics(this.fortressTactics, safeDelta);
     this.command = regenerateCommand(this.command, safeDelta, this.castleStats.maxCommand, this.castleStats.commandRegen);
     if (this.castleStats.castleRegenPerSecond > 0 && this.playerCastleHp < this.playerCastleMaxHp) {
       this.playerCastleHp = Math.min(this.playerCastleMaxHp, this.playerCastleHp + this.castleStats.castleRegenPerSecond * safeDelta / 1000);
@@ -482,6 +503,7 @@ export class BattleScene extends Phaser.Scene {
     }
 
     if (this.bossAwake && this.boss?.alive) this.updateBoss(safeDelta);
+    this.updateCentralTrap();
     this.updateWatchtower(safeDelta);
     this.updateEnemyFortressAttack(safeDelta);
     this.flushUnitRemovals();
@@ -533,9 +555,10 @@ export class BattleScene extends Phaser.Scene {
       .setTint(background?.mistTint ?? 0xbfd9e3);
 
     this.drawCastle(PLAYER_CASTLE_X, true);
-    const title = this.add.text(WORLD_WIDTH / 2, 28, this.stageDefinition.name, {
+    const title = this.readableText.create(WORLD_WIDTH / 2, 28, t(this.stageDefinition.name), {
       fontFamily: 'Pretendard Variable, system-ui, sans-serif', fontSize: '17px', fontStyle: 'bold', color: '#e8d8b0', letterSpacing: 3,
-    }).setOrigin(0.5);
+      wordWrap: { width: WORLD_WIDTH - 160, useAdvancedWrap: true }, align: 'center',
+    }).setOrigin(0.5, 0);
     title.setShadow(0, 2, '#000000', 4);
   }
 
@@ -572,7 +595,7 @@ export class BattleScene extends Phaser.Scene {
     const finial = this.add.circle(0, -66, 5, 0xf3dc91).setStrokeStyle(2, 0xffffff, 0.45);
     const pennant = this.add.triangle(17, -50, 0, 0, 36, 8, 0, 20, 0x4aa8bf, 0.96)
       .setStrokeStyle(2, 0xc7f5ff, 0.75);
-    const label = this.add.text(0, 34, t('집결'), {
+    const label = this.readableText.create(0, 34, t('집결'), {
       fontFamily: 'Pretendard Variable, system-ui, sans-serif', fontSize: '12px', color: '#d9fbff',
       backgroundColor: '#10232dcc', padding: { x: 7, y: 3 },
     }).setOrigin(0.5, 0);
@@ -603,20 +626,21 @@ export class BattleScene extends Phaser.Scene {
     const artId = definition.id === 'boss' ? undefined : definition.id as CharacterArtId;
     const sheet = artId ? characterArtSheet(artId) : undefined;
     const frame = artId ? characterArtFrames[artId] : undefined;
+    const standalone = artId ? characterStandaloneArt[artId] : undefined;
     const artOffsetY = artId ? characterBattleOffsetY(artId) : 0;
-    const fallbackBackdrop = frame && sheet ? [] : [
+    const fallbackBackdrop = (frame && sheet) || standalone ? [] : [
       this.add.circle(0, 0, size, definition.color).setStrokeStyle(hero || boss || eliteName ? 3 : 2, definition.accent, 0.9),
       this.add.circle(-size * 0.2, -size * 0.25, size * 0.42, definition.accent, 0.3),
     ];
     const artScale = definition.grade === 5 ? TRANSCENDENT_BATTLE_ART_SCALE : 1;
-    const portrait = artId && frame && sheet
-      ? this.add.image(0, -size * 0.12 + artOffsetY, sheet.textureKey, characterArtFrameIndex(artId))
+    const portrait = artId && ((frame && sheet) || standalone)
+      ? this.add.image(0, -size * 0.12 + artOffsetY, standalone?.textureKey ?? sheet!.textureKey, standalone ? undefined : characterArtFrameIndex(artId))
         .setDisplaySize(size * 3.25 * artScale, size * 3.4 * artScale)
         .setFlipX(side === 'enemy')
       : this.add.text(0, -1, definition.icon, {
         fontFamily: 'Georgia, serif', fontSize: `${Math.max(15, size)}px`, color: '#f8f1df', fontStyle: 'bold',
       }).setOrigin(0.5);
-    const portraitHalfHeight = artId && frame && sheet ? size * 1.7 * artScale : size;
+    const portraitHalfHeight = artId && ((frame && sheet) || standalone) ? size * 1.7 * artScale : size;
     const defaultHealthBarY = boss ? -Math.max(size + 11, portraitHalfHeight + 8) : -size - 11;
     const healthBarY = artOffsetY < 0
       ? Math.min(defaultHealthBarY, -size * 0.12 + artOffsetY - portraitHalfHeight - 8)
@@ -643,19 +667,20 @@ export class BattleScene extends Phaser.Scene {
     this.units.push(unit);
     this.unitsById.set(unit.id, unit);
     if (!hero && !boss) {
-      const id = definition.id as UnitId;
+      const id = definition.id as EnemyId;
       this.livingSoldierCounts[side] += 1;
       this.livingUnitCounts[side][id] = (this.livingUnitCounts[side][id] ?? 0) + 1;
     }
     if (boss) {
-      this.add.text(x, container.y + healthBarY * baseScale - 24, t('경계 중'), {
+      this.readableText.create(x, container.y + healthBarY * baseScale - 24, t('경계 중'), {
         fontFamily: 'Pretendard Variable, system-ui, sans-serif', fontSize: '14px', color: '#d7c2b5', backgroundColor: '#171521aa', padding: { x: 10, y: 5 },
-      }).setOrigin(0.5).setName('boss-status');
+      }).setOrigin(0.5, 1).setName('boss-status');
     }
     if (eliteName) {
-      const banner = this.add.text(0, -size - 24, eliteName, {
+      const banner = this.readableText.create(0, -size - 24, t(eliteName), {
         fontFamily: 'Pretendard Variable, system-ui, sans-serif', fontSize: '12px', color: '#ffd49b', backgroundColor: '#281b20cc', padding: { x: 7, y: 3 },
-      }).setOrigin(0.5);
+        wordWrap: { width: 280, useAdvancedWrap: true }, align: 'center',
+      }).setOrigin(0.5, 1);
       container.add(banner);
     }
     return unit;
@@ -670,7 +695,7 @@ export class BattleScene extends Phaser.Scene {
     const mastery = masteryLevelFromXp(this.unitMasteryXp[id] ?? 0).level;
     const definition = applyFormationItem(applyTriumphMonumentStats(
       upgradedStats(base, this.equipmentLevels[id] ?? 0, mastery),
-      this.triumphMonumentLevel,
+      this.builtMonumentIds,
     ), this.unitItems[id]);
     if (!base || this.command < commandCost || (this.spawnCooldowns[id] ?? 0) > 0 || capacity <= 0) return;
     this.command -= commandCost;
@@ -707,7 +732,7 @@ export class BattleScene extends Phaser.Scene {
   private spawnEnemySquad(id: EnemyId, capacity = Number.POSITIVE_INFINITY): void {
     this.encounteredEnemies.add(id);
     const definition = applyEnemyTerrain(upgradedStats(
-      troopDefinitions[id],
+      enemyDefinitions[id],
       this.stageDefinition.enemyUpgrades.equipment,
     ), this.stageDefinition.terrain);
     const unitCapacity = unitDeploymentCapacity(definition, this.activeUnitCount('enemy', id));
@@ -719,7 +744,7 @@ export class BattleScene extends Phaser.Scene {
     this.flashAt(fortressRearSpawnX('enemy', this.enemyCastleX), GROUND_Y, 0xff8b86);
   }
 
-  private activeUnitCount(side: Side, id: UnitId): number {
+  private activeUnitCount(side: Side, id: EnemyId): number {
     return this.livingUnitCounts[side][id] ?? 0;
   }
 
@@ -731,7 +756,7 @@ export class BattleScene extends Phaser.Scene {
 
   private spawnEliteGuard(elite: NonNullable<StageDefinition['eliteGuards']>[number]): void {
     this.encounteredEnemies.add(elite.unitId);
-    const trained = applyEnemyTerrain(upgradedStats(troopDefinitions[elite.unitId], this.stageDefinition.enemyUpgrades.equipment), this.stageDefinition.terrain);
+    const trained = applyEnemyTerrain(upgradedStats(enemyDefinitions[elite.unitId], this.stageDefinition.enemyUpgrades.equipment), this.stageDefinition.terrain);
     const definition: UnitDefinition = {
       ...trained,
       name: elite.name,
@@ -1053,7 +1078,7 @@ export class BattleScene extends Phaser.Scene {
     if (attacker.definition.tags.includes('ranged')) {
       const projectileEnd = rearTargets.at(-1);
       this.launchPooledProjectileTo(
-        attacker.container.x,
+        this.projectileMuzzleX(attacker),
         attacker.container.y - 5,
         projectileEnd?.container.x ?? castleX + (targetsEnemyCastle ? -35 : 35),
         projectileEnd ? projectileEnd.container.y - 4 : GROUND_Y - 85,
@@ -1100,7 +1125,7 @@ export class BattleScene extends Phaser.Scene {
       ? attacker.container.x + direction * (attacker.definition.attackRange + attacker.definition.size)
       : lockedTargetX;
     this.launchPooledProjectileTo(
-      attacker.container.x,
+      this.projectileMuzzleX(attacker),
       attacker.container.y - 5,
       endpointX,
       lockedGroundY - 4,
@@ -1387,7 +1412,7 @@ export class BattleScene extends Phaser.Scene {
     unit.alive = false;
     this.unitsById.delete(unit.id);
     if (!unit.isHero && !unit.isBoss) {
-      const id = unit.definition.id as UnitId;
+      const id = unit.definition.id as EnemyId;
       this.livingSoldierCounts[unit.side] = Math.max(0, this.livingSoldierCounts[unit.side] - 1);
       this.livingUnitCounts[unit.side][id] = Math.max(0, (this.livingUnitCounts[unit.side][id] ?? 0) - 1);
     }
@@ -1670,6 +1695,43 @@ export class BattleScene extends Phaser.Scene {
     this.emitHud();
   }
 
+  private activateEmergencySupply(): void {
+    if (this.ended || this.isPaused) return;
+    const before = this.command;
+    this.command = emergencySupplyCommand(this.fortressTactics, this.command, this.castleStats.maxCommand, this.castleStats.emergencySupplyAmount);
+    if (this.command === before) return;
+    this.flashAt(PLAYER_CASTLE_X, GROUND_Y - 75, 0x93dce7);
+    musicEngine.playEffect('skill');
+    this.emitHud();
+  }
+
+  private activateCentralTrap(): void {
+    if (this.ended || this.isPaused || !armCentralTrap(this.fortressTactics, this.castleStats.centralTrapDamage)) return;
+    this.trapVisual?.show(true, false);
+    musicEngine.playEffect('skill');
+    this.emitHud();
+  }
+
+  private updateCentralTrap(): void {
+    const state = this.fortressTactics;
+    this.trapVisual?.show(state.trapRemainingMs > 0, centralTrapCanTrigger(state));
+    if (!centralTrapCanTrigger(state)) return;
+    let triggered = false;
+    for (const unit of this.units) {
+      if (centralTrapHits(unit.side, unit.alive, unit.isFlying, unit.container.x, this.trapX)) { triggered = true; break; }
+    }
+    if (!triggered) return;
+    state.trapRemainingMs = 0;
+    this.trapVisual?.show(false, false);
+    this.showGroundBurstImpact(this.trapX, GROUND_Y + 18, fortressSkillTuning.trap.radius, 0xe9c582);
+    musicEngine.playEffect('heavy');
+    for (const unit of this.units) {
+      if (!centralTrapHits(unit.side, unit.alive, unit.isFlying, unit.container.x, this.trapX)) continue;
+      this.damageUnit(unit, Math.max(1, this.castleStats.centralTrapDamage - (unit.definition.defense ?? 0)));
+    }
+    this.emitHud();
+  }
+
   private activateMobilization(): void {
     if (this.ended || this.isPaused) return;
     if (!canActivateMobilization(this.command, this.mobilizationUses, battleMobilizationTuning.maxUses)) return;
@@ -1687,10 +1749,11 @@ export class BattleScene extends Phaser.Scene {
     };
     musicEngine.playEffect('skill');
     this.cameras.main.flash(240, 100, 205, 235, false);
-    const banner = this.add.text(PLAYER_CASTLE_X + 85, GROUND_Y - 135, t('{name} {level}단계', { name: t(battleMobilizationTuning.name), level: this.mobilizationUses }), {
+    const banner = this.readableText.create(PLAYER_CASTLE_X + 85, GROUND_Y - 135, t('{name} {level}단계', { name: t(battleMobilizationTuning.name), level: this.mobilizationUses }), {
       fontFamily: 'Pretendard Variable, system-ui, sans-serif', fontSize: '22px', color: '#bcefff', fontStyle: 'bold',
+      wordWrap: { width: WORLD_WIDTH - PLAYER_CASTLE_X - 125, useAdvancedWrap: true },
       stroke: '#11232e', strokeThickness: 5,
-    }).setOrigin(0.5).setDepth(900);
+    }).setOrigin(0, 0.5).setDepth(900);
     this.tweens.add({ targets: banner, y: banner.y - 32, alpha: 0, duration: 900, onComplete: () => banner.destroy() });
     this.emitHud();
   }
@@ -1727,8 +1790,9 @@ export class BattleScene extends Phaser.Scene {
     const status = this.children.getByName('boss-status');
     if (status) status.destroy();
     this.cameras.main.shake(420, 0.008);
-    const text = this.add.text(WORLD_WIDTH / 2, 185, t('{name}가 달려듭니다', { name: t(this.stageDefinition.bossName ?? '마수') }), {
+    const text = this.readableText.create(WORLD_WIDTH / 2, 185, t('{name}가 달려듭니다', { name: t(this.stageDefinition.bossName ?? '마수') }), {
       fontFamily: 'Pretendard Variable, system-ui, sans-serif', fontSize: '32px', color: '#ffd0b3', fontStyle: 'bold',
+      wordWrap: { width: WORLD_WIDTH - 160, useAdvancedWrap: true }, align: 'center',
       stroke: '#3b1518', strokeThickness: 7,
     }).setOrigin(0.5).setDepth(800).setAlpha(0);
     this.tweens.add({ targets: text, alpha: 1, y: 140, duration: 350, yoyo: true, hold: 1100, onComplete: () => text.destroy() });
@@ -1745,7 +1809,7 @@ export class BattleScene extends Phaser.Scene {
       if ('setTint' in child && typeof child.setTint === 'function') child.setTint(0xff755c);
     });
     this.cameras.main.flash(350, 145, 35, 30);
-    const text = this.add.text(WORLD_WIDTH / 2, 210, t('분노'), {
+    const text = this.readableText.create(WORLD_WIDTH / 2, 210, t('분노'), {
       fontFamily: 'Pretendard Variable, system-ui, sans-serif', fontSize: '38px', color: '#ff8f6b', fontStyle: 'bold', stroke: '#311014', strokeThickness: 8,
     }).setOrigin(0.5).setDepth(800);
     this.tweens.add({ targets: text, alpha: 0, scale: 1.3, duration: 1200, onComplete: () => text.destroy() });
@@ -1831,10 +1895,15 @@ export class BattleScene extends Phaser.Scene {
     this.damageUnit(target, Math.max(1, attack.damage - (target.definition.defense ?? 0)));
   }
 
+  private projectileMuzzleX(attacker: CombatUnit): number {
+    if (projectileVisualStyle(attacker.definition) !== 'magicSpear') return attacker.container.x;
+    return attacker.container.x + (attacker.side === 'player' ? 1 : -1) * attacker.definition.size * attacker.container.scaleX;
+  }
+
   private launchProjectile(attacker: CombatUnit, target: CombatUnit): void {
     const style = projectileVisualStyle(attacker.definition);
     if (style === 'magicOrb' || style === 'magicSpear' || style === 'poisonBreath') {
-      this.flashAt(attacker.container.x, attacker.container.y - 5, attacker.definition.accent);
+      this.flashAt(this.projectileMuzzleX(attacker), attacker.container.y - 5, attacker.definition.accent);
     }
     if (style === 'poisonBreath') {
       const direction = attacker.side === 'player' ? 1 : -1;
@@ -1850,7 +1919,7 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
     this.launchPooledProjectile(
-      attacker.container.x,
+      this.projectileMuzzleX(attacker),
       attacker.container.y - 5,
       target,
       attacker.definition.accent,
@@ -1863,10 +1932,10 @@ export class BattleScene extends Phaser.Scene {
 
   private launchProjectileToFortress(attacker: CombatUnit, fortressX: number): void {
     const style = projectileVisualStyle(attacker.definition);
-    if (style === 'magicOrb' || style === 'magicSpear') this.flashAt(attacker.container.x, attacker.container.y - 5, attacker.definition.accent);
+    if (style === 'magicOrb' || style === 'magicSpear') this.flashAt(this.projectileMuzzleX(attacker), attacker.container.y - 5, attacker.definition.accent);
     const direction = attacker.side === 'player' ? 1 : -1;
     this.launchPooledProjectileTo(
-      attacker.container.x,
+      this.projectileMuzzleX(attacker),
       attacker.container.y - 5,
       fortressX - direction * 35,
       GROUND_Y - 85,
@@ -1897,6 +1966,7 @@ export class BattleScene extends Phaser.Scene {
     effect.transcendent = transcendent;
     const angle = Math.atan2(effect.endY - effect.startY, effect.endX - effect.startX);
     effect.wake
+      .setX(style === 'magicSpear' ? -45 : -12)
       .setVisible(style === 'arrow' || style === 'magicSpear' || style === 'siege')
       .setFillStyle(style === 'arrow' ? 0xd8c096 : color, style === 'arrow' ? 0.22 : 0.34)
       .setDisplaySize(style === 'magicSpear' ? 58 : style === 'siege' ? 42 : 34, style === 'magicSpear' ? 5 : 3);
@@ -1904,8 +1974,12 @@ export class BattleScene extends Phaser.Scene {
     effect.arrowHead.setVisible(style === 'arrow').setFillStyle(color, 1);
     effect.magicCore.setVisible(style === 'magicOrb').setFillStyle(color, 0.95);
     effect.magicRing.setVisible(style === 'magicOrb').setStrokeStyle(2, color, 0.82);
-    effect.magicHalo.setVisible(style === 'magicOrb' || style === 'magicSpear').setFillStyle(color, 0.16).setStrokeStyle(1, color, 0.52);
-    effect.magicTrail.setVisible(style === 'magicOrb' || style === 'magicSpear').setFillStyle(color, style === 'magicOrb' ? 0.34 : 0.5);
+    effect.magicHalo.setVisible(style === 'magicOrb' || style === 'magicSpear')
+      .setX(style === 'magicSpear' ? -33 : 0)
+      .setFillStyle(color, style === 'magicSpear' ? 0.12 : 0.16)
+      .setStrokeStyle(style === 'magicSpear' ? 0 : 1, color, 0.52)
+      .setScale(style === 'magicSpear' ? 1.5 : 1, style === 'magicSpear' ? 0.3 : 1);
+    effect.magicTrail.setX(style === 'magicSpear' ? -50 : -17).setVisible(style === 'magicOrb' || style === 'magicSpear').setFillStyle(color, style === 'magicOrb' ? 0.34 : 0.5);
     effect.magicSpearShaft.setVisible(style === 'magicSpear').setFillStyle(color, 0.86);
     effect.magicSpearHead.setVisible(style === 'magicSpear').setFillStyle(0xffffff, 0.96).setStrokeStyle(1, color, 0.95);
     effect.magicSpearTail.setVisible(style === 'magicSpear').setFillStyle(color, 0.48);
@@ -1920,7 +1994,7 @@ export class BattleScene extends Phaser.Scene {
     effect.object
       .setPosition(effect.startX, effect.startY)
       .setRotation(angle)
-      .setScale(1)
+      .setScale(style === 'magicSpear' ? 0 : 1, 1)
       .setAlpha(1)
       .setVisible(true)
       .setActive(true);
@@ -2037,10 +2111,12 @@ export class BattleScene extends Phaser.Scene {
       const magicCore = this.add.star(0, 0, 6, 3, 8, 0xffffff, 0.95).setBlendMode(Phaser.BlendModes.ADD);
       const magicRing = this.add.circle(0, 0, 11, 0xffffff, 0).setStrokeStyle(2, 0xffffff, 0.82).setBlendMode(Phaser.BlendModes.ADD);
       const magicHalo = this.add.circle(0, 0, 18, 0xffffff, 0.16).setStrokeStyle(1, 0xffffff, 0.52).setBlendMode(Phaser.BlendModes.ADD);
-      const magicTrail = this.add.triangle(-17, 0, 0, -9, 0, 9, -30, 0, 0xffffff, 0.42).setBlendMode(Phaser.BlendModes.ADD);
-      const magicSpearShaft = this.add.rectangle(0, 0, 34, 4, 0xffffff, 0.86).setOrigin(0.5).setBlendMode(Phaser.BlendModes.ADD);
-      const magicSpearHead = this.add.triangle(21, 0, 0, -7, 0, 7, 13, 0, 0xffffff, 0.96).setBlendMode(Phaser.BlendModes.ADD);
-      const magicSpearTail = this.add.triangle(-19, 0, 0, -7, 0, 7, -13, 0, 0xffffff, 0.48).setBlendMode(Phaser.BlendModes.ADD);
+      // These vertices are authored about Y=0, not the default half-height origin.
+      // Keep every piece on the shaft axis, including when the container faces left.
+      const magicTrail = this.add.triangle(-17, 0, 0, -5, 0, 5, -30, 0, 0xffffff, 0.42).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.ADD);
+      const magicSpearShaft = this.add.rectangle(-33, 0, 34, 4, 0xffffff, 0.86).setOrigin(0.5).setBlendMode(Phaser.BlendModes.ADD);
+      const magicSpearHead = this.add.triangle(-18, 0, 0, -5, 0, 5, 18, 0, 0xffffff, 0.96).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.ADD);
+      const magicSpearTail = this.add.triangle(-48, 0, 0, -3, 0, 3, -15, 0, 0xffffff, 0.48).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.ADD);
       const poisonStream = this.add.rectangle(28, 0, 58, 9, 0x72c95d, 0.56).setOrigin(0, 0.5);
       const poisonClouds = [
         this.add.circle(24, -5, 9, 0x4eaa4c, 0.68),
@@ -2167,7 +2243,7 @@ export class BattleScene extends Phaser.Scene {
       if (!effect.object.active) continue;
       effect.elapsedMs = Math.min(effect.durationMs, effect.elapsedMs + delta);
       const progress = effect.elapsedMs / effect.durationMs;
-      const styleArc = effect.style === 'bomb' ? 18 : effect.style === 'magicOrb' ? 7 : effect.style === 'magicSpear' ? 3 : 0;
+      const styleArc = effect.style === 'bomb' ? 18 : effect.style === 'magicOrb' ? 7 : 0;
       const flightArc = Math.max(effect.arcHeight, styleArc);
       if (effect.style === 'poisonBreath') {
         const distance = Math.max(40, Math.hypot(effect.endX - effect.startX, effect.endY - effect.startY));
@@ -2192,8 +2268,8 @@ export class BattleScene extends Phaser.Scene {
         effect.object.setRotation(effect.object.rotation + delta * 0.012).setScale(1.05 + Math.sin(progress * Math.PI) * 0.42);
         effect.magicHalo.setScale(0.9 + Math.sin(progress * Math.PI * 3) * 0.18);
       } else if (effect.style === 'magicSpear') {
-        effect.object.setScale(0.95 + Math.sin(progress * Math.PI) * 0.45, 1 + Math.sin(progress * Math.PI) * 0.18);
-        effect.magicHalo.setScale(0.8 + Math.sin(progress * Math.PI * 2) * 0.22, 0.65);
+        effect.object.setScale(magicSpearRevealScale(progress, Math.hypot(effect.endX - effect.startX, effect.endY - effect.startY)), 1);
+        effect.magicHalo.setScale(1.5 + Math.sin(progress * Math.PI) * 0.1, 0.3);
       } else if (effect.style === 'bomb') {
         effect.object.setRotation(effect.object.rotation + delta * 0.01);
       }
@@ -2324,6 +2400,10 @@ export class BattleScene extends Phaser.Scene {
     const playerUnitCount = this.livingSoldierCounts.player + (this.hero?.alive ? 1 : 0);
     const enemyUnitCount = this.livingSoldierCounts.enemy + (this.boss?.alive ? 1 : 0);
     const state: BattleHudState = {
+      supplyCooldownMs: this.fortressTactics.supplyCooldownMs,
+      trapCooldownMs: this.fortressTactics.trapCooldownMs,
+      trapRemainingMs: this.fortressTactics.trapRemainingMs,
+      trapArmingMs: this.fortressTactics.trapArmingMs,
       command: Math.floor(this.command), maxCommand: this.castleStats.maxCommand,
       playerCastleHp: Math.ceil(this.playerCastleHp), playerCastleMaxHp: this.playerCastleMaxHp,
       enemyHp: Math.ceil(this.enemyHp), enemyMaxHp: this.enemyMaxHp,
@@ -2365,6 +2445,8 @@ export class BattleScene extends Phaser.Scene {
   private finish(victory: boolean): void {
     if (this.ended) return;
     this.ended = true;
+    this.fortressTactics.trapRemainingMs = 0;
+    this.trapVisual?.show(false, false);
     this.clearBossStompTelegraph();
     this.cameras.main.fadeOut(700, victory ? 230 : 70, victory ? 210 : 30, victory ? 155 : 35);
     this.time.delayedCall(650, () => {
@@ -2389,10 +2471,14 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private cleanup(): void {
+    this.trapVisual?.destroy();
+    this.trapVisual = undefined;
     this.clearBossStompTelegraph();
     battleEvents.off(BattleEvent.SPAWN, this.handleSpawn, this);
     battleEvents.off(BattleEvent.SKILL, this.activateHeroSkill, this);
     battleEvents.off(BattleEvent.CASTLE_SKILL, this.activateCastleSkill, this);
+    battleEvents.off(BattleEvent.SUPPLY, this.activateEmergencySupply, this);
+    battleEvents.off(BattleEvent.TRAP, this.activateCentralTrap, this);
     battleEvents.off(BattleEvent.MOBILIZE, this.activateMobilization, this);
     battleEvents.off(BattleEvent.RALLY_MODE, this.toggleRallyTargeting, this);
     battleEvents.off(BattleEvent.RALLY_CLEAR, this.clearRallyOrder, this);

@@ -4,14 +4,17 @@ import { achievementById, unlockedAchievements } from '../data/achievements';
 import { canUpgradeCastleTech, castleBattleStats, castleTechCost, castleTechDefinitions, emptyCastleTech, fortressTierDefinitions, minimumFortressTierForResearch, totalCastleResearch } from '../data/castle';
 import { codexEntryCount } from '../data/codex';
 import { battleFormationCapacity, BATTLE_SPEED_LICENSE, DAILY_REWARD, FORMATION_SLOT_LICENSES, MAX_FORMATION_SLOT_PURCHASES } from '../data/economy';
-import { TRIUMPH_MONUMENT, triumphMonumentCost } from '../data/endgame';
+import { completedMonumentDeeds, monumentBuildings, monumentConstructionCost, normalizeBuiltMonuments, normalizeMonumentDeeds, TRIUMPH_MONUMENT, type MonumentBuildingId, type MonumentDeedId } from '../data/endgame';
 import { heroTrainingPackageById, isGameFeatureUnlocked } from '../data/features';
 import { HERO_MASTERY_MAX_LEVEL } from '../data/mastery';
-import { FORTRESS_ITEM_SLOT_COUNT, itemDefinitions, itemOrder, itemRecipes, MAX_ITEM_STACK, resolveBattleItemDrop } from '../data/items';
+import { canCraftItem, FORTRESS_ITEM_SLOT_COUNT, itemDefinitions, itemOrder, itemRecipes, MAX_ITEM_STACK, resolveBattleItemDrop } from '../data/items';
 import { MAP_TREASURE_IDS, mapTreasureById } from '../data/mapTreasures';
 import { getStage, stages } from '../data/stages';
+import { canEnterChapterTwoStage, chapterTwoStages, isChapterTwoUnlocked, normalizeChapterTwoClears } from '../data/chapterTwo';
+import { exclusiveEnemyIds } from '../data/enemies';
 import { allTroopOrder, heroDefinitions, heroOrder, troopDefinitions } from '../data/units';
 import { GAME_VERSION, SAVE_SCHEMA_VERSION } from '../data/version';
+import { normalizeSeenTutorials, tutorialIds, type TutorialId } from '../data/tutorials';
 import { emptyEquipment, emptyMasteryContribution, equipmentCost, heroBattleMasteryXp, heroMasteryLevelFromXp, scaledProgressionReward, totalMasteryXpForLevel, unitBattleMasteryXp } from '../game/rules';
 import { canClaimDailyReward, localDateKey } from '../game/daily';
 import { initializeSaveSlots, writeActiveSaveSlot } from '../game/saveSlots';
@@ -29,12 +32,15 @@ type LegacyUnitLevels = Record<UnitId, number>;
 type LegacyHeroLevels = Record<HeroId, number>;
 
 interface BattleRecord {
+  monumentDeeds: MonumentDeedId[];
   unlocked: string[];
   gains: NonNullable<BattleResult['masteryGains']>;
   drops: NonNullable<BattleResult['itemDrops']>;
 }
 
 interface GameProfile {
+  seenTutorialIds: TutorialId[];
+  markTutorialsSeen: (ids: readonly TutorialId[]) => void;
   gold: number;
   gems: number;
   lastDailyClaimDate: string | null;
@@ -47,6 +53,7 @@ interface GameProfile {
   formationItemSlots: ItemSlots;
   fortressItemSlots: ItemSlots;
   clearedStages: number[];
+  clearedChapterTwoStages: number[];
   clearedChallenges: number[];
   clearedMapTreasureGuardianIds: MapTreasureId[];
   claimedMapTreasureIds: MapTreasureId[];
@@ -65,9 +72,11 @@ interface GameProfile {
   battleSpeedUnlocked: boolean;
   battleSpeed: BattleSpeed;
   formationSlotPurchases: number;
-  triumphMonumentLevel: number;
+  builtMonumentIds: MonumentBuildingId[];
+  monumentDeedIds: MonumentDeedId[];
   addReward: (amount: number, clearedStage: number) => number;
   completeStage: (stageId: number) => FirstClearReward | undefined;
+  completeChapterTwoStage: (stageId: number) => FirstClearReward | undefined;
   completeChallenge: (stageId: number) => FirstClearReward | undefined;
   recruitUnit: (id: UnitId) => boolean;
   toggleEquippedUnit: (id: UnitId) => boolean;
@@ -91,7 +100,7 @@ interface GameProfile {
   claimMapTreasure: (id: MapTreasureId) => boolean;
   purchaseBattleSpeed: () => boolean;
   purchaseFormationSlot: () => boolean;
-  upgradeTriumphMonument: () => boolean;
+  constructMonument: (id: MonumentBuildingId) => boolean;
   toggleBattleSpeed: () => boolean;
   toggleMuted: () => void;
   exportSave: () => string;
@@ -144,6 +153,7 @@ const emptyStats = (): PlayerStats => ({
 });
 
 const defaults = {
+  seenTutorialIds: [] as TutorialId[],
   gold: 100,
   gems: 0,
   lastDailyClaimDate: null as string | null,
@@ -156,6 +166,7 @@ const defaults = {
   formationItemSlots: [null, null, null, null] as ItemSlots,
   fortressItemSlots: Array.from({ length: FORTRESS_ITEM_SLOT_COUNT }, () => null) as ItemSlots,
   clearedStages: [] as number[],
+  clearedChapterTwoStages: [] as number[],
   clearedChallenges: [] as number[],
   clearedMapTreasureGuardianIds: [] as MapTreasureId[],
   claimedMapTreasureIds: [] as MapTreasureId[],
@@ -174,7 +185,8 @@ const defaults = {
   battleSpeedUnlocked: false,
   battleSpeed: 1 as BattleSpeed,
   formationSlotPurchases: 0,
-  triumphMonumentLevel: 0,
+  builtMonumentIds: [] as MonumentBuildingId[],
+  monumentDeedIds: [] as MonumentDeedId[],
 };
 
 function resizeFormationSlots(slots: FormationSlots, capacity: number): FormationSlots {
@@ -198,6 +210,7 @@ function autoPlaceFormationUnit(slots: FormationSlots, id: UnitId, capacity: num
 }
 
 type SavedGameProfile = Partial<GameProfile> & {
+  triumphMonumentLevel?: number;
   upgrades?: LegacyUnitLevels;
   heroLevels?: LegacyHeroLevels;
   /** Legacy v0.2.0 entitlement, migrated to one purchased slot. */
@@ -230,14 +243,11 @@ function hydrateSavedProfile(saved: SavedGameProfile | undefined, current: GameP
     const count = Math.min(MAX_ITEM_STACK, nonNegative(savedItemInventory[id], 0));
     return count > 0 ? [[id, count]] : [];
   })) as Partial<Record<ItemId, number>>;
-  const discoveredEnemies = (Array.isArray(saved?.discoveredEnemies) ? saved.discoveredEnemies : []).filter((id): id is CodexEnemyId => id === 'boss' || validUnit(id));
+  const builtMonumentIds = normalizeBuiltMonuments(saved?.builtMonumentIds, saved?.triumphMonumentLevel, clearedStages);
+  const discoveredEnemies = (Array.isArray(saved?.discoveredEnemies) ? saved.discoveredEnemies : []).filter((id): id is CodexEnemyId => id === 'boss' || validUnit(id) || (isChapterTwoUnlocked(builtMonumentIds) && exclusiveEnemyIds.some((enemyId) => enemyId === id)));
   const formationSlotPurchases = Math.min(
     MAX_FORMATION_SLOT_PURCHASES,
     nonNegative(saved?.formationSlotPurchases, saved?.formationSlotUnlocked === true ? 1 : 0),
-  );
-  const savedTriumphMonumentLevel = Math.min(
-    TRIUMPH_MONUMENT.maxLevel,
-    nonNegative(saved?.triumphMonumentLevel, 0),
   );
   const formationCapacity = battleFormationCapacity(formationSlotPurchases);
   const formationSlots: FormationSlots = Array.from({ length: formationCapacity }, () => null);
@@ -263,13 +273,13 @@ function hydrateSavedProfile(saved: SavedGameProfile | undefined, current: GameP
   const equippedUnits = formationSlots.filter((id): id is UnitId => id !== null);
   const normalizeItemSlots = (value: unknown, length: number, target: 'formation' | 'fortress'): ItemSlots => {
     const slots = Array.from({ length }, () => null) as ItemSlots;
-    const used = new Set<ItemId>();
+    const used: Partial<Record<ItemId, number>> = {};
     if (!Array.isArray(value)) return slots;
     for (let index = 0; index < length; index += 1) {
       const id = value[index];
-      if (!validItem(id) || itemDefinitions[id].target !== target || used.has(id) || (itemInventory[id] ?? 0) <= 0) continue;
+      if (!validItem(id) || itemDefinitions[id].target !== target || (used[id] ?? 0) >= (itemInventory[id] ?? 0)) continue;
       slots[index] = id;
-      used.add(id);
+      used[id] = (used[id] ?? 0) + 1;
     }
     return slots;
   };
@@ -324,6 +334,7 @@ function hydrateSavedProfile(saved: SavedGameProfile | undefined, current: GameP
     formationItemSlots,
     fortressItemSlots,
     clearedStages,
+    clearedChapterTwoStages: normalizeChapterTwoClears(saved?.clearedChapterTwoStages, builtMonumentIds),
     clearedChallenges,
     clearedMapTreasureGuardianIds,
     claimedMapTreasureIds,
@@ -342,19 +353,21 @@ function hydrateSavedProfile(saved: SavedGameProfile | undefined, current: GameP
     battleSpeedUnlocked: saved?.battleSpeedUnlocked === true,
     battleSpeed: saved?.battleSpeedUnlocked === true && saved?.battleSpeed === 1.5 ? 1.5 : 1,
     formationSlotPurchases,
-    triumphMonumentLevel: clearedStages.includes(TRIUMPH_MONUMENT.unlockStage) ? savedTriumphMonumentLevel : 0,
+    builtMonumentIds,
+    seenTutorialIds: normalizeSeenTutorials(saved?.seenTutorialIds, { clearedStages, clearedChapterTwoStages: normalizeChapterTwoClears(saved?.clearedChapterTwoStages, builtMonumentIds), unlockedStage, stats, formationSlotPurchases, itemInventory, castleTechLevels }, Boolean(saved)),
+    monumentDeedIds: normalizeMonumentDeeds(saved?.monumentDeedIds, clearedStages, clearedChallenges),
   };
 }
 
 function persistedProfile({
   gold, gems, lastDailyClaimDate, unlockedStage, equipmentLevels, unlockedUnits, equippedUnits, formationSlots, itemInventory, formationItemSlots, fortressItemSlots, clearedStages, clearedChallenges, clearedMapTreasureGuardianIds, claimedMapTreasureIds, unitMasteryXp, selectedHero, unlockedHeroes,
-  heroEquipmentLevels, heroMasteryXp, fortressTier, castleTechLevels, stats,
-  unlockedAchievementIds, claimedAchievementIds, discoveredEnemies, muted, battleSpeedUnlocked, battleSpeed, formationSlotPurchases, triumphMonumentLevel,
+  heroEquipmentLevels, heroMasteryXp, fortressTier, castleTechLevels, stats, clearedChapterTwoStages, seenTutorialIds,
+  unlockedAchievementIds, claimedAchievementIds, discoveredEnemies, muted, battleSpeedUnlocked, battleSpeed, formationSlotPurchases, builtMonumentIds, monumentDeedIds,
 }: GameProfile) {
   return {
     gold, gems, lastDailyClaimDate, unlockedStage, equipmentLevels, unlockedUnits, equippedUnits, formationSlots, itemInventory, formationItemSlots, fortressItemSlots, clearedStages, clearedChallenges, clearedMapTreasureGuardianIds, claimedMapTreasureIds, unitMasteryXp, selectedHero, unlockedHeroes,
-    heroEquipmentLevels, heroMasteryXp, fortressTier, castleTechLevels, stats,
-    unlockedAchievementIds, claimedAchievementIds, discoveredEnemies, muted, battleSpeedUnlocked, battleSpeed, formationSlotPurchases, triumphMonumentLevel,
+    heroEquipmentLevels, heroMasteryXp, fortressTier, castleTechLevels, stats, clearedChapterTwoStages, seenTutorialIds,
+    unlockedAchievementIds, claimedAchievementIds, discoveredEnemies, muted, battleSpeedUnlocked, battleSpeed, formationSlotPurchases, builtMonumentIds, monumentDeedIds,
   };
 }
 
@@ -362,6 +375,7 @@ export const useGameStore = create<GameProfile>()(
   persist(
     (set, get) => ({
       ...defaults,
+      markTutorialsSeen: (ids) => set((state) => ({ seenTutorialIds: tutorialIds.filter((id) => state.seenTutorialIds.includes(id) || ids.includes(id)) })),
       addReward: (amount, clearedStage) => {
         const state = get();
         const reward = scaledProgressionReward(amount, castleBattleStats(state.castleTechLevels).battleGoldMultiplier);
@@ -373,6 +387,7 @@ export const useGameStore = create<GameProfile>()(
       },
       completeStage: (stageId) => {
         const state = get();
+        if (!stages.some((stage) => stage.id === stageId)) return undefined;
         if (getStage(stageId).challenge || getStage(stageId).sideMission) return undefined;
         if (state.clearedStages.includes(stageId)) return undefined;
         const reward = getStage(stageId).firstClearReward;
@@ -401,6 +416,14 @@ export const useGameStore = create<GameProfile>()(
         });
         return gold === undefined ? reward : { ...reward, gold };
       },
+      completeChapterTwoStage: (stageId) => {
+        const state = get();
+        const stage = chapterTwoStages.find((entry) => entry.id === stageId);
+        if (!stage || !canEnterChapterTwoStage(stageId, state.builtMonumentIds, state.clearedChapterTwoStages) || state.clearedChapterTwoStages.includes(stageId)) return undefined;
+        const gold = scaledProgressionReward(stage.firstClearReward.gold ?? 0, castleBattleStats(state.castleTechLevels).battleGoldMultiplier);
+        set({ gold: state.gold + gold, clearedChapterTwoStages: [...state.clearedChapterTwoStages, stageId] });
+        return { ...stage.firstClearReward, gold };
+      },
       completeChallenge: (stageId) => {
         const state = get();
         const stage = getStage(stageId);
@@ -423,6 +446,7 @@ export const useGameStore = create<GameProfile>()(
       },
       recruitUnit: (id) => {
         const state = get();
+        if (!allTroopOrder.includes(id)) return false;
         if (state.unlockedUnits.includes(id)) return true;
         const definition = troopDefinitions[id];
         if (definition.recruitSource === 'challenge') return false;
@@ -485,8 +509,7 @@ export const useGameStore = create<GameProfile>()(
         if ((state.itemInventory[id] ?? 0) <= 0 || itemDefinitions[id].target !== 'formation' || !Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex >= capacity) return false;
         const formationItemSlots = resizeItemSlots(state.formationItemSlots, capacity);
         if (formationItemSlots[slotIndex] === id) return true;
-        const currentIndex = formationItemSlots.indexOf(id);
-        if (currentIndex >= 0) formationItemSlots[currentIndex] = null;
+        if (formationItemSlots.filter((current) => current === id).length >= (state.itemInventory[id] ?? 0)) return false;
         formationItemSlots[slotIndex] = id;
         set({ formationItemSlots });
         return true;
@@ -496,8 +519,7 @@ export const useGameStore = create<GameProfile>()(
         if ((state.itemInventory[id] ?? 0) <= 0 || itemDefinitions[id].target !== 'fortress' || !Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex >= FORTRESS_ITEM_SLOT_COUNT) return false;
         const fortressItemSlots = Array.from({ length: FORTRESS_ITEM_SLOT_COUNT }, (_, index) => state.fortressItemSlots[index] ?? null) as ItemSlots;
         if (fortressItemSlots[slotIndex] === id) return true;
-        const currentIndex = fortressItemSlots.indexOf(id);
-        if (currentIndex >= 0) fortressItemSlots[currentIndex] = null;
+        if (fortressItemSlots.filter((current) => current === id).length >= (state.itemInventory[id] ?? 0)) return false;
         fortressItemSlots[slotIndex] = id;
         set({ fortressItemSlots });
         return true;
@@ -507,10 +529,7 @@ export const useGameStore = create<GameProfile>()(
       craftItem: (recipeId) => {
         const state = get();
         const recipe = itemRecipes.find((entry) => entry.id === recipeId);
-        if (!recipe || !state.clearedStages.includes(recipe.requiredStage)) return false;
-        if ((state.itemInventory[recipe.result] ?? 0) >= MAX_ITEM_STACK) return false;
-        const equippedCount = (id: ItemId) => state.formationItemSlots.filter((current) => current === id).length + state.fortressItemSlots.filter((current) => current === id).length;
-        if (recipe.ingredients.some((ingredient) => (state.itemInventory[ingredient.id] ?? 0) - equippedCount(ingredient.id) < ingredient.count)) return false;
+        if (!recipe || !canCraftItem(recipe, state)) return false;
         const itemInventory = { ...state.itemInventory };
         for (const ingredient of recipe.ingredients) itemInventory[ingredient.id] = Math.max(0, (itemInventory[ingredient.id] ?? 0) - ingredient.count);
         itemInventory[recipe.result] = Math.min(MAX_ITEM_STACK, (itemInventory[recipe.result] ?? 0) + 1);
@@ -596,6 +615,9 @@ export const useGameStore = create<GameProfile>()(
       },
       recordBattle: (result) => {
         const state = get();
+        if (getStage(result.stageId).chapter === 2 && !canEnterChapterTwoStage(result.stageId, state.builtMonumentIds, state.clearedChapterTwoStages)) return { unlocked: [], gains: [], drops: [], monumentDeeds: [] };
+        const newMonumentDeeds = state.clearedStages.includes(TRIUMPH_MONUMENT.unlockStage)
+          ? completedMonumentDeeds(result).filter((id) => !state.monumentDeedIds.includes(id)) : [];
         const progressionStats = castleBattleStats(state.castleTechLevels);
         const discoveredEnemies = [...new Set([...state.discoveredEnemies, ...result.encounteredEnemies])];
         const currentWinStreak = result.victory ? state.stats.currentWinStreak + 1 : 0;
@@ -643,13 +665,14 @@ export const useGameStore = create<GameProfile>()(
           : state.itemInventory;
         set({
           stats: nextStats,
+          monumentDeedIds: [...state.monumentDeedIds, ...newMonumentDeeds],
           unitMasteryXp: nextUnitXp,
           heroMasteryXp: nextHeroXp,
           discoveredEnemies,
           itemInventory,
           unlockedAchievementIds: [...new Set([...state.unlockedAchievementIds, ...allUnlocked])],
         });
-        return { unlocked: newlyUnlocked, gains, drops };
+        return { unlocked: newlyUnlocked, gains, drops, monumentDeeds: newMonumentDeeds };
       },
       claimAchievement: (id) => {
         const state = get();
@@ -709,15 +732,16 @@ export const useGameStore = create<GameProfile>()(
         });
         return true;
       },
-      upgradeTriumphMonument: () => {
+      constructMonument: (id) => {
         const state = get();
         if (!state.clearedStages.includes(TRIUMPH_MONUMENT.unlockStage)) return false;
-        if (state.triumphMonumentLevel >= TRIUMPH_MONUMENT.maxLevel) return false;
-        const cost = triumphMonumentCost(state.triumphMonumentLevel);
-        if (state.gold < cost) return false;
+        if (!monumentBuildings.some((building) => building.id === id) || state.builtMonumentIds.includes(id)) return false;
+        if (state.builtMonumentIds.length >= TRIUMPH_MONUMENT.maxLevel) return false;
+        const cost = monumentConstructionCost(id, state.monumentDeedIds.length);
+        if (cost === null || state.gold < cost) return false;
         set({
           gold: state.gold - cost,
-          triumphMonumentLevel: state.triumphMonumentLevel + 1,
+          builtMonumentIds: [...state.builtMonumentIds, id],
         });
         return true;
       },

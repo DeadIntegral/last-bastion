@@ -34,6 +34,7 @@ vi.mock('../game/EventBus', () => {
 });
 
 const pausedHud: BattleHudState = {
+  supplyCooldownMs: 0, trapCooldownMs: 0, trapRemainingMs: 0, trapArmingMs: 0,
   command: 70, maxCommand: 200, playerCastleHp: 1_800, playerCastleMaxHp: 1_800,
   enemyHp: 2_000, enemyMaxHp: 2_000, enemyName: '적 성채', heroHp: 520, heroMaxHp: 520,
   heroRespawnMs: 0, heroSkillCooldownMs: 0, heroSkillMaxCooldownMs: 25_000,

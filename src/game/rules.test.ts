@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { heroAwakeningSelfBonuses, heroMasteryGrowth, heroSkillPower, soldierMasteryGrowth } from '../data/mastery';
 import { allTroopOrder, bossCombatTuning, bossDefinition, heroDefinitions, troopDefinitions } from '../data/units';
 import { challengeStages, stages } from '../data/stages';
+import { monumentBuildings } from '../data/endgame';
 import { ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL, STAT_EQUIPMENT_CAPSTONE_BONUS_RANKS, applyEnemyTerrain, applyTriumphMonumentStats, attackPatternLabel, attackRangeLabel, attackRecoveryMs, attackTimingLabel, calculateDamage, canActivateMobilization, canAttackTarget, canReceiveRallyOrder, cooldownFillRatio, deadZoneRetreatDestination, enemyFortressCanReinforce, enemyObjectiveDefeated, equipmentCost, fortressRearSpawnX, guardProtectionLabel, hasEquipmentCapstone, healedHp, heroAuraBonuses, heroAwakeningRank, heroBattleMasteryXp, heroMasteryLevelFromXp, heroSelfAwakeningBonuses, isBehindLivingFortress, isWithinAttackBand, knockbackMultiplier, masteryContributionXp, masteryLevelFromXp, mobilizedCommandStats, regenerateCommand, retreatsFromDeadZone, scaledBattleDelta, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, spacingTraitLabel, unitBattleMasteryXp, unitDeploymentCapacity, upgradedStats, upgradeCost, usesStatEquipmentCapstone } from './rules';
 
 describe('combat rules', () => {
@@ -388,12 +389,13 @@ describe('combat rules', () => {
   });
 
   it('applies bounded victory-monument bonuses only when explicitly requested for player stats', () => {
-    const priest = applyTriumphMonumentStats(troopDefinitions.priest, 20);
-    expect(priest.maxHp).toBe(Math.round(troopDefinitions.priest.maxHp * 1.2));
-    expect(priest.attackDamage).toBe(Math.round(troopDefinitions.priest.attackDamage * 1.2));
-    expect(priest.healingPower).toBe(Math.round((troopDefinitions.priest.healingPower ?? 0) * 1.2));
-    expect(applyTriumphMonumentStats(troopDefinitions.militia, 999)).toEqual(
-      applyTriumphMonumentStats(troopDefinitions.militia, 20),
+    const builtIds = monumentBuildings.map((building) => building.id);
+    const priest = applyTriumphMonumentStats(troopDefinitions.priest, builtIds);
+    expect(priest.maxHp).toBe(Math.round(troopDefinitions.priest.maxHp * 1.27));
+    expect(priest.attackDamage).toBe(Math.round(troopDefinitions.priest.attackDamage * 1.27));
+    expect(priest.healingPower).toBe(Math.round((troopDefinitions.priest.healingPower ?? 0) * 1.27));
+    expect(applyTriumphMonumentStats(troopDefinitions.militia, [...builtIds, ...builtIds])).toEqual(
+      applyTriumphMonumentStats(troopDefinitions.militia, builtIds),
     );
   });
 });

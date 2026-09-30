@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { characterArtFrames, characterArtSheet, proceduralCharacterIcons, type CharacterArtId } from '../data/characterArt';
+import { characterArtFrames, characterArtSheet, characterStandaloneArt, proceduralCharacterIcons, type CharacterArtId } from '../data/characterArt';
 
 interface CharacterSpriteProps {
   id: CharacterArtId;
@@ -7,6 +7,8 @@ interface CharacterSpriteProps {
 }
 
 export function CharacterSprite({ id, className = '' }: CharacterSpriteProps) {
+  const standalone = characterStandaloneArt[id];
+  if (standalone) return <img className={`character-sprite ${className}`.trim()} src={standalone.url} alt="" aria-hidden="true" draggable={false} />;
   const frame = characterArtFrames[id];
   if (!frame) return <span className={`character-sprite procedural-character ${className}`.trim()} aria-hidden="true">{proceduralCharacterIcons[id] ?? '?'}</span>;
   const sheet = characterArtSheet(id)!;

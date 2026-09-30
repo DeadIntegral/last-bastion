@@ -81,11 +81,14 @@ Difficulty and acceptance criteria:
 
 ## 5B. Formation-slot and fortress items
 
+Owned-only inventory and ready-only crafting are **Implemented**. Unavailable item/recipe previews were removed from the operational vault; a separate optional Item Reference in the Codex holds the complete catalogue, effects, acquisition thresholds and recipes. Both UI and store use the same crafting predicate. Item reference entries do not affect combatant discovery counts or achievements.
+
 Status: **Implemented**. Authoritative behavior and exact values now live in `docs/GAME_SPEC.md` and `docs/BALANCE.md`.
 
 - Six repeatable battle-drop materials and four stronger crafted items ship through `src/data/items.ts`, with region pools, encounter-type chances, and recipes unlocked at stages 12/18/30.
-- Schema 8 persists bounded inventory counts, fixed nullable formation-item slots matching formation capacity, and exactly two fortress slots. Hydration removes invalid, duplicate-equipped, unowned, or wrong-target assignments and does not retain the superseded schema-7 milestone grants.
+- Schema 8 persists bounded inventory counts, fixed nullable formation-item slots matching formation capacity, and exactly two fortress slots. Hydration removes invalid, over-inventory, unowned, or wrong-target assignments and does not retain the superseded schema-7 milestone grants.
 - `ItemVault` provides inventory quantities, drag/drop, select-then-slot fallback, per-slot removal, recipe requirements, equipped-material protection, and target validation. Formation items remain bound to numbered positions when troops move.
+- Duplicate-copy equipment is **Implemented**: each owned copy can occupy a compatible slot, including two matching fortress items. Hydration keeps copies up to inventory count; assignment never silently relocates an exhausted copy and crafting protects every equipped copy.
 - `applyFormationItem` and `applyFortressItems` integrate base and crafted HP, attack/healing, cooldown, fortress HP, Command, and artillery effects into player battle values only. Every crafted item preserves both ingredient roles in one slot and exceeds each ingredient's matching values.
 - KO/EN/JA messages, pure effect/drop tests, store acquisition/crafting/migration tests, navigation coverage, and an item-aware campaign/free-expedition pressure audit are implemented.
 
@@ -99,9 +102,27 @@ Status: **Planned**. Current 5-star behavior still grants its existing non-stack
 - Persistence uses a bounded set/record keyed by canonical UnitId, defaults false for old saves, rejects non-5-star IDs on import, and never grants the engraving merely because an old malformed save has high equipment ranks.
 - Acceptance requires Armory reveal/purchase feedback, current-versus-base deltas, battle integration, save/import normalization, KO/EN/JA copy, 5-star regression coverage, unit-efficiency audit, and synchronized GAME_SPEC/BALANCE documentation.
 
+## 5D. Monuments and chapter progression
+
+The implemented construction economy was revised on 2026-09-30 to a 46,000 base / 36,800 fully discounted total, replacing the long repeat-battle grind with a short post-finale funding target. Effects and progression rules are unchanged; GAME_SPEC/BALANCE own the current prices.
+
+Status: **Implemented** for five one-time regional monuments, existing four deeds, schema-10 migration and map markers, and the first six encounters of Chapter 2. Further Chapter 2 regions remain **Planned**. Current behavior and numbers are authoritative in GAME_SPEC/BALANCE. The five enemy-only Veil constructs have distinct existing combat roles, no recruitment/grade/mastery/capstone path, five original SVG portraits, a separate discovered codex, and independent sequential campaign progression. Canonical data owns every identity, encounter, and gate; saves normalize unique built IDs and a gated prefix of Chapter 2 clears.
+
+Player-facing discovery is part of acceptance: never publish the monument-to-chapter gate in advance, display locked future-chapter tabs, leak unknown enemy portraits/names/counters, or turn narrative screens into implementation explanations. Only earned state reveals the new route. Player controls disclose price/current benefit and immediate battle objective; optional discovered codex entries hold detailed counters. Shared troop/combat math remains symmetric; only the explicitly enemy-only new definitions have no recruit path. Preserve the bounded rendering pools, minimum typography, three-language resources and normal save export/import boundaries when expanding this region.
+
+Future-region acceptance: authored objectives and introduction pacing, new enemy records/art/codex ownership, measured progression and standalone pressure audit, finite openings plus bounded production, no equipment beyond rank 5, no duplicate paid entitlement on migration, and complete KO/EN/JA/battle/map/result flows. Do not imply that all of Chapter 2 is a 30-battle campaign until those encounters actually ship.
+
+The unified continent and Chapter 2 extension are **Implemented**: one painting, organic geographic discovery masks, a southwest Last Bastion starting point and a northward reconquest route replace tiled regional panels. Chapter 2's six existing encounters continue into the northeast after discovery. Additional Chapter 2 regions remain **Planned**; authoritative geometry and progression rules live in GAME_SPEC.
+
+## 5E. Fortress tactical actives — Implemented
+
+Emergency Supply and Central Trap ship as two five-rank tier-2 research nodes. Canonical tuning, pure activation/cooldown/lifetime rules, physical Z/X input, accessible HUD state, one reusable trap marker, pooled ground damage feedback, research migration defaults, and tests are implemented. Pause, speed scaling, ground-only targeting, expiry, duplicate activation, full-resource refusal, and battle shutdown are part of the contract. These player commands do not add generic enemy progression or new persisted battle state. Further fortress skills remain unimplemented; adding one requires the same complete data/rules/UI/lifecycle/verification chain. Current exact values live in GAME_SPEC/BALANCE.
+
 ## 6. Engineering and player-experience review backlog
 
-Status: **Planned** for all entries below. Review completed on 2026-09-27; no proposed runtime behavior has shipped as part of that review.
+The reusable spotlight module and contextual first-use guides are **Implemented** (GAME_SPEC, Guided tutorials): localized target steps, skip/replay, per-slot schema-11 migration, responsive focus handling, and battle pause ownership. Broader observed tactical teaching in REV-06/GD-17 remains **Partial**; the shipped UI guides do not claim action-based counterplay training or validated learning outcomes.
+
+Status: **Partial**. The original review completed on 2026-09-27; the table below tracks subsequent shipped work and remaining proposals.
 
 The scoped evidence, ownership, persistence implications, accessibility/performance constraints, and acceptance criteria are recorded in [ENGINEERING_REVIEW.md](ENGINEERING_REVIEW.md). These supporting technical tasks do not replace the content and presentation backlog in section 7, and do not authorize weakening current balance contracts or implementing commerce.
 
@@ -112,18 +133,18 @@ The scoped evidence, ownership, persistence implications, accessibility/performa
 | REV-03 | P1 | Atomic, duplicate-safe battle result settlement | Planned |
 | REV-04 | P1 | Battle chunk/asset loading failure recovery | Planned |
 | REV-05 | P2 | Pause focus ownership and meaningful accessible announcements | Planned |
-| REV-06 | P2 | Validate and address early tactical onboarding gaps | Planned |
+| REV-06 | P2 | Validate and address early tactical onboarding gaps | Partial — first-use spotlight guides shipped; tactical observation pending |
 | REV-07 | P2 | Actionable post-battle progression and tactical feedback | Planned |
 | REV-08 | P2 | Mobile readability and runtime performance measurement | Partial — reported 100-body/60-FPS desktop result; mobile and long-session measurement pending |
 | REV-09 | P2 | Representative player-progression balance validation | Planned |
 | REV-10 | P2 | Reconcile documented behavior and audit output | Planned |
-| REV-11 | P3 | Incremental screen and battle responsibility extraction | Partial — Armory screen extracted; battle scene remains large |
+| REV-11 | P3 | Incremental screen and battle responsibility extraction | Partial — Armory, Hero Hall and contextual tutorial modules extracted; battle scene remains large |
 
 REV-06 through REV-09 require observation or measurement before selecting gameplay/UI changes. On implementation, update both this status table and the corresponding review entry; move authoritative shipped behavior into GAME_SPEC and numeric changes into BALANCE.
 
 ## 7. Content, art, animation, and player-experience production backlog
 
-Status: **Partial**. The comprehensive review and acceptance criteria are in [IMPROVEMENT_REVIEW.md](IMPROVEMENT_REVIEW.md). GD-01's shared art direction is Implemented; GD-02 has one western-frontier runtime pilot; GD-06 now has pooled orb, spear, and ground-eruption magic grammar; GD-10 has distinct self-awakening mechanics and Hero Hall disclosure while unique skill visuals remain planned; and GD-12 includes a two-dimensional illustrated continent, dedicated markers/rifts, persistent regional treasures, and static liberation state. All other GD work remains Planned. Live browser playback and audio listening were unavailable during the original review.
+Status: **Partial**. The comprehensive review and acceptance criteria are in [IMPROVEMENT_REVIEW.md](IMPROVEMENT_REVIEW.md). GD-01's shared art direction is Implemented; GD-02 has one western-frontier runtime pilot; GD-06 now has pooled orb, spear, and ground-eruption magic grammar; GD-10 has distinct self-awakening mechanics and Hero Hall disclosure while unique skill visuals remain planned; and GD-12 includes a two-dimensional illustrated continent, dedicated markers/rifts, persistent regional treasures, and static liberation state. GD-17 now includes reusable first-use spotlight guides. All other GD work remains Planned. Live browser playback and audio listening were unavailable during the original review.
 
 | ID | Production priority | Scope | Status |
 |---|---|---|---|
@@ -136,14 +157,14 @@ Status: **Partial**. The comprehensive review and acceptance criteria are in [IM
 | GD-07 | A | Five recognizable campaign beast appearances | Planned |
 | GD-08 | B | Distinct boss patterns and counterplay | Planned |
 | GD-09 | B | Authored late-stage tactical situations | Planned |
-| GD-10 | A | Seven hero skill and awakening presentations | Partial — self-awakening mechanics and Hall disclosure |
+| GD-10 | A | Seven hero skill and awakening presentations | Partial — self-awakening mechanics and attained-rank-only Hall disclosure; unearned abilities stay hidden |
 | GD-11 | B | Regional story, recruitment, and finale closure | Planned |
 | GD-12 | A | Visible liberation on the campaign map | Partial — 2D illustrated world, treasures, static liberation |
 | GD-13 | B | Role comparison, presets, optional reward-free practice | Planned |
 | GD-14 | A | Recruitment and progression reward moments | Planned |
 | GD-15 | B | Facility and merchant visual identity | Planned |
 | GD-16 | A | Battle information hierarchy and action feedback | Planned |
-| GD-17 | A | Contextual tactical onboarding | Planned |
+| GD-17 | A | Contextual tactical onboarding | Partial — reusable first-use guides; action-based teaching and player observation pending |
 | GD-18 | B | Regional and boss music variation | Planned |
 | GD-19 | A | Material- and event-specific sound feedback | Planned |
 | GD-20 | B | Actionable defeat and replay presentation | Planned |

@@ -4,7 +4,7 @@ import { emptyCastleTech } from '../data/castle';
 import { FORMATION_SLOT_LICENSES } from '../data/economy';
 import { HERO_MASTERY_MAX_LEVEL } from '../data/mastery';
 import { mapTreasures } from '../data/mapTreasures';
-import { TRIUMPH_MONUMENT, triumphMonumentCost } from '../data/endgame';
+import { monumentBuildings, TRIUMPH_MONUMENT, monumentConstructionCost } from '../data/endgame';
 import { totalMasteryXpForLevel } from '../game/rules';
 import { SAVE_EXPORT_FORMAT, SAVE_EXPORT_VERSION, useGameStore } from './useGameStore';
 
@@ -62,11 +62,34 @@ describe('shared troop progression', () => {
       formationItemSlots: ['veteran-standard', 'veteran-standard', 'guardian-keystone'],
     }))).toBe(true);
     expect(useGameStore.getState().itemInventory).toEqual({ 'veteran-standard': 2, 'runed-whetstone': 1 });
-    expect(useGameStore.getState().formationItemSlots.slice(0, 3)).toEqual(['veteran-standard', null, null]);
+    expect(useGameStore.getState().formationItemSlots.slice(0, 3)).toEqual(['veteran-standard', 'veteran-standard', null]);
+    expect(useGameStore.getState().craftItem('craft-war-standard')).toBe(false);
     useGameStore.getState().unequipFormationItem(0);
     expect(useGameStore.getState().craftItem('craft-war-standard')).toBe(true);
     expect(useGameStore.getState().itemInventory['war-standard']).toBe(1);
     expect(useGameStore.getState().itemInventory['veteran-standard']).toBe(1);
+  });
+
+  it('equips each owned copy independently and preserves quantity limits across save imports', () => {
+    useGameStore.setState({ itemInventory: { 'veteran-standard': 2, 'guardian-keystone': 2, 'runed-whetstone': 1 } });
+    const state = useGameStore.getState();
+    expect(state.assignFormationItem('veteran-standard', 0)).toBe(true);
+    expect(state.assignFormationItem('veteran-standard', 1)).toBe(true);
+    expect(state.assignFormationItem('veteran-standard', 1)).toBe(true);
+    expect(state.assignFormationItem('veteran-standard', 2)).toBe(false);
+    expect(state.assignFortressItem('guardian-keystone', 0)).toBe(true);
+    expect(state.assignFortressItem('guardian-keystone', 1)).toBe(true);
+    const saved = state.exportSave();
+    state.resetProgress();
+    expect(state.importSave(saved)).toBe(true);
+    expect(useGameStore.getState().formationItemSlots).toEqual(['veteran-standard', 'veteran-standard', null, null]);
+    expect(useGameStore.getState().fortressItemSlots).toEqual(['guardian-keystone', 'guardian-keystone']);
+    expect(state.assignFormationItem('runed-whetstone', 0)).toBe(true);
+    expect(state.assignFormationItem('veteran-standard', 2)).toBe(true);
+    expect(useGameStore.getState().formationItemSlots).toEqual(['runed-whetstone', 'veteran-standard', 'veteran-standard', null]);
+    expect(state.importSave(JSON.stringify({ gold: 100, itemInventory: { 'veteran-standard': 2, 'guardian-keystone': 1 }, formationItemSlots: Array(4).fill('veteran-standard'), fortressItemSlots: ['guardian-keystone', 'guardian-keystone'] }))).toBe(true);
+    expect(useGameStore.getState().formationItemSlots).toEqual(['veteran-standard', 'veteran-standard', null, null]);
+    expect(useGameStore.getState().fortressItemSlots).toEqual(['guardian-keystone', null]);
   });
 
   it('does not restore experimental milestone-owned items from schema-seven saves', () => {
@@ -378,7 +401,7 @@ describe('shared troop progression', () => {
     expect(useGameStore.getState().battleSpeedUnlocked).toBe(true);
     expect(useGameStore.getState().battleSpeed).toBe(1.5);
     expect(useGameStore.getState().formationSlotPurchases).toBe(1);
-    expect(useGameStore.getState().triumphMonumentLevel).toBe(0);
+    expect(useGameStore.getState().builtMonumentIds.length).toBe(0);
     expect(useGameStore.getState().claimedMapTreasureIds).toEqual([]);
     expect(useGameStore.getState().unlockedStage).toBe(5);
     expect(useGameStore.getState().unlockedUnits).toEqual(['militia', 'guardian', 'archer', 'lancer', 'raider', 'mage']);
@@ -386,7 +409,7 @@ describe('shared troop progression', () => {
   });
 
   it('exports a portable versioned save without store actions and imports it again', () => {
-    useGameStore.setState({ gold: 1_234, gems: 56, unlockedStage: 30, clearedStages: [1, 2, 3, 4, 5, 6, 12, 18, 24, 30], clearedMapTreasureGuardianIds: ['western-reliquary'], claimedMapTreasureIds: ['western-reliquary'], formationSlotPurchases: 3, triumphMonumentLevel: 4 });
+    useGameStore.setState({ gold: 1_234, gems: 56, unlockedStage: 30, clearedStages: [1, 2, 3, 4, 5, 6, 12, 18, 24, 30], clearedMapTreasureGuardianIds: ['western-reliquary'], claimedMapTreasureIds: ['western-reliquary'], formationSlotPurchases: 3, builtMonumentIds: monumentBuildings.slice(0, 4).map((entry) => entry.id) });
 
     const serialized = useGameStore.getState().exportSave();
     const exported = JSON.parse(serialized) as { format: string; version: number; gameVersion: string; saveSchemaVersion: number; exportedAt: string; state: Record<string, unknown> };
@@ -399,7 +422,7 @@ describe('shared troop progression', () => {
     expect(exported.state.gold).toBe(1_234);
     expect(exported.state.gems).toBe(56);
     expect(exported.state.formationSlotPurchases).toBe(3);
-    expect(exported.state.triumphMonumentLevel).toBe(4);
+    expect(exported.state.builtMonumentIds).toEqual(monumentBuildings.slice(0, 4).map((entry) => entry.id));
     expect(exported.state.claimedMapTreasureIds).toEqual(['western-reliquary']);
     expect(exported.state.clearedMapTreasureGuardianIds).toEqual(['western-reliquary']);
     expect(exported.state.exportSave).toBeUndefined();
@@ -410,20 +433,20 @@ describe('shared troop progression', () => {
     expect(useGameStore.getState().gold).toBe(1_234);
     expect(useGameStore.getState().unlockedStage).toBe(30);
     expect(useGameStore.getState().formationSlotPurchases).toBe(3);
-    expect(useGameStore.getState().triumphMonumentLevel).toBe(4);
+    expect(useGameStore.getState().builtMonumentIds.length).toBe(4);
     expect(useGameStore.getState().claimedMapTreasureIds).toEqual(['western-reliquary']);
     expect(useGameStore.getState().clearedMapTreasureGuardianIds).toEqual(['western-reliquary']);
   });
 
   it('defaults missing monument progress to zero when importing an older save', () => {
-    useGameStore.setState({ triumphMonumentLevel: 4, clearedStages: [30] });
+    useGameStore.setState({ builtMonumentIds: monumentBuildings.slice(0, 4).map((entry) => entry.id), clearedStages: [30] });
 
     expect(useGameStore.getState().importSave(JSON.stringify({
       gold: 500,
       unlockedStage: 30,
       clearedStages: [30],
     }))).toBe(true);
-    expect(useGameStore.getState().triumphMonumentLevel).toBe(0);
+    expect(useGameStore.getState().builtMonumentIds.length).toBe(0);
   });
 
   it('recovers milestone heroes for older saves that already cleared their stages', () => {
@@ -462,17 +485,98 @@ describe('shared troop progression', () => {
     expect(useGameStore.getState().trainHeroMastery('warden', 'field-drill')).toBe(false);
   });
 
-  it('turns post-finale gold into a bounded victory-monument level', () => {
-    useGameStore.setState({ gold: 20_000 });
-    expect(useGameStore.getState().upgradeTriumphMonument()).toBe(false);
-    expect(useGameStore.getState().gold).toBe(20_000);
-
+  it('constructs a unique monument only after the finale and refuses duplicates', () => {
+    useGameStore.setState({ gold: 100_000 });
+    expect(useGameStore.getState().constructMonument('liberation-beacon')).toBe(false);
     useGameStore.setState({ clearedStages: [30] });
-    expect(useGameStore.getState().upgradeTriumphMonument()).toBe(true);
-    expect(useGameStore.getState().triumphMonumentLevel).toBe(1);
-    expect(useGameStore.getState().gold).toBe(20_000 - triumphMonumentCost(0));
+    expect(useGameStore.getState().constructMonument('liberation-beacon')).toBe(true);
+    expect(useGameStore.getState().builtMonumentIds).toEqual(['liberation-beacon']);
+    expect(useGameStore.getState().gold).toBe(100_000 - monumentConstructionCost('liberation-beacon')!);
+    expect(useGameStore.getState().constructMonument('liberation-beacon')).toBe(false);
+    expect(useGameStore.getState().constructMonument('unknown' as never)).toBe(false);
+  });
 
-    useGameStore.setState({ gold: 999_999, triumphMonumentLevel: TRIUMPH_MONUMENT.maxLevel });
-    expect(useGameStore.getState().upgradeTriumphMonument()).toBe(false);
+  it('charges individual monument prices in any construction order', () => {
+    useGameStore.setState({ clearedStages: [30], gold: 25000 });
+    expect(useGameStore.getState().constructMonument('victory-crown')).toBe(true);
+    expect(useGameStore.getState().gold).toBe(7000);
+    expect(useGameStore.getState().constructMonument('liberation-beacon')).toBe(true);
+    expect(useGameStore.getState().gold).toBe(4000);
+    expect(useGameStore.getState().constructMonument('heroes-statue')).toBe(false);
+    expect(useGameStore.getState().gold).toBe(4000);
+  });
+
+  it.each([1, 401])('saves defeat XP for fallen troops and heroes in battle %i', (stageId) => {
+    useGameStore.setState({ clearedStages: [30], builtMonumentIds: monumentBuildings.map((building) => building.id) });
+    const result = { ...encounterResult([]), stageId, unitsLost: 2, heroDeaths: 1 };
+    result.summons.militia = 2;
+    const record = useGameStore.getState().recordBattle(result);
+    const unitXp = record.gains.find((gain) => gain.id === 'militia')!.amount;
+    const heroXp = record.gains.find((gain) => gain.id === 'warden')!.amount;
+    expect(unitXp).toBeGreaterThan(0);
+    expect(heroXp).toBeGreaterThan(0);
+    expect(useGameStore.getState().unitMasteryXp.archer).toBe(0);
+    expect(useGameStore.getState().stats.defeats).toBe(1);
+    expect(useGameStore.getState().clearedChapterTwoStages).toEqual([]);
+    expect(record.drops).toEqual([]);
+    const saved = useGameStore.getState().exportSave();
+    useGameStore.getState().resetProgress();
+    useGameStore.getState().importSave(saved);
+    expect(useGameStore.getState().unitMasteryXp.militia).toBe(unitXp);
+    expect(useGameStore.getState().heroMasteryXp.warden).toBe(heroXp);
+  });
+
+  it('migrates old paid ranks upward without losing bonuses or repeating migration', () => {
+    for (const [oldLevel, buildings] of [[0, 0], [1, 1], [4, 1], [5, 2], [19, 5], [20, 5]]) {
+      useGameStore.getState().importSave(JSON.stringify({ clearedStages: [30], gold: 500, triumphMonumentLevel: oldLevel }));
+      expect(useGameStore.getState().builtMonumentIds).toHaveLength(buildings);
+      const exported = useGameStore.getState().exportSave();
+      useGameStore.getState().resetProgress();
+      useGameStore.getState().importSave(exported);
+      expect(useGameStore.getState().builtMonumentIds).toHaveLength(buildings);
+      expect(useGameStore.getState().gold).toBe(500);
+    }
+    useGameStore.getState().importSave(JSON.stringify({ clearedStages: [30], builtMonumentIds: ['heroes-statue', 'unknown', 'heroes-statue'], triumphMonumentLevel: 20 }));
+    expect(useGameStore.getState().builtMonumentIds).toEqual(['heroes-statue']);
+  });
+
+  it('records distinct post-finale deeds only for qualifying victories and preserves them through export', () => {
+    const smallCompany = { ...encounterResult([]), victory: true, stageId: 301, summons: { ...emptySummons(), militia: 1 } };
+    expect(useGameStore.getState().recordBattle(smallCompany).monumentDeeds).toEqual([]);
+    useGameStore.setState({ clearedStages: [30] });
+    expect(useGameStore.getState().recordBattle({ ...smallCompany, victory: false }).monumentDeeds).toEqual([]);
+    expect(useGameStore.getState().recordBattle({ ...smallCompany, summons: emptySummons() }).monumentDeeds).toEqual([]);
+    expect(useGameStore.getState().recordBattle({ ...smallCompany, summons: { ...smallCompany.summons, archer: 1, guardian: 1, lancer: 1 } }).monumentDeeds).toEqual([]);
+    expect(useGameStore.getState().recordBattle(smallCompany).monumentDeeds).toEqual(['small-company']);
+    expect(useGameStore.getState().recordBattle(smallCompany).monumentDeeds).toEqual([]);
+    expect(useGameStore.getState().recordBattle({ ...smallCompany, stageId: 302, heroDeaths: 1 }).monumentDeeds).toEqual([]);
+    expect(useGameStore.getState().recordBattle({ ...smallCompany, stageId: 302 }).monumentDeeds).toEqual(['steadfast-hero']);
+    for (const stageId of [104, 105]) useGameStore.getState().recordBattle({ ...smallCompany, stageId });
+    expect(useGameStore.getState().monumentDeedIds).toHaveLength(4);
+    const exported = useGameStore.getState().exportSave();
+    useGameStore.getState().resetProgress();
+    expect(useGameStore.getState().monumentDeedIds).toEqual([]);
+    expect(useGameStore.getState().importSave(exported)).toBe(true);
+    expect(useGameStore.getState().monumentDeedIds).toHaveLength(4);
+  });
+
+  it('normalizes deed imports and recognizes past transcendent victories without inventing tactical records', () => {
+    useGameStore.getState().importSave(JSON.stringify({ clearedStages: [30], clearedChallenges: [104, 105] }));
+    expect(useGameStore.getState().monumentDeedIds).toEqual(['sun-seal', 'sky-crown']);
+    useGameStore.getState().importSave(JSON.stringify({ clearedStages: [30], monumentDeedIds: ['small-company', 'small-company', 'unknown'] }));
+    expect(useGameStore.getState().monumentDeedIds).toEqual(['small-company']);
+    useGameStore.getState().importSave(JSON.stringify({ clearedStages: [], monumentDeedIds: ['small-company'], clearedChallenges: [104] }));
+    expect(useGameStore.getState().monumentDeedIds).toEqual([]);
+  });
+
+  it('applies deed discounts once per construction and bounds the collection at five', () => {
+    useGameStore.setState({ clearedStages: [30], gold: 2_399, monumentDeedIds: ['small-company', 'steadfast-hero', 'sun-seal', 'sky-crown'] });
+    expect(useGameStore.getState().constructMonument('liberation-beacon')).toBe(false);
+    expect(useGameStore.getState().gold).toBe(2_399);
+    useGameStore.setState({ gold: 1_000_000 });
+    for (const building of monumentBuildings) expect(useGameStore.getState().constructMonument(building.id)).toBe(true);
+    expect(useGameStore.getState().gold).toBe(963_200);
+    expect(useGameStore.getState().builtMonumentIds).toHaveLength(TRIUMPH_MONUMENT.maxLevel);
+    expect(useGameStore.getState().constructMonument('liberation-beacon')).toBe(false);
   });
 });

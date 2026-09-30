@@ -1,82 +1,39 @@
-import { Fragment, lazy, Suspense, useCallback, useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import { allTroopOrder, bossDefinition, heroDefinitions, heroOrder, troopDefinitions, unitGradeLabels, unitGradeStars } from './data/units';
 import { bossCodex, CODEX_TOTAL, codexEntryCount, heroCodex, troopCodex } from './data/codex';
 import { achievementById, achievementGroups, achievementProgress, achievements, featuredAchievement } from './data/achievements';
-import { CAMPAIGN_MAP_WORLD_HEIGHT, CAMPAIGN_MAP_WORLD_WIDTH, campaignMapLandmarks, campaignMapMarkerArt, campaignMapRegions, campaignMapStagePosition, challengeRiftPresentation, farmingMissionPresentation } from './data/campaignMapArt';
 import { canUpgradeCastleTech, castleBattleStats, castleTechChildren, castleTechCost, castleTechDefinitions, castleTechPrerequisiteStatus, castleTechRoots, fortressTierDefinitions, totalCastleResearch } from './data/castle';
 import { battleFormationCapacity, BATTLE_SPEED_LICENSE, DAILY_REWARD, FORMATION_SLOT_LICENSES, MAX_FORMATION_SLOT_PURCHASES } from './data/economy';
-import { TRIUMPH_MONUMENT, triumphMonumentBonuses, triumphMonumentCost } from './data/endgame';
-import { gameFeatures, heroTrainingPackages, isGameFeatureUnlocked } from './data/features';
+import { monumentDeeds, TRIUMPH_MONUMENT } from './data/endgame';
 import { OPENING_SCENE_DURATION_MS, openingScenes } from './data/opening';
-import { HERO_AWAKENING_LEVELS, HERO_MASTERY_MAX_LEVEL, heroAwakeningAuras, heroAwakeningSelfBonuses, heroMasteryGrowth, heroSkillPower } from './data/mastery';
-import { itemDefinitions, itemDropRuleForStage } from './data/items';
-import { mapTreasures } from './data/mapTreasures';
-import { challengeStages, enemyFactionLabels, farmingStages, getStage, stages } from './data/stages';
+import { itemDefinitions } from './data/items';
+import { getStage, stages } from './data/stages';
 import { GAME_VERSION_LABEL } from './data/version';
 import { localDateKey } from './game/daily';
-import { analyzeCampaignDifficulty, stageDifficultyPresentation } from './game/difficulty';
 import { decryptSave, encryptSave, isEncryptedSave, MAX_SAVE_FILE_BYTES, requiresSavePassword } from './game/saveCrypto';
 import { activeSaveSlot, deleteSaveSlot, readSaveSlot, saveSlotSummaries, saveSlotSummary, setActiveSaveSlot, type SaveSlotId } from './game/saveSlots';
 import { shouldUseScreenTransition } from './game/screenTransitions';
 import { musicEngine, type MusicScene } from './audio/music';
-import { ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL, attackPatternLabel, attackRangeLabel, attackTimingLabel, equipmentCost, formatTime, guardProtectionLabel, heroAwakeningRank, heroMasteryLevelFromXp, heroRespawnReductionMs, masteryLevelFromXp, scaledHeroRespawnMs, scaledHeroSkillCooldownMs, scaledHeroSkillPower, scaledProgressionReward, spacingTraitLabel, upgradedStats } from './game/rules';
+import { ATTACK_RHYTHM_REVEAL_MASTERY_LEVEL, attackPatternLabel, attackRangeLabel, attackTimingLabel, formatTime, guardProtectionLabel, heroMasteryLevelFromXp, masteryLevelFromXp, spacingTraitLabel } from './game/rules';
 import { useGameStore } from './store/useGameStore';
 import { CharacterSprite } from './components/CharacterSprite';
 import { GameModal } from './components/GameModal';
 import { Armory } from './components/Armory';
+import { HeroHall } from './components/HeroHall';
 import { ItemVault } from './components/ItemVault';
-import { equipmentEffect, equipmentSlots, GrowthStat } from './components/ProgressionUi';
+import { ItemCodex } from './components/ItemCodex';
+import { TriumphMonument } from './components/TriumphMonument';
+import { GameButton } from './components/GameButton';
+import { CampaignMap } from './components/CampaignMap';
+import { ExclusiveEnemyCodex } from './components/ExclusiveEnemyCodex';
+import { canEnterChapterTwoStage, chapterTwoStages, isChapterTwoUnlocked } from './data/chapterTwo';
+import { fortressSkillTuning } from './data/fortressSkills';
+import { TUTORIAL_REPLAY_EVENT } from './data/tutorials';
+import { TutorialLayer } from './components/TutorialLayer';
 import { Localized } from './shared/i18n/Localized';
 import { changeLanguage, getLanguageLocale, supportedLanguages, t, useTranslation, type Language } from './shared/i18n/i18n';
-import type { BattleResult, CastleTechId, EquipmentSlot, FortressTier, HeroId, MapTreasureId, Screen, UnitId } from './types/game';
-
-function heroSkillPowerSummary(id: HeroId, masteryLevel: number): string {
-  if (id === 'warden') {
-    return `보호막 ${scaledHeroSkillPower(heroSkillPower.warden.shield, heroSkillPower.warden.shieldPerRank, heroSkillPower.warden.shieldPerAwakening, masteryLevel)}`;
-  }
-  if (id === 'pyromancer') {
-    const unitDamage = scaledHeroSkillPower(heroSkillPower.pyromancer.unitDamage, heroSkillPower.pyromancer.unitDamagePerRank, heroSkillPower.pyromancer.unitDamagePerAwakening, masteryLevel);
-    const castleDamage = scaledHeroSkillPower(heroSkillPower.pyromancer.castleDamage, heroSkillPower.pyromancer.castleDamagePerRank, heroSkillPower.pyromancer.castleDamagePerAwakening, masteryLevel);
-    return `범위 피해 ${unitDamage} · 성채 ${castleDamage}`;
-  }
-  if (id === 'huntress') {
-    const unitDamage = scaledHeroSkillPower(heroSkillPower.huntress.unitDamage, heroSkillPower.huntress.unitDamagePerRank, heroSkillPower.huntress.unitDamagePerAwakening, masteryLevel);
-    const bossDamage = scaledHeroSkillPower(heroSkillPower.huntress.bossDamage, heroSkillPower.huntress.bossDamagePerRank, heroSkillPower.huntress.bossDamagePerAwakening, masteryLevel);
-    return `전체 피해 ${unitDamage} · 보스 ${bossDamage}`;
-  }
-  if (id === 'saint') {
-    const heal = scaledHeroSkillPower(heroSkillPower.saint.heal, heroSkillPower.saint.healPerRank, heroSkillPower.saint.healPerAwakening, masteryLevel);
-    const castleHeal = scaledHeroSkillPower(heroSkillPower.saint.castleHeal, heroSkillPower.saint.castleHealPerRank, heroSkillPower.saint.castleHealPerAwakening, masteryLevel);
-    return `아군 회복 ${heal} · 성채 ${castleHeal}`;
-  }
-  if (id === 'marshal') {
-    return `보호막 ${scaledHeroSkillPower(heroSkillPower.marshal.shield, heroSkillPower.marshal.shieldPerRank, heroSkillPower.marshal.shieldPerAwakening, masteryLevel)}`;
-  }
-  if (id === 'orcChampion') {
-    const damage = scaledHeroSkillPower(heroSkillPower.orcChampion.damage, heroSkillPower.orcChampion.damagePerRank, heroSkillPower.orcChampion.damagePerAwakening, masteryLevel);
-    const shield = scaledHeroSkillPower(heroSkillPower.orcChampion.shield, heroSkillPower.orcChampion.shieldPerRank, heroSkillPower.orcChampion.shieldPerAwakening, masteryLevel);
-    return `범위 피해 ${damage} · 보호막 ${shield}`;
-  }
-  const unitDamage = scaledHeroSkillPower(heroSkillPower.windSpirit.unitDamage, heroSkillPower.windSpirit.unitDamagePerRank, heroSkillPower.windSpirit.unitDamagePerAwakening, masteryLevel);
-  const castleDamage = scaledHeroSkillPower(heroSkillPower.windSpirit.castleDamage, heroSkillPower.windSpirit.castleDamagePerRank, heroSkillPower.windSpirit.castleDamagePerAwakening, masteryLevel);
-  return `폭풍 피해 ${unitDamage} · 성채 ${castleDamage}`;
-}
-
-function heroSelfAwakeningSummary(id: HeroId, awakeningRank: number): string {
-  const bonus = heroAwakeningSelfBonuses[id];
-  const multiplier = Math.max(1, awakeningRank);
-  const parts = [t('자신 HP +{value}', { value: bonus.hpPerRank * multiplier })];
-  if (bonus.attackPerRank > 0) parts.push(t('자신 공격 +{value}', { value: bonus.attackPerRank * multiplier }));
-  if (bonus.defensePerRank) parts.push(t('자신 방어 +{value}', { value: bonus.defensePerRank * multiplier }));
-  if (bonus.rangePerRank) parts.push(t('자신 사거리 +{value}', { value: bonus.rangePerRank * multiplier }));
-  if (bonus.moveSpeedPerRank) parts.push(t('자신 이동 +{value}', { value: bonus.moveSpeedPerRank * multiplier }));
-  if (bonus.healingPerRank) parts.push(t('자신 치유 +{value}', { value: bonus.healingPerRank * multiplier }));
-  const bonuses = parts.join(' · ');
-  return awakeningRank > 0
-    ? t('각성 {rank}단계 · {bonuses}', { rank: awakeningRank, bonuses })
-    : t('숙련 10에 해금 · 각성 1단계당 {bonuses}', { bonuses });
-}
+import type { BattleResult, CastleTechId, FortressTier, HeroId, Screen, UnitId } from './types/game';
 
 const BattleView = lazy(() => import('./components/BattleView').then((module) => ({ default: module.BattleView })));
 
@@ -175,8 +132,8 @@ function ShellHeader({ title, onBack }: { title: string; onBack: () => void }) {
   const gems = useGameStore((state) => state.gems);
   return <Localized>{(
     <header className="shell-header">
-      <button className="back-button" onClick={onBack} aria-label="뒤로 가기">‹</button>
-      <div><span className="eyebrow">LAST BASTION</span><h1>{title}</h1></div>
+      <div className="shell-navigation"><button className="back-button" onClick={onBack} aria-label="뒤로 가기">‹</button>{title !== '크레딧' && <GameButton variant="ghost" size="icon" className="tutorial-help" aria-label="안내 다시 보기" title="안내 다시 보기" onClick={() => window.dispatchEvent(new Event(TUTORIAL_REPLAY_EVENT))}>?</GameButton>}</div>
+      <div><span className="eyebrow">최후의 성채</span><h1>{title}</h1></div>
       <div className="shell-header-actions"><LanguageSelect /><Wallet gold={gold} gems={gems} /></div>
     </header>
   )}</Localized>;
@@ -370,7 +327,7 @@ function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
         <p>이 슬롯의 진행도는 브라우저에서 완전히 삭제됩니다. 필요하다면 먼저 저장 파일로 내보내세요.</p>
       </GameModal>}
 
-      {activeModal === 'import-password' && pendingImport && <GameModal eyebrow="LEGACY SAVE" title="기존 암호화 저장 불러오기" onClose={closeModal} actions={<><button className="modal-button secondary" onClick={closeModal} disabled={cryptoBusy}>취소</button><button className="modal-button primary" onClick={() => void decryptImport()} disabled={cryptoBusy}>{cryptoBusy ? '검증 중…' : '복호화하고 검증'}</button></>}>
+      {activeModal === 'import-password' && pendingImport && <GameModal eyebrow="기존 저장" title="기존 암호화 저장 불러오기" onClose={closeModal} actions={<><button className="modal-button secondary" onClick={closeModal} disabled={cryptoBusy}>취소</button><button className="modal-button primary" onClick={() => void decryptImport()} disabled={cryptoBusy}>{cryptoBusy ? '검증 중…' : '복호화하고 검증'}</button></>}>
         <p>{t('{name}은 이전 버전에서 비밀번호로 암호화된 파일입니다. 당시 사용한 비밀번호를 입력하세요. 입력 길이 제한은 없습니다.', { name: pendingImport.name })}</p>
         <div className="save-password-fields"><label>비밀번호<input data-autofocus type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} /></label></div>
         {cryptoError && <p className="modal-error" role="alert">{cryptoError}</p>}
@@ -381,11 +338,11 @@ function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
         <div className="import-slot-list">{slots.map((slot) => <button data-autofocus={slot.id === 1 ? true : undefined} className={slot.occupied ? 'occupied' : ''} onClick={() => chooseImportTarget(slot.id)} key={slot.id}><span>SLOT {slot.id}</span><strong>{slot.occupied ? slot.corrupted ? '손상된 기록 덮어쓰기' : `${slot.unlockedStage}장 기록 교체` : '빈 슬롯에 가져오기'}</strong></button>)}</div>
       </GameModal>}
 
-      {activeModal === 'import-confirm' && pendingImport && selectedSlotId !== null && <GameModal eyebrow="OVERWRITE SLOT" title={`슬롯 ${selectedSlotId}을 교체할까요?`} tone="danger" onClose={() => setActiveModal('import-target')} actions={<><button className="modal-button secondary" data-autofocus onClick={() => setActiveModal('import-target')}>취소</button><button className="modal-button danger" onClick={() => applyImport(selectedSlotId)}>덮어쓰고 이어하기</button></>}>
+      {activeModal === 'import-confirm' && pendingImport && selectedSlotId !== null && <GameModal eyebrow="저장 덮어쓰기" title={`슬롯 ${selectedSlotId}을 교체할까요?`} tone="danger" onClose={() => setActiveModal('import-target')} actions={<><button className="modal-button secondary" data-autofocus onClick={() => setActiveModal('import-target')}>취소</button><button className="modal-button danger" onClick={() => applyImport(selectedSlotId)}>덮어쓰고 이어하기</button></>}>
         <p>현재 슬롯의 원정 기록이 가져온 저장으로 교체됩니다. 기존 기록은 내보내지 않았다면 복구할 수 없습니다.</p>
       </GameModal>}
 
-      {activeModal === 'invalid-save' && <GameModal eyebrow="IMPORT FAILED" title="저장 파일을 읽을 수 없습니다" onClose={closeModal} actions={<button className="modal-button primary" data-autofocus onClick={closeModal}>확인</button>}>
+      {activeModal === 'invalid-save' && <GameModal eyebrow="가져오기 실패" title="저장 파일을 읽을 수 없습니다" onClose={closeModal} actions={<button className="modal-button primary" data-autofocus onClick={closeModal}>확인</button>}>
         <p>파일 형식, SHA-256 체크섬 또는 AES-GCM 인증 정보를 확인해 주세요. 구형 암호화 파일이라면 당시 비밀번호도 필요합니다.</p>
       </GameModal>}
     </main>
@@ -449,17 +406,6 @@ function Credits({ onBack }: { onBack: () => void }) {
   </main></Localized>;
 }
 
-const mapPositions = stages.map((stage) => campaignMapStagePosition(stage.id));
-const challengeMapPositions: Record<number, { x: number; y: number }> = {
-  101: { x: mapPositions[5].x - 120, y: mapPositions[5].y - 190 },
-  106: { x: mapPositions[11].x + 80, y: mapPositions[11].y + 180 },
-  102: { x: mapPositions[17].x + 100, y: mapPositions[17].y - 140 },
-  107: { x: mapPositions[23].x + 100, y: mapPositions[23].y + 180 },
-  103: { x: mapPositions[26].x + 60, y: mapPositions[26].y - 170 },
-  104: { x: mapPositions[29].x - 110, y: mapPositions[29].y + 190 },
-  105: { x: mapPositions[29].x + 150, y: mapPositions[29].y + 65 },
-};
-const campaignDifficultyReport = analyzeCampaignDifficulty(stages);
 
 function MapCommandCenter({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
   const selectedHero = useGameStore((state) => state.selectedHero);
@@ -471,7 +417,7 @@ function MapCommandCenter({ onNavigate }: { onNavigate: (screen: Screen) => void
   const claimDailyReward = useGameStore((state) => state.claimDailyReward);
   const battleSpeedUnlocked = useGameStore((state) => state.battleSpeedUnlocked);
   const formationSlotPurchases = useGameStore((state) => state.formationSlotPurchases);
-  const triumphMonumentLevel = useGameStore((state) => state.triumphMonumentLevel);
+  const triumphMonumentLevel = useGameStore((state) => state.builtMonumentIds.length);
   const muted = useGameStore((state) => state.muted);
   const toggleMuted = useGameStore((state) => state.toggleMuted);
   const [notice, setNotice] = useState('');
@@ -498,13 +444,13 @@ function MapCommandCenter({ onNavigate }: { onNavigate: (screen: Screen) => void
   };
 
   return <Localized><>
-    <section className="map-command-center" aria-label="원정대 관리">
+    <section className="map-command-center" data-tour="operations" aria-label="원정대 관리">
       <header><span>원정 본부</span><strong>왕국 운영</strong></header>
       <button onClick={() => onNavigate('armory')}><i>♢</i><span>병영과 강화<small>{t('병종 {count}', { count: allTroopOrder.length })}</small></span></button>
       <button onClick={() => onNavigate('items')}><i>▣</i><span>원정 장비고<small>아이템 편성</small></span></button>
       <button onClick={() => onNavigate('heroes')}><i>{heroDefinitions[selectedHero].icon}</i><span>영웅의 전당<small>{heroDefinitions[selectedHero].name}</small></span></button>
       <button onClick={() => onNavigate('fortress')}><i>♜</i><span>성채 기술<small>5개 계열</small></span></button>
-      <button className={monumentUnlocked ? 'monument-ready' : 'feature-locked'} disabled={!monumentUnlocked} onClick={() => onNavigate('monument')}><i>♜</i><span>{TRIUMPH_MONUMENT.name}<small>{monumentUnlocked ? `${triumphMonumentLevel}/${TRIUMPH_MONUMENT.maxLevel}단계` : `${TRIUMPH_MONUMENT.unlockStage}장 클리어 시 건립`}</small></span></button>
+      <button className={monumentUnlocked ? 'monument-ready' : 'feature-locked'} disabled={!monumentUnlocked} onClick={() => onNavigate('monument')}><i>♜</i><span>{TRIUMPH_MONUMENT.name}<small>{monumentUnlocked ? t('건설 {level} / {max}', { level: triumphMonumentLevel, max: TRIUMPH_MONUMENT.maxLevel }) : `${TRIUMPH_MONUMENT.unlockStage}장 클리어 시 건립`}</small></span></button>
       <button onClick={() => onNavigate('achievements')}><i>✦</i><span>업적 기록<small>{claimable ? `${claimable} 보상 대기` : `${unlockedAchievements.length}/${achievements.length}`}</small></span></button>
       <button onClick={() => onNavigate('codex')}><i>▤</i><span>전쟁 사전<small>{codexEntries}/{CODEX_TOTAL}</small></span></button>
       <button className={dailyAvailable ? 'daily-ready' : ''} disabled={!dailyAvailable} onClick={receiveDaily}><i>◆</i><span>{DAILY_REWARD.label}<small>{dailyAvailable ? `보석 ${DAILY_REWARD.gems}개 받기` : '오늘 수령 완료'}</small></span></button>
@@ -545,7 +491,7 @@ function MysteryMerchant({ onBack }: { onBack: () => void }) {
   return <Localized>{(
     <main className="panel-screen merchant-screen">
       <ShellHeader title="수수께끼 상인" onBack={onBack} />
-      <section className="merchant-intro">
+      <section className="merchant-intro" data-tour="merchant">
         <div className="merchant-silhouette" aria-hidden="true"><span>?</span></div>
         <div>
           <span className="eyebrow">장막의 대상단</span>
@@ -594,465 +540,8 @@ function MysteryMerchant({ onBack }: { onBack: () => void }) {
   )}</Localized>;
 }
 
-export function StageSelect({ initialStageId, onBack, onSelect, onNavigate }: { initialStageId?: number; onBack: () => void; onSelect: (id: number) => void; onNavigate: (screen: Screen) => void }) {
-  const unlocked = useGameStore((state) => state.unlockedStage);
-  const clearedStages = useGameStore((state) => state.clearedStages);
-  const clearedChallenges = useGameStore((state) => state.clearedChallenges);
-  const clearedMapTreasureGuardianIds = useGameStore((state) => state.clearedMapTreasureGuardianIds);
-  const claimedMapTreasureIds = useGameStore((state) => state.claimedMapTreasureIds);
-  const claimMapTreasure = useGameStore((state) => state.claimMapTreasure);
-  const castleTechLevels = useGameStore((state) => state.castleTechLevels);
-  const [selectedId, setSelectedId] = useState(initialStageId ?? Math.min(unlocked, stages.length));
-  const [mapDragging, setMapDragging] = useState(false);
-  const [notice, setNotice] = useState('');
-  const mapRef = useRef<HTMLElement>(null);
-  const mapDragRef = useRef({ pointerId: -1, startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0, moved: false });
-  const suppressMapClickRef = useRef(false);
-  const selected = getStage(selectedId);
-  const isChallenge = Boolean(selected.challenge);
-  const isTreasureMission = Boolean(selected.sideMission && selected.treasureId);
-  const isFarmingMission = Boolean(selected.sideMission && selected.farmingKind);
-  const selectedTreasure = isTreasureMission ? mapTreasures.find((treasure) => treasure.missionStageId === selected.id) : undefined;
-  const selectedFarmingMission = isFarmingMission ? farmingMissionPresentation[selected.id as keyof typeof farmingMissionPresentation] : undefined;
-  const locked = isChallenge || isTreasureMission || isFarmingMission ? !clearedStages.includes(selected.requiredCampaignStage ?? 1) : selected.id > unlocked;
-  const cleared = isChallenge
-    ? clearedChallenges.includes(selected.id)
-    : isTreasureMission ? clearedMapTreasureGuardianIds.includes(selected.treasureId!) : isFarmingMission ? false : clearedStages.includes(selected.id);
-  const visibleRegionCount = Math.min(5, Math.max(1, Math.ceil(unlocked / 6)));
-  const visibleStages = stages.slice(0, visibleRegionCount * 6);
-  const visibleChallenges = challengeStages.filter((challenge) => clearedStages.includes(challenge.requiredCampaignStage ?? 1));
-  const visibleFarmingMissions = farmingStages.filter((mission) => clearedStages.includes(mission.requiredCampaignStage ?? 1));
-  const liberatedRegionCount = campaignMapRegions.filter((region) => clearedStages.includes(region.stageEnd)).length;
-  const difficulty = stageDifficultyPresentation(selected, campaignDifficultyReport);
-  const progressionStats = castleBattleStats(castleTechLevels);
-  const itemDropRule = itemDropRuleForStage(selected);
-  const displayedItemDropChance = Math.round(Math.min(1, itemDropRule.chance + progressionStats.itemDropChanceBonus) * 100);
-  const displayedBattleReward = scaledProgressionReward(selected.reward, progressionStats.battleGoldMultiplier);
-  const displayedFirstClearGold = selected.firstClearReward.gold === undefined
-    ? undefined
-    : isTreasureMission ? selected.firstClearReward.gold : scaledProgressionReward(selected.firstClearReward.gold, progressionStats.battleGoldMultiplier);
-  const mapWidth = CAMPAIGN_MAP_WORLD_WIDTH;
-  const mapHeight = CAMPAIGN_MAP_WORLD_HEIGHT;
-  const roadPath = visibleStages.map((stage, index) => {
-    const position = mapPositions[stage.id - 1];
-    return `${index === 0 ? 'M' : 'L'}${position.x} ${position.y}`;
-  }).join(' ');
-  const roadSegments = visibleStages.slice(1).map((stage) => {
-    const from = mapPositions[stage.id - 2];
-    const to = mapPositions[stage.id - 1];
-    const state = clearedStages.includes(stage.id - 1) && clearedStages.includes(stage.id)
-      ? 'liberated'
-      : stage.id <= unlocked ? 'frontline' : 'occupied';
-    return { id: stage.id, from, to, state };
-  });
-
-  useEffect(() => {
-    const map = mapRef.current;
-    const position = isChallenge
-      ? challengeMapPositions[selectedId]
-      : selectedTreasure ? { x: selectedTreasure.guardianX, y: selectedTreasure.guardianY }
-        : selectedFarmingMission ? { x: selectedFarmingMission.x, y: selectedFarmingMission.y }
-          : mapPositions[selectedId - 1];
-    if (!map || !position) return;
-    map.scrollTo({ left: Math.max(0, position.x - map.clientWidth / 2), top: Math.max(0, position.y - map.clientHeight / 2), behavior: 'auto' });
-  }, [isChallenge, selectedFarmingMission, selectedId, selectedTreasure, visibleRegionCount]);
-
-  const startMapDrag = (event: ReactPointerEvent<HTMLElement>) => {
-    if (event.button !== 0) return;
-    const map = mapRef.current;
-    if (!map) return;
-    if (event.pointerType === 'touch') return;
-    mapDragRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, scrollLeft: map.scrollLeft, scrollTop: map.scrollTop, moved: false };
-  };
-
-  const moveMapDrag = (event: ReactPointerEvent<HTMLElement>) => {
-    const map = mapRef.current;
-    const drag = mapDragRef.current;
-    if (!map || drag.pointerId !== event.pointerId) return;
-    const distance = event.clientX - drag.startX;
-    const verticalDistance = event.clientY - drag.startY;
-    if (!drag.moved && Math.hypot(distance, verticalDistance) < 6) return;
-    if (!drag.moved) {
-      drag.moved = true;
-      map.setPointerCapture(event.pointerId);
-    }
-    setMapDragging(true);
-    map.scrollLeft = drag.scrollLeft - distance;
-    map.scrollTop = drag.scrollTop - verticalDistance;
-    event.preventDefault();
-  };
-
-  const finishMapDrag = (event: ReactPointerEvent<HTMLElement>) => {
-    const map = mapRef.current;
-    const drag = mapDragRef.current;
-    if (!map || drag.pointerId !== event.pointerId) return;
-    if (drag.moved) {
-      suppressMapClickRef.current = true;
-      window.setTimeout(() => { suppressMapClickRef.current = false; }, 0);
-    }
-    if (map.hasPointerCapture(event.pointerId)) map.releasePointerCapture(event.pointerId);
-    mapDragRef.current.pointerId = -1;
-    setMapDragging(false);
-  };
-
-  const selectMapStage = (event: ReactMouseEvent<HTMLButtonElement>, id: number) => {
-    if (suppressMapClickRef.current) {
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
-    setSelectedId(id);
-  };
-
-  const collectMapTreasure = (event: ReactMouseEvent<HTMLButtonElement>, id: MapTreasureId) => {
-    if (suppressMapClickRef.current) {
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
-    const treasure = mapTreasures.find((entry) => entry.id === id);
-    if (!treasure || !claimMapTreasure(id)) return;
-    setNotice(`${treasure.name}: 금화 ${treasure.gold.toLocaleString()}개를 획득했습니다.`);
-    window.setTimeout(() => setNotice(''), 2_000);
-  };
-
-  const scrollToRegion = (regionIndex: number) => {
-    const map = mapRef.current;
-    const region = campaignMapRegions[regionIndex];
-    if (!map || !region) return;
-    map.scrollTo({
-      left: Math.max(0, region.x + region.width / 2 - map.clientWidth / 2),
-      top: Math.max(0, region.y + region.height / 2 - map.clientHeight / 2),
-      behavior: 'smooth',
-    });
-  };
-
-  const selectedCampaignStage = selected.requiredCampaignStage ?? selected.id;
-  const selectedRegionIndex = Math.min(campaignMapRegions.length - 1, Math.floor((selectedCampaignStage - 1) / 6));
-
-  return <Localized>{(
-    <main className="panel-screen campaign-map-screen">
-      <ShellHeader title="왕국 지도" onBack={onBack} />
-      <div className="map-shell-layout">
-        <MapCommandCenter onNavigate={onNavigate} />
-        <div className="map-content-column">
-          <section className="map-heading">
-            <div><span className="eyebrow">대륙 원정 지도</span><h2>대륙 탈환의 길</h2></div>
-            <p><strong>해금 {Math.min(unlocked, stages.length)}/{stages.length} · 해방 {liberatedRegionCount}/{campaignMapRegions.length} · 마수 영역 {visibleChallenges.length}/{challengeStages.length} · {t('보급 거점 {current}/{total}', { current: visibleFarmingMissions.length, total: farmingStages.length })}</strong><br />{visibleRegionCount > 1 ? `${campaignMapRegions[visibleRegionCount - 1].name}까지 원정로가 개방되었습니다.` : '마왕군에게 빼앗긴 대륙을 서부 변경부터 되찾으세요.'}</p>
-          </section>
-          <nav className="map-region-nav" aria-label="지역 바로가기">
-            {campaignMapRegions.slice(0, visibleRegionCount).map((region, index) => {
-              const liberated = clearedStages.includes(region.stageEnd);
-              return <button type="button" className={`${selectedRegionIndex === index ? 'active' : ''} ${liberated ? 'liberated' : 'frontline'}`} onClick={() => scrollToRegion(index)} key={region.id}>
-                <span>{String(index + 1).padStart(2, '0')}</span><b>{region.name}</b><small>{liberated ? '해방 완료' : '교전 중'}</small>
-              </button>;
-            })}
-          </nav>
-          <div className="campaign-map-layout">
-        <section
-          className={`campaign-map ${visibleRegionCount > 1 ? 'expanded' : ''} ${mapDragging ? 'dragging' : ''}`}
-          aria-label="캠페인 지도 · 상하좌우로 드래그하여 이동"
-          ref={mapRef}
-          onPointerDown={startMapDrag}
-          onPointerMove={moveMapDrag}
-          onPointerUp={finishMapDrag}
-          onPointerCancel={finishMapDrag}
-        >
-          <div className="campaign-map-world" style={{ width: `${mapWidth}px`, height: `${mapHeight}px` }} onDragStart={(event) => event.preventDefault()}>
-          {campaignMapRegions.slice(0, visibleRegionCount).map((region, index) => {
-            const state = clearedStages.includes(region.stageEnd) ? 'liberated' : unlocked >= region.stageStart ? 'frontline' : 'occupied';
-            return <Fragment key={region.id}>
-              <img className={`campaign-region-art ${state}`} src={region.image} style={{ left: `${region.x}px`, top: `${region.y}px`, width: `${region.width}px`, height: `${region.height}px` }} alt="" aria-hidden="true" draggable={false} />
-              <div className={`map-region-zone region-theme-${index + 1} ${state}`} style={{ left: `${region.x + 20}px`, top: `${region.y + 18}px`, width: `${region.width - 40}px`, height: `${region.height - 36}px` }} aria-hidden="true">
-              <span className="region-state"><b>{region.name}</b><small>{state === 'liberated' ? '해방 완료' : state === 'frontline' ? '교전 중' : '마왕군 점령'}</small></span>
-              {state === 'liberated' && <span className="liberation-beacon"><i>♜</i></span>}
-              </div>
-            </Fragment>;
-          })}
-          {campaignMapLandmarks.filter((landmark) => landmark.requiredStage <= unlocked).map((landmark) => (
-            <div className={`map-landmark landmark-${landmark.theme}`} style={{ left: `${landmark.x}px`, top: `${landmark.y}px` }} aria-hidden="true" key={landmark.id}>
-              <i>{landmark.symbol}</i><span>{landmark.label}</span>
-            </div>
-          ))}
-          <svg className="campaign-road" viewBox={`0 0 ${mapWidth} ${mapHeight}`} preserveAspectRatio="none" aria-hidden="true">
-            <path d={roadPath} />
-            {roadSegments.map((segment) => <line className={`road-segment ${segment.state}`} x1={segment.from.x} y1={segment.from.y} x2={segment.to.x} y2={segment.to.y} key={segment.id} />)}
-            {mapTreasures.filter((treasure) => clearedMapTreasureGuardianIds.includes(treasure.id)).map((treasure) => <line className={`treasure-route ${claimedMapTreasureIds.includes(treasure.id) ? 'claimed' : ''}`} x1={treasure.guardianX} y1={treasure.guardianY} x2={treasure.x} y2={treasure.y} key={`route-${treasure.id}`} />)}
-          </svg>
-          {visibleStages.map((stage) => {
-            const nodeLocked = stage.id > unlocked;
-            const nodeCleared = clearedStages.includes(stage.id);
-            const position = mapPositions[stage.id - 1];
-            return (
-              <button
-                key={stage.id}
-                className={`map-node ${stage.boss ? 'boss-node' : ''} ${nodeLocked ? 'locked' : ''} ${nodeCleared ? 'cleared' : ''} ${selectedId === stage.id ? 'selected' : ''}`}
-                style={{ left: `${position.x}px`, top: `${position.y}px` }}
-                onClick={(event) => selectMapStage(event, stage.id)}
-                aria-label={`${stage.id}장 ${stage.name}${nodeLocked ? ' 잠김' : nodeCleared ? ' 해방 완료' : ''}`}
-              >
-                <span className="node-beacon fortress-beacon" aria-hidden="true"><img src={nodeCleared ? campaignMapMarkerArt.liberated : stage.boss ? campaignMapMarkerArt.boss : campaignMapMarkerArt.occupied} alt="" draggable={false} />{nodeCleared && <i className="liberation-flag" />}<b>{stage.id}</b></span>
-                <strong>{stage.name}</strong>
-                <small>{stage.boss ? 'BOSS' : `0${stage.id}`}</small>
-              </button>
-            );
-          })}
-          {visibleChallenges.map((challenge) => {
-            const position = challengeMapPositions[challenge.id];
-            const challengeCleared = clearedChallenges.includes(challenge.id);
-            const rift = challengeRiftPresentation[challenge.terrain.id as keyof typeof challengeRiftPresentation];
-            return (
-              <button
-                key={challenge.id}
-                className={`map-node challenge-map-node ${challengeCleared ? 'cleared' : ''} ${selectedId === challenge.id ? 'selected' : ''}`}
-                style={{ left: `${position.x}px`, top: `${position.y}px` }}
-                onClick={(event) => selectMapStage(event, challenge.id)}
-                aria-label={`마수 도전 ${challenge.name}`}
-              >
-                <span className={`challenge-rift rift-${rift.theme}`} aria-hidden="true"><i>{rift.symbol}</i></span>
-                <span className={`node-beacon rift-${rift.theme}`}>{rift.symbol}</span>
-                <strong>{challenge.name}</strong>
-                <small>{challengeCleared ? 'SUBJUGATED' : 'BEAST RIFT'}</small>
-              </button>
-            );
-          })}
-          {visibleFarmingMissions.map((mission) => {
-            const presentation = farmingMissionPresentation[mission.id as keyof typeof farmingMissionPresentation];
-            return <button
-              type="button"
-              className={`map-node farming-map-node farming-${presentation.theme} ${selectedId === mission.id ? 'selected' : ''}`}
-              style={{ left: `${presentation.x}px`, top: `${presentation.y}px` }}
-              onClick={(event) => selectMapStage(event, mission.id)}
-              aria-label={t('{name}, 반복 {kind} 파밍', { name: t(mission.name), kind: t(mission.farmingKind === 'gold' ? '골드' : '숙련 경험치') })}
-              key={mission.id}
-            >
-              <span className="farming-node-beacon" aria-hidden="true"><i>{presentation.symbol}</i></span>
-              <strong>{mission.name}</strong>
-              <small>{mission.farmingKind === 'gold' ? 'GOLD SUPPLY' : t('전투 숙련 XP ×{multiplier}', { multiplier: mission.masteryRewardMultiplier ?? 1 })}</small>
-            </button>;
-          })}
-          {mapTreasures.filter((treasure) => clearedStages.includes(treasure.revealStage)).map((treasure) => {
-            const defeated = clearedMapTreasureGuardianIds.includes(treasure.id);
-            return <Fragment key={`guardian-${treasure.id}`}>
-              <button type="button" className={`map-node treasure-guardian-node ${defeated ? 'defeated' : ''} ${selectedId === treasure.missionStageId ? 'selected' : ''}`} style={{ left: `${treasure.guardianX}px`, top: `${treasure.guardianY}px` }} aria-label={`${treasure.name} 수호자, ${defeated ? '격파 완료' : '강적 도전'}`} onClick={(event) => selectMapStage(event, treasure.missionStageId)}>
-                <span className="treasure-guardian-crest" aria-hidden="true"><CharacterSprite id={treasure.guardianUnitId} className="treasure-guardian-art" /></span>
-                <strong>{getStage(treasure.missionStageId).name}</strong>
-                <small>{defeated ? 'GUARDIAN DEFEATED' : 'DANGER · GUARDIAN'}</small>
-              </button>
-              {defeated && (() => {
-                const claimed = claimedMapTreasureIds.includes(treasure.id);
-                return <button type="button" className={`map-node map-treasure-node ${claimed ? 'claimed' : ''}`} style={{ left: `${treasure.x}px`, top: `${treasure.y}px` }} aria-label={`${treasure.name}, ${claimed ? '수령 완료' : `금화 ${treasure.gold.toLocaleString()}개 수령`}`} aria-disabled={claimed} onClick={(event) => collectMapTreasure(event, treasure.id)}>
-                  <span className="treasure-chest" aria-hidden="true"><i /></span><strong>{treasure.name}</strong><small>{claimed ? '수령 완료' : `● ${treasure.gold.toLocaleString()}`}</small>
-                </button>;
-              })()}
-            </Fragment>;
-          })}
-          <div className="map-compass"><span>✦</span><i>N</i></div>
-          </div>
-        </section>
-
-        <aside className={`map-mission ${selected.boss ? 'boss-mission' : ''} ${isChallenge ? 'challenge-mission' : ''} ${isTreasureMission ? 'treasure-mission' : ''} ${isFarmingMission ? `farming-mission farming-${selected.farmingKind}` : ''}`}>
-          <div className="mission-number">{isChallenge ? '☠' : isTreasureMission ? '▣' : isFarmingMission ? selected.farmingKind === 'gold' ? '●' : '✦' : selected.boss ? '◉' : String(selected.id).padStart(2, '0')}</div>
-          <span className="eyebrow">{isChallenge ? 'BEAST CHALLENGE' : isTreasureMission ? 'TREASURE EXPEDITION' : isFarmingMission ? selected.farmingKind === 'gold' ? 'GOLD SUPPLY CONTRACT' : 'MASTERY TRAINING' : selected.boss ? 'BOSS SIEGE' : `CHAPTER ${selected.id}`}</span>
-          <h2>{selected.name}</h2>
-          <div className={`difficulty difficulty-rank-${difficulty.rank}`} aria-label={`병력과 목표 데이터 기반 전투 평가 ${difficulty.label}, 5단계 중 ${difficulty.rank}단계`} title={`위협 지수 ${difficulty.threatIndex} · 성채, 병력, 증원, 정예, 보스, 전장 거리 분석`}>
-            <span>전투 평가 <strong>{difficulty.label}</strong></span>
-            <b aria-hidden="true">{'◆'.repeat(difficulty.rank)}<i>{'◇'.repeat(5 - difficulty.rank)}</i></b>
-            <small>전투 데이터 분석</small>
-          </div>
-          <p>{locked ? '안개 너머의 지역입니다. 이전 전장을 먼저 정복해야 합니다.' : selected.subtitle}</p>
-          <div className="stage-context"><span>적 세력 <b>{enemyFactionLabels[selected.enemyFaction]}</b></span><span>지형 <b>{selected.terrain.name}</b></span><span>승리 아이템 드롭 <b>{displayedItemDropChance}%</b></span></div>
-          {(isTreasureMission || isFarmingMission) && selected.gimmick && <div className="treasure-gimmick-preview"><small>전술 기믹</small><strong>{selected.gimmick.name}</strong><span>{selected.gimmick.description}</span></div>}
-          {isChallenge && <div className="challenge-terrain-preview"><small>지형 증폭</small><strong>적 HP ×{selected.terrain.enemyHpMultiplier} · 공격 ×{selected.terrain.enemyAttackMultiplier}</strong><span>{selected.terrain.description}</span></div>}
-          <div className="mission-objective"><small>{t('임무 · 전선 거리 {distance}', { distance: selected.fortressDistance })}</small><strong>{isChallenge ? `${selected.bossName ?? selected.name} 단독 격파` : isTreasureMission ? '기믹 방어선을 돌파하고 보물 수비 성채 파괴' : isFarmingMission ? '반복 방어선을 돌파하고 보급 거점 성채 파괴' : selected.boss ? '성채 수비대와 마수를 돌파하고 적 성채 파괴' : '적 성채 파괴'}</strong></div>
-          {selected.enemyFortressAttack && <div className="elite-guard-preview"><small>성채 화력</small><strong>적 성채 수비 사격</strong><span>사거리 {selected.enemyFortressAttack.range} · 공격 {selected.enemyFortressAttack.damage} · {(selected.enemyFortressAttack.intervalMs / 1000).toFixed(1)}초 간격</span></div>}
-          {selected.eliteGuards && selected.eliteGuards.length > 0 && <div className="elite-guard-preview"><small>{t('정예 수비대 · {count}', { count: selected.eliteGuards.length })}</small><strong>{selected.eliteGuards.map((elite) => elite.name).join(' · ')}</strong><span>전선 거점에 배치된 중간 우두머리 · 상세 강화 수치는 비공개</span></div>}
-          {isFarmingMission ? <div className="first-clear-reward farming-contract">
-            <span>{selected.firstClearReward.icon}</span>
-            <div><small>반복 의뢰</small><strong>{selected.firstClearReward.label}</strong><p>{selected.firstClearReward.description}</p>{selected.masteryRewardMultiplier && <em>{t('전투 숙련 XP ×{multiplier}', { multiplier: selected.masteryRewardMultiplier })}</em>}</div>
-          </div> : <div className={`first-clear-reward ${cleared ? 'claimed' : ''}`}>
-            <span>{selected.firstClearReward.icon}</span>
-            <div><small>{cleared ? '최초 클리어 · 획득 완료' : '최초 클리어 보상'}</small><strong>{selected.firstClearReward.label}</strong><p>{selected.firstClearReward.description}</p>{displayedFirstClearGold !== undefined && <em>{isTreasureMission ? '보물 골드' : '연구 적용 골드'} ● {displayedFirstClearGold}</em>}</div>
-          </div>}
-          <div className="mission-footer"><span>{isChallenge || isTreasureMission || isFarmingMission ? '반복 보상' : '기본 보상'} <strong>● {displayedBattleReward}</strong>{progressionStats.battleGoldMultiplier > 1 && <small>전리품 회계 +{Math.round((progressionStats.battleGoldMultiplier - 1) * 100)}%</small>}{selected.masteryRewardMultiplier && <small>{t('전투 숙련 XP ×{multiplier}', { multiplier: selected.masteryRewardMultiplier })}</small>}</span><button disabled={locked} onClick={() => onSelect(selected.id)}>{locked ? '경로 잠김' : isChallenge ? cleared ? '다시 도전' : '마수에 도전' : isTreasureMission ? cleared ? '다시 수복전' : '보물 수복전' : isFarmingMission ? '파밍 출정' : cleared ? '다시 출정' : '출정하기'}</button></div>
-            </aside>
-          </div>
-        </div>
-      </div>
-      {notice && <div className="toast" role="status">{notice}</div>}
-    </main>
-  )}</Localized>;
-}
 
 
-function HeroHall({ onBack }: { onBack: () => void }) {
-  const gold = useGameStore((state) => state.gold);
-  const clearedStages = useGameStore((state) => state.clearedStages);
-  const selectedHero = useGameStore((state) => state.selectedHero);
-  const unlockedHeroes = useGameStore((state) => state.unlockedHeroes);
-  const heroEquipmentLevels = useGameStore((state) => state.heroEquipmentLevels);
-  const heroMasteryXp = useGameStore((state) => state.heroMasteryXp);
-  const unlockHero = useGameStore((state) => state.unlockHero);
-  const selectHero = useGameStore((state) => state.selectHero);
-  const upgradeHero = useGameStore((state) => state.upgradeHeroEquipment);
-  const trainHeroMastery = useGameStore((state) => state.trainHeroMastery);
-  const [notice, setNotice] = useState('');
-  const trainingUnlocked = isGameFeatureUnlocked('hero-training', clearedStages);
-
-  const notify = (message: string) => {
-    setNotice(message);
-    window.setTimeout(() => setNotice(''), 1800);
-  };
-
-  const recruit = (id: HeroId) => {
-    const hero = heroDefinitions[id];
-    if (unlockHero(id, hero.unlockCost)) {
-      selectHero(id);
-      notify(`${hero.name}이(가) 원정대에 합류했습니다.`);
-    } else notify('영웅을 해금할 금화가 부족합니다.');
-  };
-
-  const upgradeEquipment = (id: HeroId, slot: EquipmentSlot) => {
-    const slotName = equipmentSlots.find((item) => item.id === slot)?.name ?? '장비';
-    notify(upgradeHero(id, slot) ? `${heroDefinitions[id].name}의 ${slotName} 장비가 강화되었습니다.` : '금화가 부족하거나 최고 장비 단계입니다.');
-  };
-
-  const trainMastery = (id: HeroId, packageId: typeof heroTrainingPackages[number]['id']) => {
-    const trainingPackage = heroTrainingPackages.find((item) => item.id === packageId)!;
-    notify(trainHeroMastery(id, packageId)
-      ? `${heroDefinitions[id].name}이(가) ${trainingPackage.xp} XP를 획득했습니다.`
-      : '금화가 부족하거나 이미 최고 숙련도입니다.');
-  };
-
-  return <Localized>{(
-    <main className="panel-screen hero-hall-screen">
-      <ShellHeader title="영웅의 전당" onBack={onBack} />
-      <section className="armory-intro">
-        <div><span className="eyebrow">영웅의 전당</span><h2>원정대 지휘관</h2></div>
-        <p>영웅은 무료로 출전하고 경험치로 숙련이 성장합니다. 영입·장비 강화와 9장 이후의 숙련까지 한곳에서 관리합니다.</p>
-      </section>
-      <div className="hero-roster">
-        {heroOrder.map((id) => {
-          const hero = heroDefinitions[id];
-          const unlocked = unlockedHeroes.includes(id);
-          const selected = selectedHero === id;
-          const equipment = heroEquipmentLevels[id];
-          const mastery = heroMasteryLevelFromXp(heroMasteryXp[id]);
-          const stats = upgradedStats(hero, equipment, mastery.level);
-          const respawnMs = scaledHeroRespawnMs(hero, mastery.level);
-          const respawnReduction = heroRespawnReductionMs(hero, mastery.level);
-          const skillCooldownMs = scaledHeroSkillCooldownMs(hero, mastery.level);
-          const masteryGrowth = heroMasteryGrowth[id];
-          const awakeningRank = heroAwakeningRank(mastery.level);
-          const awakeningAura = heroAwakeningAuras[id];
-          const awakeningSelf = heroAwakeningSelfBonuses[id];
-          const nextAwakeningLevel = HERO_AWAKENING_LEVELS.find((level) => level > mastery.level);
-          return (
-            <article className={`hero-card hero-${id} ${selected ? 'selected' : ''} ${unlocked ? '' : 'hero-locked'}`} key={id}>
-              <div className="hero-art">
-                <CharacterSprite id={id} className="hero-character-art" />
-                <div className="hero-level">{unlocked ? `숙련 ${mastery.level} · ${awakeningRank > 0 ? `각성 ${['', 'I', 'II', 'III'][awakeningRank]}` : '각성 전'}` : '미해금'}</div>
-              </div>
-              <div className="hero-info">
-                <span className="eyebrow">{hero.title}</span>
-                <h3>{hero.name}</h3>
-                <p className="hero-description">{hero.description}</p>
-                {unlocked && <><div className="mastery-line"><b>숙련 경험치</b><span>{mastery.requiredXp ? `${mastery.currentXp}/${mastery.requiredXp} XP` : '최대'}</span></div><div className="mastery-track"><i style={{ width: mastery.requiredXp ? `${mastery.currentXp / mastery.requiredXp * 100}%` : '100%' }} /></div><div className="awakening-track"><div>{HERO_AWAKENING_LEVELS.map((level, index) => <i className={mastery.level >= level ? 'active' : ''} key={level}>{index + 1}</i>)}</div><span>{nextAwakeningLevel ? `다음 각성 LV.${nextAwakeningLevel}` : '최종 각성 완료'}</span></div><div className="mastery-benefit hero-mastery-benefit"><b>레벨당 HP +{masteryGrowth.hp} · 공격 +{masteryGrowth.attack}</b><span>{heroSkillPowerSummary(id, mastery.level)}</span><span>재사용 {(skillCooldownMs / 1000).toFixed(1)}초 · 부활 -{(respawnReduction / 1000).toFixed(1)}초</span></div></>}
-                <div className="hero-traits">
-                  <div><span>고유 특성</span><strong>{hero.passiveName}</strong><p>{hero.passiveDescription}</p></div>
-                  {guardProtectionLabel(hero) && <div><span>수호 특성</span><strong>전열 수호</strong><p>{guardProtectionLabel(hero)}</p></div>}
-                  {spacingTraitLabel(hero) && <div><span>위치 전술</span><strong>{spacingTraitLabel(hero)}</strong><p>{hero.rangedTargeting === 'backline' ? '유효 사거리 안의 후방 원거리·지원병을 전열 너머로 우선 공격합니다.' : '적이 사각에 들어오면 거리를 확보한 뒤 다시 공격합니다.'}</p></div>}
-                  <div className={awakeningRank > 0 ? 'awakening-aura-active' : ''}><span>각성 강화</span><strong>{awakeningSelf.name}</strong><p>{heroSelfAwakeningSummary(id, awakeningRank)}</p></div>
-                  <div className={awakeningRank > 0 ? 'awakening-aura-active' : ''}><span>각성 오라</span><strong>{awakeningAura.name}</strong><p>{awakeningRank > 0 ? `각성 ${awakeningRank}단계 · ${awakeningAura.description.replace(/\+\d+/g, (value) => `+${Number(value.slice(1)) * awakeningRank}`)} · 범위 ${awakeningAura.radius}` : `숙련 10에 해금 · ${awakeningAura.description} · 범위 ${awakeningAura.radius}`}</p></div>
-                  <div><span>액티브 스킬</span><strong>{hero.skillName}</strong><p>{hero.skillDescription}</p></div>
-                </div>
-                <dl className="hero-stats">
-                  <div><dt>생명력</dt><dd><GrowthStat current={stats.maxHp} base={hero.maxHp} /></dd></div>
-                  <div><dt>공격 / 방어</dt><dd className="growth-pair"><GrowthStat current={stats.attackDamage} base={hero.attackDamage} /><i>/</i><GrowthStat current={stats.defense ?? 0} base={hero.defense ?? 0} /></dd></div>
-                  <div><dt>이동속도</dt><dd><GrowthStat current={stats.moveSpeed} base={hero.moveSpeed} /></dd></div>
-                  <div><dt>부활</dt><dd><GrowthStat current={respawnMs / 1000} base={hero.respawnMs / 1000} /></dd></div>
-                  <div><dt>유효 사거리</dt><dd>{attackRangeLabel(stats)}</dd></div>
-                </dl>
-                {unlocked && <div className="equipment-list hero-equipment-list">
-                  {equipmentSlots.map((slot) => {
-                    const level = equipment[slot.id];
-                    const cost = equipmentCost(hero, level);
-                    return <button key={slot.id} disabled={level >= 5 || gold < cost} onClick={() => upgradeEquipment(id, slot.id)}>
-                      <i>{slot.icon}</i><span><b>{slot.name} +{level}</b><small>{equipmentEffect(hero, slot.id)}</small></span><em>{level >= 5 ? '최대' : `● ${cost}`}</em>
-                    </button>;
-                  })}
-                </div>}
-                <div className="hero-actions">
-                  {!unlocked ? (
-                    <button disabled={gold < hero.unlockCost} onClick={() => recruit(id)}>영입하기 <span>● {hero.unlockCost}</span></button>
-                  ) : (
-                    <>
-                      <button className="select-hero" disabled={selected} onClick={() => selectHero(id)}>{selected ? '출전 중' : '출전 선택'}</button>
-                    </>
-                  )}
-                </div>
-                {unlocked && <section className={`hero-training-panel ${trainingUnlocked ? '' : 'locked'}`}>
-                  <header><span>왕실 훈련</span><strong>{gameFeatures['hero-training'].name}</strong><small>{trainingUnlocked ? '금화를 영웅 숙련 XP로 전환' : `${gameFeatures['hero-training'].unlockStage}장 클리어 시 해금`}</small></header>
-                  {trainingUnlocked ? <div className="training-packages">
-                    {heroTrainingPackages.map((trainingPackage) => (
-                      <button key={trainingPackage.id} disabled={mastery.level >= HERO_MASTERY_MAX_LEVEL || gold < trainingPackage.goldCost} onClick={() => trainMastery(id, trainingPackage.id)}>
-                        <span><b>{trainingPackage.name}</b><small>{trainingPackage.description}</small></span>
-                        <em>+{trainingPackage.xp} XP</em><strong>● {trainingPackage.goldCost.toLocaleString()}</strong>
-                      </button>
-                    ))}
-                  </div> : <p>왕실 교관단을 복귀시키면 금화로 보유 영웅을 훈련할 수 있습니다.</p>}
-                </section>}
-              </div>
-            </article>
-          );
-        })}
-      </div>
-      {notice && <div className="toast" role="status">{notice}</div>}
-    </main>
-  )}</Localized>;
-}
-
-function TriumphMonument({ onBack }: { onBack: () => void }) {
-  const gold = useGameStore((state) => state.gold);
-  const level = useGameStore((state) => state.triumphMonumentLevel);
-  const upgrade = useGameStore((state) => state.upgradeTriumphMonument);
-  const [notice, setNotice] = useState('');
-  const bonuses = triumphMonumentBonuses(level);
-  const maxed = level >= TRIUMPH_MONUMENT.maxLevel;
-  const cost = triumphMonumentCost(level);
-
-  const strengthen = () => {
-    const success = upgrade();
-    setNotice(success ? `승전 기념비가 ${level + 1}단계로 강화되었습니다.` : '금화가 부족하거나 이미 최고 단계입니다.');
-    window.setTimeout(() => setNotice(''), 1_800);
-  };
-
-  return <Localized>{(
-    <main className="panel-screen monument-screen">
-      <ShellHeader title={TRIUMPH_MONUMENT.name} onBack={onBack} />
-      <section className="monument-panel">
-        <div className="monument-visual" aria-hidden="true"><span>♜</span><i /></div>
-        <div className="monument-copy">
-          <span className="eyebrow">대륙 승전 기념비</span>
-          <h2>끝나지 않는 원정을 위한 유산</h2>
-          <p>30장 탈환 이후 남는 금화를 왕국 전체의 전투 기반에 투자합니다. 효과는 아군에게만 적용되며 최대 20단계에서 멈춥니다.</p>
-          <div className="monument-ranks" aria-label={`기념비 단계 ${level}/${TRIUMPH_MONUMENT.maxLevel}`}>
-            {Array.from({ length: TRIUMPH_MONUMENT.maxLevel }, (_, rank) => <i key={rank} className={rank < level ? 'filled' : ''} />)}
-          </div>
-          <div className="monument-bonuses">
-            <div><span>병사·영웅 HP</span><strong>+{level}%</strong><small>다음 +{Math.min(TRIUMPH_MONUMENT.maxLevel, level + 1)}%</small></div>
-            <div><span>병사·영웅 공격·치유</span><strong>+{level}%</strong><small>다음 +{Math.min(TRIUMPH_MONUMENT.maxLevel, level + 1)}%</small></div>
-            <div><span>아군 성채 HP</span><strong>+{bonuses.fortressHpBonus.toLocaleString()}</strong><small>단계당 +{TRIUMPH_MONUMENT.fortressHpPerLevel}</small></div>
-          </div>
-          <button className="monument-upgrade" disabled={maxed || gold < cost} onClick={strengthen}>
-            {maxed ? '기념비 완성' : <>기념비 강화 <span>● {cost.toLocaleString()}</span></>}
-          </button>
-        </div>
-      </section>
-      {notice && <div className="toast" role="status">{notice}</div>}
-    </main>
-  )}</Localized>;
-}
 
 interface FortressTechNodeProps {
   id: CastleTechId;
@@ -1072,14 +561,19 @@ function FortressTechNode({ id, levels, fortressTier, gold, onBuy }: FortressTec
   const prerequisite = castleTechPrerequisiteStatus(id, levels);
   const grandfathered = level > 0 && prerequisite && !prerequisite.met;
   const children = castleTechChildren(id);
+  const skillPreview = id === 'emergency_supply' || id === 'central_trap'
+    ? castleBattleStats({ ...levels, [id]: Math.min(level + 1, definition.maxLevel) }) : undefined;
 
   return <Localized>{(
     <div className="tech-tree-node" role="treeitem" aria-label={`${definition.name}, ${level}/${definition.maxLevel}단계`} aria-expanded={children.length ? true : undefined}>
-      <article className={`tech-node ${level ? 'researched' : ''} ${available ? '' : 'unavailable'}`}>
+      <article data-tour={id === 'war_coffers' ? 'fortress-research' : undefined} className={`tech-node ${level ? 'researched' : ''} ${available ? '' : 'unavailable'}`}>
         <span className="tech-icon">{definition.icon}</span>
         <div>
           <strong>{definition.name}<em>T{definition.requiredTier}</em></strong>
           <small>{definition.description}</small>
+          {skillPreview && <small className="tech-skill-preview">{id === 'emergency_supply'
+            ? t('지휘력 +{amount} · 재사용 {seconds}초', { amount: skillPreview.emergencySupplyAmount, seconds: fortressSkillTuning.supply.cooldownMs / 1000 })
+            : t('지상 피해 {damage} · 재사용 {seconds}초', { damage: skillPreview.centralTrapDamage, seconds: fortressSkillTuning.trap.cooldownMs / 1000 })}</small>}
           {prerequisite && (
             <small className={`tech-requirement ${prerequisite.met || grandfathered ? 'met' : 'missing'}`}>
               {prerequisite.label}{grandfathered ? ' · 기존 연구 보존' : ''}
@@ -1205,7 +699,7 @@ export function FortressWorkshop({ onBack }: { onBack: () => void }) {
         <div><span className="eyebrow">성채 기술</span><h2>최후의 방벽</h2></div>
         <p>연구를 누적해 성채 티어를 승급하고, 상위 기술과 새로운 용병 영입 허가를 개방하세요.</p>
       </section>
-      <section className={`fortress-tier-banner tier-${fortressTier}`}>
+      <section className={`fortress-tier-banner tier-${fortressTier}`} data-tour="fortress-tier">
         <div className="tier-crest"><span>♜</span><b>TIER {fortressTier}</b></div>
         <div className="tier-copy"><span className="eyebrow">성채 등급</span><h3>{fortressTierDefinitions[fortressTier].name}</h3><p>{fortressTierDefinitions[fortressTier].description}</p><strong>{fortressTierDefinitions[fortressTier].unlocks}</strong></div>
         <div className="tier-progress">
@@ -1218,6 +712,8 @@ export function FortressWorkshop({ onBack }: { onBack: () => void }) {
         </div>
       </section>
       <section className="castle-summary">
+        {stats.emergencySupplyAmount > 0 && <div><span>긴급 보급</span><strong>+{stats.emergencySupplyAmount}</strong></div>}
+        {stats.centralTrapDamage > 0 && <div><span>중앙 함정</span><strong>{stats.centralTrapDamage}</strong></div>}
         <div><span>시작 지휘력</span><strong>{stats.startingCommand}</strong></div>
         <div><span>초당 회복</span><strong>{stats.commandRegen}</strong></div>
         <div><span>최대 지휘력</span><strong>{stats.maxCommand}</strong></div>
@@ -1238,7 +734,7 @@ export function FortressWorkshop({ onBack }: { onBack: () => void }) {
       <div className="tech-branches">
         {branches.map((branch) => (
           <section className={`tech-branch branch-${branch.id}`} key={branch.id}>
-            <header><span className="eyebrow">{branch.id}</span><h3>{branch.name}</h3><p>{branch.description}</p></header>
+            <header><span className="eyebrow">연구 계통</span><h3>{branch.name}</h3><p>{branch.description}</p></header>
             <DraggableTechTreeViewport label={branch.name}>
               <div className="tech-tree-guide" aria-hidden="true"><span>선행 기술</span><b>→</b><span>후속 기술</span><em>노드의 T 표시는 필요한 성채 티어입니다</em></div>
               <div className="tech-tree" role="tree" aria-label={`${branch.name} 기술 트리`}>
@@ -1307,7 +803,7 @@ function Achievements({ onBack }: { onBack: () => void }) {
         <div><span>패배</span><strong>{stats.defeats}</strong></div><div><span>처치</span><strong>{stats.kills}</strong></div>
         <div><span>병사 전사</span><strong>{stats.unitDeaths}</strong></div><div><span>최고 연승</span><strong>{stats.maxWinStreak}</strong></div>
       </section>
-      <section className="achievement-toolbar">
+      <section className="achievement-toolbar" data-tour="achievements">
         <div><strong>{viewMode === 'grouped' ? `${achievementGroups.length}개 업적 계열` : `전체 ${achievements.length}개`}</strong><span>{viewMode === 'grouped' ? '보상 대기 단계와 다음 목표를 우선 표시합니다.' : '모든 단계별 업적을 펼쳐 봅니다.'}</span></div>
         <div className="achievement-view-toggle" role="group" aria-label="업적 표시 방식">
           <button aria-pressed={viewMode === 'grouped'} onClick={() => setViewMode('grouped')}>묶음 보기</button>
@@ -1325,6 +821,7 @@ function Achievements({ onBack }: { onBack: () => void }) {
 }
 
 function WarCodex({ onBack }: { onBack: () => void }) {
+  const [view, setView] = useState<'combatants' | 'items'>('combatants');
   const unlockedUnits = useGameStore((state) => state.unlockedUnits);
   const unlockedHeroes = useGameStore((state) => state.unlockedHeroes);
   const discoveredEnemies = useGameStore((state) => state.discoveredEnemies);
@@ -1337,11 +834,16 @@ function WarCodex({ onBack }: { onBack: () => void }) {
   return <Localized>{(
     <main className="panel-screen codex-screen">
       <ShellHeader title="전쟁 사전" onBack={onBack} />
-      <section className="codex-heading">
-        <div><span className="eyebrow">전쟁 사전</span><h2>발견된 존재의 기록</h2><p>영입하거나 전장에서 직접 조우한 존재만 연대기에 기록됩니다.</p></div>
-        <div className="codex-completion"><span>{percent}%</span><div><i style={{ width: `${percent}%` }} /></div><small>{t('{current} / {total} 기록', { current: completion, total: CODEX_TOTAL })}</small></div>
+      <section className="codex-heading" data-tour="codex">
+        <div><span className="eyebrow">전쟁 사전</span><h2>{view === 'items' ? '아이템 사전' : '발견된 존재의 기록'}</h2><p>{view === 'items' ? '아이템을 펼쳐 효과와 획득 방법을 확인하세요.' : '영입하거나 전장에서 직접 조우한 존재만 연대기에 기록됩니다.'}</p></div>
+        {view === 'combatants' && <div className="codex-completion"><span>{percent}%</span><div><i style={{ width: `${percent}%` }} /></div><small>{t('{current} / {total} 기록', { current: completion, total: CODEX_TOTAL })}</small></div>}
       </section>
 
+      <div className="codex-view-switch" role="group" aria-label="사전 분류">
+        <GameButton variant="filter" active={view === 'combatants'} aria-pressed={view === 'combatants'} onClick={() => setView('combatants')}>병종과 영웅</GameButton>
+        <GameButton variant="filter" active={view === 'items'} aria-pressed={view === 'items'} data-codex-view="items" onClick={() => setView('items')}>아이템 사전</GameButton>
+      </div>
+      {view === 'items' ? <ItemCodex /> : <>
       <section className="codex-section">
         <header><span>♟</span><div><small>공용 병종</small><h3>확보·조우 병종</h3></div><b>{visibleTroops.length}/{allTroopOrder.length}</b></header>
         <div className="codex-grid">
@@ -1374,15 +876,17 @@ function WarCodex({ onBack }: { onBack: () => void }) {
           <article className="codex-card enemy-entry boss-entry"><span className="codex-icon">{bossDefinition.icon}</span><div><small>{bossCodex.boss.role}</small><h4>{bossCodex.boss.title}</h4><p>{bossCodex.boss.description}</p><blockquote>{bossCodex.boss.lore}</blockquote><dl><div><dt>체력</dt><dd>{bossDefinition.maxHp}</dd></div><div><dt>공격</dt><dd>{bossDefinition.attackDamage}</dd></div><div><dt>사거리</dt><dd>{bossDefinition.attackRange}</dd></div></dl></div></article>
         </div>
       </section>}
+      <ExclusiveEnemyCodex />
       {completion < CODEX_TOTAL && <p className="codex-missing">아직 기록되지 않은 항목 {CODEX_TOTAL - completion}개 · 지도 탐험과 영웅 영입을 계속하세요.</p>}
+      </>}
     </main>
   )}</Localized>;
 }
 
 function ResultScreen({ result, onMenu, onRetry }: { result: BattleResult; onMenu: () => void; onRetry: () => void }) {
+  useTranslation();
   return <Localized>{(
     <main className={`result-screen ${result.victory ? 'victory' : 'defeat'}`}>
-      <div className="result-rays" />
       <section className="result-card">
         <span className="result-emblem">{result.victory ? '♜' : '♞'}</span>
         <span className="eyebrow">전투 보고</span>
@@ -1403,7 +907,15 @@ function ResultScreen({ result, onMenu, onRetry }: { result: BattleResult; onMen
             })}</div>
           </div>
         )}
-        {result.itemDrops && result.itemDrops.length > 0 && <div className="result-loot">
+        {result.newMonumentDeeds && result.newMonumentDeeds.length > 0 && <section className="result-deeds" aria-labelledby="result-deeds-heading">
+          <h2 id="result-deeds-heading" className="eyebrow">기념비에 새긴 전공</h2>
+          <ul>{monumentDeeds.filter((deed) => result.newMonumentDeeds?.includes(deed.id)).map((deed) => <li key={deed.id}>
+            <span className="result-deed-emblem" aria-hidden="true">{deed.icon}</span>
+            <strong>{deed.name}</strong>
+          </li>)}</ul>
+          <p>{t('전공마다 기념비 건립 비용이 영구적으로 {percent}%씩 줄어듭니다.', { percent: TRIUMPH_MONUMENT.discountPerDeed * 100 })}</p>
+        </section>}
+        {result.itemDrops && result.itemDrops.length > 0 && <div className="result-loot" data-tour="item-drop">
           <span className="eyebrow">아이템 전리품</span>
           {result.itemDrops.map((drop) => <strong key={drop.id}>{itemDefinitions[drop.id].icon} {itemDefinitions[drop.id].name} ×{drop.count}</strong>)}
         </div>}
@@ -1429,13 +941,16 @@ function ResultScreen({ result, onMenu, onRetry }: { result: BattleResult; onMen
 }
 
 export default function App() {
+  useTranslation();
   const [screen, setScreen] = useState<Screen>('menu');
   const [stageId, setStageId] = useState(1);
+  const [mapMonumentId, setMapMonumentId] = useState<string | undefined>();
   const [lastBattleStageId, setLastBattleStageId] = useState<number | null>(null);
   const [result, setResult] = useState<BattleResult | null>(null);
   const addReward = useGameStore((state) => state.addReward);
   const recordBattle = useGameStore((state) => state.recordBattle);
   const completeStage = useGameStore((state) => state.completeStage);
+  const completeChapterTwoStage = useGameStore((state) => state.completeChapterTwoStage);
   const completeChallenge = useGameStore((state) => state.completeChallenge);
   const completeTreasureMission = useGameStore((state) => state.completeTreasureMission);
   const muted = useGameStore((state) => state.muted);
@@ -1463,7 +978,11 @@ export default function App() {
   }, []);
 
   const navigate = useCallback((nextScreen: Screen) => {
-    if (nextScreen === 'menu') setLastBattleStageId(null);
+    if (nextScreen === 'menu') { setLastBattleStageId(null); setMapMonumentId(undefined); }
+    if (screen === 'menu' && nextScreen === 'stages') {
+      const profile = useGameStore.getState();
+      if (profile.clearedChapterTwoStages.length > 0 && isChapterTwoUnlocked(profile.builtMonumentIds)) setLastBattleStageId(chapterTwoStages.find((stage) => !profile.clearedChapterTwoStages.includes(stage.id))?.id ?? 406);
+    }
     const startViewTransition = document.startViewTransition?.bind(document);
     const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
     const shouldTransition = shouldUseScreenTransition(screen, nextScreen, prefersReducedMotion);
@@ -1479,6 +998,9 @@ export default function App() {
   }, [screen]);
 
   const startStage = (id: number) => {
+    setMapMonumentId(undefined);
+    const profile = useGameStore.getState();
+    if (getStage(id).chapter === 2 && !canEnterChapterTwoStage(id, profile.builtMonumentIds, profile.clearedChapterTwoStages)) return;
     setStageId(id);
     setLastBattleStageId(id);
     setResult(null);
@@ -1487,33 +1009,36 @@ export default function App() {
 
   const handleResult = useCallback((battleResult: BattleResult) => {
     const playedStage = getStage(battleResult.stageId);
-    const campaignClearId = battleResult.victory && !playedStage.challenge && !playedStage.sideMission ? battleResult.stageId : 0;
+    const profile = useGameStore.getState();
+    if (playedStage.chapter === 2 && !canEnterChapterTwoStage(playedStage.id, profile.builtMonumentIds, profile.clearedChapterTwoStages)) return;
+    const campaignClearId = battleResult.victory && playedStage.chapter !== 2 && !playedStage.challenge && !playedStage.sideMission ? battleResult.stageId : 0;
     const battleGoldReward = addReward(battleResult.reward, campaignClearId);
     const firstClearReward = battleResult.victory
-      ? playedStage.challenge
+      ? playedStage.chapter === 2 ? completeChapterTwoStage(battleResult.stageId) : playedStage.challenge
         ? completeChallenge(battleResult.stageId)
         : playedStage.farmingKind ? undefined
           : playedStage.sideMission ? completeTreasureMission(battleResult.stageId) : completeStage(campaignClearId)
       : undefined;
     const record = recordBattle(battleResult);
-    setResult({ ...battleResult, reward: battleGoldReward, newAchievements: record.unlocked, masteryGains: record.gains, itemDrops: record.drops, firstClearReward });
+    setResult({ ...battleResult, reward: battleGoldReward, newAchievements: record.unlocked, newMonumentDeeds: record.monumentDeeds, masteryGains: record.gains, itemDrops: record.drops, firstClearReward });
     setScreen('result');
-  }, [addReward, completeChallenge, completeStage, completeTreasureMission, recordBattle]);
+  }, [addReward, completeChallenge, completeStage, completeChapterTwoStage, completeTreasureMission, recordBattle]);
 
   const exitBattle = useCallback(() => {
     setResult(null);
     setScreen('stages');
   }, []);
 
+  const renderScreen = () => {
   if (screen === 'menu') return <MainMenu onNavigate={navigate} />;
   if (screen === 'opening') return <Opening onComplete={() => setScreen('stages')} />;
   if (screen === 'credits') return <Credits onBack={() => navigate('menu')} />;
-  if (screen === 'stages') return <StageSelect initialStageId={lastBattleStageId ?? undefined} onBack={() => navigate('menu')} onSelect={startStage} onNavigate={navigate} />;
+  if (screen === 'stages') return <CampaignMap initialMonumentId={mapMonumentId} initialStageId={lastBattleStageId ?? undefined} header={<ShellHeader title="왕국 지도" onBack={() => navigate('menu')} />} operations={<MapCommandCenter onNavigate={navigate} />} onSelect={startStage} onMonuments={() => navigate('monument')} />;
   if (screen === 'merchant') return <MysteryMerchant onBack={() => navigate('stages')} />;
-  if (screen === 'monument') return <TriumphMonument onBack={() => navigate('stages')} />;
+  if (screen === 'monument') return <TriumphMonument header={<ShellHeader title={TRIUMPH_MONUMENT.name} onBack={() => navigate('stages')} />} onViewBuilding={(id) => { setMapMonumentId(id); navigate('stages'); }} onEnterChapterTwo={() => { setLastBattleStageId(401); setMapMonumentId(undefined); navigate('stages'); }} onViewMission={(id) => { setMapMonumentId(undefined); setLastBattleStageId(id); navigate('stages'); }} />;
   if (screen === 'armory') return <Armory header={<ShellHeader title="왕립 병영" onBack={() => navigate('stages')} />} />;
   if (screen === 'items') return <ItemVault header={<ShellHeader title="원정 장비고" onBack={() => navigate('stages')} />} />;
-  if (screen === 'heroes') return <HeroHall onBack={() => navigate('stages')} />;
+  if (screen === 'heroes') return <HeroHall header={<ShellHeader title="영웅의 전당" onBack={() => navigate('stages')} />} />;
   if (screen === 'fortress') return <FortressWorkshop onBack={() => navigate('stages')} />;
   if (screen === 'achievements') return <Achievements onBack={() => navigate('stages')} />;
   if (screen === 'codex') return <WarCodex onBack={() => navigate('stages')} />;
@@ -1528,4 +1053,7 @@ export default function App() {
     return <ResultScreen result={result} onMenu={() => navigate('stages')} onRetry={() => startStage(stageId)} />;
   }
   return null;
+  };
+  const tutorialScreen = screen;
+  return <>{renderScreen()}<TutorialLayer key={tutorialScreen} screen={tutorialScreen} /></>;
 }

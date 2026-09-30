@@ -1,3 +1,4 @@
+import { enemyDefinitions } from './enemies';
 import { describe, expect, it } from 'vitest';
 import { UNIT_IDS } from '../types/game';
 import { upgradedStats } from '../game/rules';
@@ -58,14 +59,14 @@ describe('campaign rewards', () => {
       expect(stage.reinforcement!.startMs).toBeLessThanOrEqual(5_000);
       expect(stage.reinforcement!.intervalMs).toBeGreaterThanOrEqual(6_200);
       expect(stage.reinforcement!.maxAlive).toBeLessThanOrEqual(6);
-      expect(Math.max(...stage.reinforcement!.unitIds.map((id) => troopDefinitions[id].cost))).toBeLessThanOrEqual(105);
+      expect(Math.max(...stage.reinforcement!.unitIds.map((id) => enemyDefinitions[id].cost))).toBeLessThanOrEqual(105);
     }
   });
 
   it('keeps boss-only encounters in a separate challenge roster', () => {
     expect(challengeStages).toHaveLength(7);
     expect(challengeStages.map((challenge) => challenge.requiredCampaignStage)).toEqual([6, 12, 18, 24, 27, 30, 30]);
-    expect(challengeStages.map((challenge) => troopDefinitions[challenge.bossUnitId!].grade)).toEqual([3, 2, 3, 4, 3, 5, 5]);
+    expect(challengeStages.map((challenge) => enemyDefinitions[challenge.bossUnitId!].grade)).toEqual([3, 2, 3, 4, 3, 5, 5]);
     const combinedHpMultipliers = challengeStages.map((challenge) => challenge.terrain.enemyHpMultiplier * (challenge.bossModifiers?.hpMultiplier ?? 1));
     [15, 120, 80, 13.8, 120, 40 / 3, 80 / 9].forEach((expected, index) => expect(combinedHpMultipliers[index]).toBeCloseTo(expected));
     for (const challenge of challengeStages) {
@@ -122,7 +123,7 @@ describe('campaign rewards', () => {
     expect(stages.filter((stage) => stage.id >= 13 && !stage.boss).every((stage) => (stage.eliteGuards?.length ?? 0) >= 2)).toBe(true);
     expect(stages.filter((stage) => stage.id >= 19 && !stage.boss).every((stage) => stage.eliteGuards?.length === 3)).toBe(true);
     for (const elite of stages.flatMap((stage) => stage.eliteGuards ?? [])) {
-      expect(troopDefinitions[elite.unitId]).toBeDefined();
+      expect(enemyDefinitions[elite.unitId]).toBeDefined();
       expect(elite.positionRatio).toBeGreaterThan(0);
       expect(elite.positionRatio).toBeLessThan(1);
     }
@@ -138,7 +139,7 @@ describe('campaign rewards', () => {
 
   it('builds every army from the shared troop definitions', () => {
     for (const wave of stages.flatMap((stage) => stage.waves)) {
-      expect(troopDefinitions[wave.unitId]).toBeDefined();
+      expect(enemyDefinitions[wave.unitId]).toBeDefined();
     }
   });
 
@@ -167,7 +168,7 @@ describe('campaign rewards', () => {
     expect(troopDefinitions.ifrit.maxActivePerSide).toBe(2);
     expect(troopDefinitions.dragon.maxActivePerSide).toBe(1);
     expect(troopDefinitions.allianceGuardian.maxActivePerSide).toBe(1);
-    for (const unit of allTroopOrder.map((id) => troopDefinitions[id]).filter((unit) => unit.maxActivePerSide !== undefined)) {
+    for (const unit of allTroopOrder.map((id) => enemyDefinitions[id]).filter((unit) => unit.maxActivePerSide !== undefined)) {
       expect(Number.isInteger(unit.maxActivePerSide)).toBe(true);
       expect(unit.maxActivePerSide).toBeGreaterThanOrEqual(1);
     }
@@ -219,7 +220,7 @@ describe('campaign rewards', () => {
 
   it('gives ranged transcendents slow high-impact fortress-piercing attacks', () => {
     for (const id of ['ifrit', 'dragon'] as const) {
-      const unit = troopDefinitions[id];
+      const unit = enemyDefinitions[id];
       expect(unit.attackDamage).toBeGreaterThanOrEqual(650);
       expect(unit.attackIntervalMs).toBeGreaterThanOrEqual(2_400);
       expect(unit.attackPattern.kind).toBe('pierce');
@@ -239,7 +240,7 @@ describe('campaign rewards', () => {
         id === 'militia'
         || encountered.has(id)
         || directlyGranted.has(id)
-        || troopDefinitions[id].requiresEncounter === false,
+        || enemyDefinitions[id].requiresEncounter === false,
         `${id} needs a progression path`,
       ).toBe(true);
     }
@@ -301,8 +302,8 @@ describe('campaign rewards', () => {
 
     for (const stage of stages.filter((candidate) => candidate.id >= 13 && !candidate.boss)) {
       const reinforcement = stage.reinforcement!;
-      expect(reinforcement.unitIds.some((unitId) => troopDefinitions[unitId].grade >= 2)).toBe(true);
-      expect(reinforcement.unitIds.every((unitId) => troopDefinitions[unitId].grade <= 3)).toBe(true);
+      expect(reinforcement.unitIds.some((unitId) => enemyDefinitions[unitId].grade! >= 2)).toBe(true);
+      expect(reinforcement.unitIds.every((unitId) => enemyDefinitions[unitId].grade! <= 3)).toBe(true);
     }
   });
 
@@ -317,7 +318,8 @@ describe('campaign rewards', () => {
       expect(stage.reinforcement).toBeDefined();
       expect(stage.treasureId).toBe(mapTreasures[index].id);
       expect(stage.firstClearReward.gold).toBeUndefined();
-      expect(mapTreasures[index].x).toBeGreaterThan(mapTreasures[index].guardianX);
+      const treasure = mapTreasures[index];
+      expect(Math.hypot(treasure.x - treasure.guardianX, treasure.y - treasure.guardianY)).toBeGreaterThan(150);
       expect(Math.hypot(mapTreasures[index].x - mapTreasures[index].guardianX, mapTreasures[index].y - mapTreasures[index].guardianY)).toBeLessThan(220);
     }
   });

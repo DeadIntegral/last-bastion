@@ -1,5 +1,5 @@
 import { useState, type DragEvent, type ReactNode } from 'react';
-import { FORTRESS_ITEM_SLOT_COUNT, itemDefinitions, itemOrder, itemRecipes, MAX_ITEM_STACK } from '../data/items';
+import { canCraftItem, FORTRESS_ITEM_SLOT_COUNT, itemDefinitions, itemOrder, itemRecipes } from '../data/items';
 import { troopDefinitions } from '../data/units';
 import { Localized } from '../shared/i18n/Localized';
 import { t } from '../shared/i18n/i18n';
@@ -20,8 +20,10 @@ export function ItemVault({ header }: { header: ReactNode }) {
   const unequipFormationItem = useGameStore((state) => state.unequipFormationItem);
   const unequipFortressItem = useGameStore((state) => state.unequipFortressItem);
   const craftItem = useGameStore((state) => state.craftItem);
-  const firstOwnedItem = itemOrder.find((id) => (itemInventory[id] ?? 0) > 0) ?? null;
-  const [selectedItem, setSelectedItem] = useState<ItemId | null>(firstOwnedItem);
+  const ownedItems = itemOrder.filter((id) => (itemInventory[id] ?? 0) > 0);
+  const [preferredItem, setSelectedItem] = useState<ItemId | null>(ownedItems[0] ?? null);
+  const selectedItem = preferredItem && ownedItems.includes(preferredItem) ? preferredItem : ownedItems[0] ?? null;
+  const availableRecipes = itemRecipes.filter((recipe) => canCraftItem(recipe, { clearedStages, itemInventory, formationItemSlots, fortressItemSlots }));
   const [notice, setNotice] = useState('');
 
   const notify = (message: string) => {
@@ -44,13 +46,13 @@ export function ItemVault({ header }: { header: ReactNode }) {
   const equipFormation = (id: ItemId, index: number) => {
     notify(assignFormationItem(id, index)
       ? t('{name}을(를) {slot}번 편성 슬롯에 장착했습니다.', { name: t(itemDefinitions[id].name), slot: index + 1 })
-      : '편성 슬롯에는 편성 아이템만 장착할 수 있습니다.');
+      : itemDefinitions[id].target !== 'formation' ? '편성 슬롯에는 편성 아이템만 장착할 수 있습니다.' : '남은 아이템이 없습니다. 다른 슬롯에서 장착 해제하세요.');
   };
 
   const equipFortress = (id: ItemId, index: number) => {
     notify(assignFortressItem(id, index)
       ? t('{name}을(를) 성채 {slot}번 슬롯에 장착했습니다.', { name: t(itemDefinitions[id].name), slot: index + 1 })
-      : '성채 슬롯에는 성채 아이템만 장착할 수 있습니다.');
+      : itemDefinitions[id].target !== 'fortress' ? '성채 슬롯에는 성채 아이템만 장착할 수 있습니다.' : '남은 아이템이 없습니다. 다른 슬롯에서 장착 해제하세요.');
   };
 
   return <Localized><main className="panel-screen item-vault-screen">
@@ -60,7 +62,7 @@ export function ItemVault({ header }: { header: ReactNode }) {
       <p>편성 아이템은 번호 슬롯에 남아 그 자리에 배치되는 병종을 강화합니다. 성채 아이템은 두 칸만 선택해 모든 전투에 적용합니다.</p>
     </section>
 
-    <section className="item-loadout-grid">
+    <section className="item-loadout-grid" data-tour="item-slots">
       <div className="item-socket-panel">
         <header><span className="eyebrow">편성 장착</span><h3>편성 슬롯 아이템</h3><p>아이템을 드래그하거나 선택한 뒤 슬롯을 누르세요.</p></header>
         <div className="item-formation-sockets">
@@ -99,48 +101,41 @@ export function ItemVault({ header }: { header: ReactNode }) {
       </div>
     </section>
 
-    <section className="item-inventory-section">
-      <header><span className="eyebrow">보유 목록</span><h3>{t('보유 아이템 {current}/{total}', { current: itemOrder.filter((id) => (itemInventory[id] ?? 0) > 0).length, total: itemOrder.length })}</h3></header>
+    <section className="item-inventory-section" data-tour="item-inventory">
+      <header><span className="eyebrow">보유 목록</span><h3>{t('보유 아이템 {count}종', { count: ownedItems.length })}</h3></header>
+      {ownedItems.length === 0 && <p className="item-empty">보유한 아이템이 없습니다.</p>}
       <div className="item-inventory-grid">
-        {itemOrder.map((id) => {
+        {ownedItems.map((id) => {
           const item = itemDefinitions[id];
           const count = itemInventory[id] ?? 0;
-          const owned = count > 0;
-          const equipped = formationItemSlots.includes(id) || fortressItemSlots.includes(id);
+          const equipped = formationItemSlots.filter((current) => current === id).length + fortressItemSlots.filter((current) => current === id).length;
           return <GameButton
             variant="filter"
             active={selectedItem === id}
-            className={`item-inventory-card rarity-${item.rarity} ${owned ? '' : 'locked'}`}
-            disabled={!owned}
-            draggable={owned}
+            className={`item-inventory-card rarity-${item.rarity}`}
+            draggable
             onDragStart={(event) => startDrag(event, id)}
             onClick={() => setSelectedItem(id)}
             key={id}
           >
-            <span className="item-icon">{owned ? item.icon : '?'}</span>
-            <span className="item-copy"><small>{item.target === 'formation' ? '편성 아이템' : '성채 아이템'} · {item.rarity}성</small><b>{owned ? item.name : item.dropRegion ? '전투 아이템 드롭' : '아이템 조합 전용'}</b><p>{owned ? item.description : '획득 전에는 효과가 공개되지 않습니다.'}</p></span>
-            <span className="item-count">×{count}</span>{equipped && <em>장착 중</em>}
+            <span className="item-icon">{item.icon}</span>
+            <span className="item-copy"><small>{item.target === 'formation' ? '편성 아이템' : '성채 아이템'} · {item.rarity}성</small><b>{item.name}</b><p>{item.description}</p></span>
+            <span className="item-count">×{count}</span>{equipped > 0 && <em>{t('장착 {equipped} · 여분 {available}', { equipped, available: count - equipped })}</em>}
           </GameButton>;
         })}
       </div>
     </section>
-    <section className="item-crafting-section">
-      <header><span className="eyebrow">연금 공방</span><h3>아이템 조합</h3><p>장착하지 않은 재료 두 개를 소비해 더 강한 복합 아이템을 만듭니다.</p></header>
-      <div className="item-recipe-grid">{itemRecipes.map((recipe) => {
-        const unlocked = clearedStages.includes(recipe.requiredStage);
+    {availableRecipes.length > 0 && <section className="item-crafting-section" data-tour="crafting">
+      <header><span className="eyebrow">연금 공방</span><h3>조합 가능한 아이템</h3></header>
+      <div className="item-recipe-grid">{availableRecipes.map((recipe) => {
         const ingredients = recipe.ingredients.map((ingredient) => `${t(itemDefinitions[ingredient.id].name)} ×${ingredient.count}`).join(' + ');
-        const equippedCount = (id: ItemId) => formationItemSlots.filter((current) => current === id).length + fortressItemSlots.filter((current) => current === id).length;
-        const resultStackFull = (itemInventory[recipe.result] ?? 0) >= MAX_ITEM_STACK;
-        const craftable = unlocked
-          && !resultStackFull
-          && recipe.ingredients.every((ingredient) => (itemInventory[ingredient.id] ?? 0) - equippedCount(ingredient.id) >= ingredient.count);
         const result = itemDefinitions[recipe.result];
-        return <article className={`item-recipe-card rarity-${result.rarity} ${unlocked ? '' : 'locked'}`} key={recipe.id}>
-          <span className="item-icon">{result.icon}</span><div><small>{t('{stage}장 조합 해금', { stage: recipe.requiredStage })}</small><h4>{result.name}</h4><p>{result.description}</p><em>{ingredients}</em></div>
-          <GameButton disabled={!craftable} onClick={() => notify(craftItem(recipe.id) ? t('{name} 조합에 성공했습니다.', { name: t(result.name) }) : t('재료 아이템을 장착 해제하고 수량을 확인하세요.'))}>{!unlocked ? t('{stage}장 클리어 필요', { stage: recipe.requiredStage }) : resultStackFull ? '보유 한도 도달' : craftable ? '아이템 조합' : '재료 부족 또는 장착 중'}</GameButton>
+        return <article className={`item-recipe-card rarity-${result.rarity}`} key={recipe.id}>
+          <span className="item-icon">{result.icon}</span><div><h4>{result.name}</h4><p>{result.description}</p><em>{ingredients}</em></div>
+          <GameButton onClick={() => notify(craftItem(recipe.id) ? t('{name} 조합에 성공했습니다.', { name: t(result.name) }) : t('재료 아이템을 장착 해제하고 수량을 확인하세요.'))}>아이템 조합</GameButton>
         </article>;
       })}</div>
-    </section>
+    </section>}
     {notice && <div className="toast" role="status">{notice}</div>}
   </main></Localized>;
 }

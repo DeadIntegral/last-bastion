@@ -13,6 +13,8 @@ describe('battle controls', () => {
     expect(battleHotkeyAction(koreanKey('ㅂ', 'KeyQ').code)).toEqual({ type: 'heroSkill' });
     expect(battleHotkeyAction(koreanKey('ㄷ', 'KeyE').code)).toEqual({ type: 'mobilize' });
     expect(battleHotkeyAction(koreanKey('ㄱ', 'KeyR').code)).toEqual({ type: 'rally' });
+    expect(battleHotkeyAction(koreanKey('ㅋ', 'KeyZ').code)).toEqual({ type: 'supply' });
+    expect(battleHotkeyAction(koreanKey('ㅌ', 'KeyX').code)).toEqual({ type: 'trap' });
     expect(battleHotkeyAction(koreanKey('ㅔ', 'KeyP').code)).toEqual({ type: 'pause' });
   });
 

@@ -1,14 +1,23 @@
 # Illustrated campaign map assets
 
-Five original region panels form the two-dimensionally draggable continent map. They replace the former CSS-only sea, polygon land, triangle mountains, and text forests while leaving stage progression and challenge discovery unchanged.
+The current map uses one continuous continent painting with organic discovery masks. The five earlier region panels and Veil frontier painting remain archived source/runtime assets; they are no longer composited as separate map tiles.
 
 ## Runtime contract
+
+### Unified continent — 2026-09-30
+
+- Source: `continent-master-v1.png`, original built-in imagegen output, 1341 × 1173 RGB (2048 × 1792 requested; actual returned dimensions retained unchanged).
+- Runtime: `continent-v1.webp`, optimized with `cwebp -q 85 -m 6`. The sole live terrain image is stretched to the canonical 2,800 × 2,400 world.
+- One continuous painted landmass replaces the five-region/Veil compositing layout. `ContinentTerrain.tsx` uses soft organic SVG masks for discovered geography and a subtle cleared-region tint; stage/node/label layers remain separate.
+- Generation prompt: original dark-fantasy cartographic continent, high near-top-down oblique view, no horizon/sky, consistent terrain scale and one continuous coastline/watershed/mountain system. Last refuge at the southwest coastal tip, western-central fertile occupied plains, central-eastern ochre basalt highlands, northeastern snowy upland, north-central violet-black blight, far northeastern mistbound highlands. Natural transitions rather than biome panels; muted slate/olive/ochre/frost palette, painterly texture, small dispersed ruins and open objective clearings. No grid, seams, separate biome islands, text, labels, UI, objective castles, armies, compass, painted node routes, parchment or floating island.
+
+### Archived regional assets
 
 - Runtime panels: five 1400 × 630 lossy WebP files, quality 82, approximately 167–204 KB each.
 - Sources: five 1870 × 841 RGB PNG masters under `sources/`.
 - Runtime owner: `src/data/campaignMapArt.ts` defines order, names, six-stage ranges, image paths, two-dimensional region rectangles, node placement, marker art, and rift themes.
-- Gap filling: `campaignMapLandmarks` adds ten milestone-gated CSS-rendered terrain miniatures below roads and nodes, while `farmingMissionPresentation` places the repeatable Gold and mastery sites in two formerly empty pockets. These are code-native overlays and do not require additional bitmap sources.
-- Presentation: panels overlap across a 4,900 × 1,850 world; radial CSS edge masks soften seams while north/south regional movement makes vertical panning meaningful.
+- Cartographic labels: `campaignMapLandmarks` retains ten milestone-gated place names. Old geometric mountains/trees are no longer rendered; the continuous painting supplies terrain. Farm, treasure, rift and monument positions are authored individually.
+- Current presentation: one 2,800 × 2,400 continent image, a southwest coastal starting point, northward authored reconquest paths, and soft geographic discovery masks. The viewport is cropped to discovered bounds with a translated global-coordinate content layer. Old panel rectangles/edge masks are no longer rendered.
 - Node art: three dedicated 320 × 320 transparent PNG markers distinguish occupied outposts, boss citadels, and liberated keeps. PNG is retained for these small overlays to avoid the pale square compositing artifact seen around cleared boss markers; they do not reuse side-view battle-fortress images.
 - Generation mode: built-in image generation tool.
 - Use case: `stylized-concept`.
@@ -26,6 +35,13 @@ Region-specific final requests:
 3. `ash-highland.webp`: rising basalt shelves, switchback passes, mining terraces, broken chimneys, cooled lava beds, restrained glowing fissures, ash forests, and smoke beneath copper ash-filtered light.
 4. `spirit-tundra.webp`: snow plateau, frozen rivers and lakes, evergreen groves, wind-cut ice, broken standing stones, subtle binding-rune circles, distant pale mountains, and a restrained aurora.
 5. `demon-rift.webp`: tundra giving way to shattered charcoal plateaus, restrained violet/crimson ground cracks, twisted woodland, collapsed bridges, broken spire fields, upward ash, and a distant contained rift beneath storm clouds.
+
+## Veil frontier extension — 2026-09-30
+
+- Source: `veil-frontier-master-v1.png`, 1536 × 1024 RGB, original built-in imagegen generation.
+- Runtime: `veil-frontier-v1.webp`, encoded with `cwebp -q 85 -m 6`; canonical path/rectangle in `campaignMapArt.ts`.
+- Display: 1100 × 760 region beyond Chapter 1's final fortress, under separately interactive nodes and a connected road. No baked labels, objective castles, or UI. Prior five regional masters/runtime assets remain intact.
+- Use case: `stylized-concept`. Prompt: original terrain-only dark-fantasy campaign map, high oblique bird's-eye cartographic view, hand-painted realistic medieval fantasy environment; mistbound eastern frontier with blue-gray basalt ridges, dead silver forest, ruined aqueduct fragments, slate marshes, winding rocky lowlands, restrained violet fissures and an upper-right black rocky hill. Dense coherent terrain, moderate detail, subdued cool palette, soft fog at edges, open lowland clearings for runtime fortress markers. No sky/horizon, text, labels, UI, markers, dotted roads, characters, compass, borders, floating island, or objective-like castles.
 
 ## Campaign-map fortress markers
 

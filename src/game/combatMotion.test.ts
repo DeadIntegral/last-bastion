@@ -1,8 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { bossDefinition, heroDefinitions, troopDefinitions } from '../data/units';
-import { attackMotionDurationMs, attackMotionStyle, createAttackMotionPose, projectileVisualStyle, sampleAttackMotion, type AttackMotionStyle } from './combatMotion';
+import { attackMotionDurationMs, attackMotionStyle, createAttackMotionPose, MAGIC_SPEAR_REAR_EXTENT, magicSpearRevealScale, projectileVisualStyle, sampleAttackMotion, type AttackMotionStyle } from './combatMotion';
 
 describe('localized combat attack motion', () => {
+  it('never reveals a magic-spear tail behind its launch point, even on short flights', () => {
+    for (const distance of [0, 25, 100, 245, 500]) {
+      expect(magicSpearRevealScale(0, distance)).toBe(0);
+      for (const progress of [0.01, 0.1, 0.5, 1]) {
+        const rearLength = magicSpearRevealScale(progress, distance) * MAGIC_SPEAR_REAR_EXTENT;
+        expect(rearLength).toBeLessThanOrEqual(distance * progress + 1e-9);
+      }
+    }
+  });
   it('assigns every current troop, hero, and boss a bounded reusable motion style', () => {
     const definitions = [...Object.values(troopDefinitions), ...Object.values(heroDefinitions), bossDefinition];
     const styles: AttackMotionStyle[] = ['slash', 'thrust', 'shoot', 'cast', 'breath', 'crush', 'lunge'];

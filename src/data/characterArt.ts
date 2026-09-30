@@ -1,7 +1,8 @@
-import type { HeroId, UnitId } from '../types/game';
+import type { ExclusiveEnemyId, HeroId, UnitId } from '../types/game';
 import { heroDefinitions, troopDefinitions } from './units';
+import { exclusiveEnemyDefinitions } from './enemies';
 
-export type CharacterArtId = UnitId | HeroId;
+export type CharacterArtId = UnitId | HeroId | ExclusiveEnemyId;
 export type CharacterArtSheetId = 'core' | 'expansion' | 'regional' | 'elemental' | 'demon' | 'transcendent' | 'alliance';
 
 export interface CharacterArtFrame {
@@ -24,7 +25,16 @@ export const CHARACTER_ART_FRAME_WIDTH = 153;
 export const CHARACTER_ART_FRAME_HEIGHT = 160;
 export const TRANSCENDENT_BATTLE_ART_SCALE = 1.9;
 
+export const characterStandaloneArt: Partial<Record<CharacterArtId, { url: string; textureKey: string }>> = Object.fromEntries(
+  Object.keys(exclusiveEnemyDefinitions).map((id) => [id, { url: `/assets/characters/chapter-two/${id}.svg`, textureKey: `veil-${id}` }]),
+);
+
 export const characterBattleArtOffsetY: Partial<Record<CharacterArtId, number>> = {
+  voidSentinel: -16,
+  riftArbalest: -16,
+  nullCantor: -16,
+  duskExecutioner: -20,
+  veilRegent: -30,
   ifrit: -88,
   allianceGuardian: -76,
 };
@@ -92,7 +102,7 @@ export const characterArtFrames: Partial<Record<CharacterArtId, CharacterArtFram
 };
 
 export const proceduralCharacterIcons = Object.fromEntries(
-  [...Object.entries(troopDefinitions), ...Object.entries(heroDefinitions)]
+  [...Object.entries(troopDefinitions), ...Object.entries(heroDefinitions), ...Object.entries(exclusiveEnemyDefinitions)]
     .filter(([id]) => !characterArtFrames[id as CharacterArtId])
     .map(([id, definition]) => [id, definition.icon]),
 ) as Partial<Record<CharacterArtId, string>>;

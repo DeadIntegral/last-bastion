@@ -9,6 +9,8 @@ export const BattleEvent = {
   SPAWN: 'command:spawn',
   SKILL: 'command:skill',
   CASTLE_SKILL: 'command:castle-skill',
+  SUPPLY: 'command:emergency-supply',
+  TRAP: 'command:central-trap',
   MOBILIZE: 'command:mobilize',
   RALLY_MODE: 'command:rally-mode',
   RALLY_CLEAR: 'command:rally-clear',
