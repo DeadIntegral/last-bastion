@@ -28,6 +28,7 @@ The documentation must always describe the game that actually exists in the repo
 ## Toolchain rules
 
 - Use Yarn Classic. Use `yarn install`, `yarn dev`, `yarn test`, `yarn balance`, `yarn lint`, and `yarn build`.
+- `yarn dev` intentionally disables HMR so source edits do not interrupt the user's local playtest. Keep file watching enabled for cache invalidation on manual reload. Use `yarn dev:hmr` only when automatic browser updates are explicitly wanted; do not restart or terminate the user's running development server without need.
 - Use Node.js 22.22.2 or newer. Keep the repository-root `.node-version` pinned to `22.22.2` because Cloudflare Pages v3 defaults to Node 22.16.0, which cannot install jsdom 30.0.1; Pages does not infer Node from `package.json#engines` in that build system.
 - Do not create `package-lock.json` or use npm for project workflows.
 - Use Vite 8.

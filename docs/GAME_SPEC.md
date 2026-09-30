@@ -473,6 +473,8 @@ Schema 11 persists normalized `seenTutorialIds` per campaign slot, including ski
 
 ## 14. Technical architecture
 
+- Development serving defaults to uninterrupted playtesting: `yarn dev` sets Vite HMR to false, suppressing source-triggered hot updates and HTML reloads. File watching remains enabled to invalidate transformed-module caches, so manual browser reloads pick up edits. `yarn dev:hmr` explicitly opts into normal HMR via Vite mode `hmr`. Existing running servers should be restarted once to adopt the changed configuration; Vite/TypeScript configuration changes may still require a server restart. Production builds and save data are unaffected.
+
 - Package manager: Yarn Classic 1.22.22
 - Runtime/tooling Node: minimum 22.22.2; repository `.node-version` pins 22.22.2 for Cloudflare Pages compatibility with jsdom 30.0.1
 - Application: React 19
@@ -593,6 +595,7 @@ Regression tests follow a minimum-sufficient strategy: protect formulas, combat 
 
 - 2026-09-30: Gave every monument an individual fixed price and stat identity, raised the complete collection to +27% Allied HP/Power and +4,000 Fortress HP, and passed built IDs into battle instead of a count. Introduced shared Allies/Power vocabulary, added tier-2 Emergency Supply and Central Trap research/actions with scaled cooldowns and pooled visuals, and verified defeat XP persistence for fallen troops/heroes.
 
+- 2026-09-30: Disabled HMR/automatic browser updates by default for uninterrupted local playtests, retaining watcher invalidation for manual reload and adding the opt-in `yarn dev:hmr` command.
 - 2026-09-30: Removed the temporary Chapter 2 preview button and preview-only routing after user approval; retained the accepted three-scene opening on normal first entry.
 - 2026-09-30: Added a temporary title-screen Chapter 2 opening preview for user feedback, with repeatable playback and title return without changing any campaign save or seen flag.
 - 2026-09-30: Added a three-shot Chapter 2 opening on first entry, shared the cinematic component across chapters, and persisted/migrated per-slot completion in schema 12. Rebalanced the Abyss Mage's cost, durability and cadence against the Archmage while preserving its ground-burst specialization and passing the full pressure audit.

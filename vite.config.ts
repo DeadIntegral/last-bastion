@@ -1,8 +1,13 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
+  server: {
+    // Keep playtesting uninterrupted while files change. The watcher still
+    // invalidates modules so a manual reload gets the latest code.
+    hmr: mode === 'hmr',
+  },
   build: {
     // Phaser ships as one large module. It is isolated and lazy-loaded; this limit keeps
     // the size warning focused on accidental growth in the smaller application chunks.
@@ -23,4 +28,4 @@ export default defineConfig({
     globals: true,
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
   },
-});
+}));
