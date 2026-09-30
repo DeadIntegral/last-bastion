@@ -447,8 +447,6 @@ Defeat settlement still awards participation and contribution XP to deployed tro
 
 ### Chapter 2 opening
 
-**Temporary review control:** at the user's request, the title-screen footer exposes `챕터2 오프닝 미리보기 · 임시` regardless of campaign progress. It runs only the existing Chapter 2 sequence and returns to the title on completion or skip. Preview mode never selects/resets a slot, marks the campaign opening seen, or changes progression. This explicit feedback-only exception is separate from the normal discovery-gated entry and should be removed when review is finished.
-
 Status: **Implemented**. The first intentional Chapter 2 entry through a frontier node, its map shortcut, or the completed-monument action plays a three-shot, 18-second illustrated opening: quiet after victory, light from the commemorative stone, and an expedition following missing scouts into the Veil. Story copy reveals no enemy identities, combat values or advance unlock checklist. `data/opening.ts` owns both chapter sequences; `components/Opening.tsx` owns shared autoplay, preload, skip/Escape and reduced-motion presentation. The original four-scene New Game opening is unchanged. Completion or skipping returns to the first frontier mission, never directly into battle, outside View Transition snapshots.
 
 Schema 12 persists `chapterTwoOpeningSeen` per campaign slot. The action requires actual Chapter 2 availability; pre-discovery imported flags normalize to false. Existing Chapter 2 clears and legacy exclusive-enemy encounters infer completion so established runs are not interrupted. Freshly unlocked saves remain unseen, skipping also records completion, reset clears only the active profile, and export/import preserves the flag. Merely constructing a monument or entering the map does not launch the story.
@@ -595,6 +593,7 @@ Regression tests follow a minimum-sufficient strategy: protect formulas, combat 
 
 - 2026-09-30: Gave every monument an individual fixed price and stat identity, raised the complete collection to +27% Allied HP/Power and +4,000 Fortress HP, and passed built IDs into battle instead of a count. Introduced shared Allies/Power vocabulary, added tier-2 Emergency Supply and Central Trap research/actions with scaled cooldowns and pooled visuals, and verified defeat XP persistence for fallen troops/heroes.
 
+- 2026-09-30: Removed the temporary Chapter 2 preview button and preview-only routing after user approval; retained the accepted three-scene opening on normal first entry.
 - 2026-09-30: Added a temporary title-screen Chapter 2 opening preview for user feedback, with repeatable playback and title return without changing any campaign save or seen flag.
 - 2026-09-30: Added a three-shot Chapter 2 opening on first entry, shared the cinematic component across chapters, and persisted/migrated per-slot completion in schema 12. Rebalanced the Abyss Mage's cost, durability and cadence against the Archmage while preserving its ground-burst specialization and passing the full pressure audit.
 - 2026-09-30: Excluded illustrated fortress markers from the legacy cleared-boss beacon background, removing the green rectangular backdrop behind liberated boss castles while preserving their silhouette glow and flags.

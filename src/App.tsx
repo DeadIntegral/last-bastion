@@ -139,7 +139,7 @@ function ShellHeader({ title, onBack }: { title: string; onBack: () => void }) {
   )}</Localized>;
 }
 
-function MainMenu({ onNavigate, onPreviewChapterTwo }: { onNavigate: (screen: Screen) => void; onPreviewChapterTwo: () => void }) {
+function MainMenu({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
   const resetProgress = useGameStore((state) => state.resetProgress);
   const importSave = useGameStore((state) => state.importSave);
   const [, refreshSlots] = useState(0);
@@ -317,7 +317,6 @@ function MainMenu({ onNavigate, onPreviewChapterTwo }: { onNavigate: (screen: Sc
         <div className="save-slot-footer">
           <button onClick={() => importRef.current?.click()}><span>↓</span> 저장 파일 가져오기</button>
           <button onClick={() => onNavigate('credits')}>크레딧</button>
-          <GameButton variant="ghost" size="small" className="chapter-two-preview" onClick={onPreviewChapterTwo}>챕터2 오프닝 미리보기 · 임시</GameButton>
         </div>
         <input ref={importRef} type="file" accept="application/json,.json" hidden onChange={loadFile} />
       </section>
@@ -903,7 +902,6 @@ export default function App() {
   useTranslation();
   const [screen, setScreen] = useState<Screen>('menu');
   const [openingChapter, setOpeningChapter] = useState<1 | 2>(1);
-  const [openingPreview, setOpeningPreview] = useState(false);
   const [stageId, setStageId] = useState(1);
   const [mapMonumentId, setMapMonumentId] = useState<string | undefined>();
   const [lastBattleStageId, setLastBattleStageId] = useState<number | null>(null);
@@ -939,7 +937,7 @@ export default function App() {
   }, []);
 
   const navigate = useCallback((nextScreen: Screen) => {
-    if (nextScreen === 'opening') { setOpeningChapter(1); setOpeningPreview(false); }
+    if (nextScreen === 'opening') setOpeningChapter(1);
     if (nextScreen === 'menu') { setLastBattleStageId(null); setMapMonumentId(undefined); }
     if (screen === 'menu' && nextScreen === 'stages') {
       const profile = useGameStore.getState();
@@ -965,16 +963,14 @@ export default function App() {
     setLastBattleStageId(401);
     setMapMonumentId(undefined);
     setOpeningChapter(2);
-    setOpeningPreview(false);
     setScreen('opening');
     return true;
   };
 
   const finishOpening = useCallback(() => {
-    if (openingPreview) { setOpeningPreview(false); setScreen('menu'); return; }
     if (openingChapter === 2) useGameStore.getState().markChapterTwoOpeningSeen();
     setScreen('stages');
-  }, [openingChapter, openingPreview]);
+  }, [openingChapter]);
 
   const startStage = (id: number) => {
     setMapMonumentId(undefined);
@@ -1010,7 +1006,7 @@ export default function App() {
   }, []);
 
   const renderScreen = () => {
-  if (screen === 'menu') return <MainMenu onNavigate={navigate} onPreviewChapterTwo={() => { setOpeningChapter(2); setOpeningPreview(true); setScreen('opening'); }} />;
+  if (screen === 'menu') return <MainMenu onNavigate={navigate} />;
   if (screen === 'opening') return <Opening chapter={openingChapter} key={openingChapter} onComplete={finishOpening} />;
   if (screen === 'credits') return <Credits onBack={() => navigate('menu')} />;
   if (screen === 'stages') return <CampaignMap initialMonumentId={mapMonumentId} initialStageId={lastBattleStageId ?? undefined} header={<ShellHeader title="왕국 지도" onBack={() => navigate('menu')} />} operations={<MapCommandCenter onNavigate={navigate} />} onSelect={startStage} onMonuments={() => navigate('monument')} onChapterTwoEntry={requestChapterTwoOpening} />;
